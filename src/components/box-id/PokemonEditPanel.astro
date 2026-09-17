@@ -28,6 +28,8 @@ const itemName = preview.itemName;
 const teraName = pokemon.tera_type ?? '';
 const teraIconUrl = teraTypeIconUrl(teraName);
 const teraFallbackColor = TYPE_COLORS[teraName] ?? DEFAULT_TYPE_COLOR;
+// 匿名ユーザーは編集とメモ保存はできるが、個体・チームの新規作成と削除はできない。
+const isTrialUser = !Astro.locals.user || Astro.locals.user.isAnonymous;
 
 // 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)がスライダー列(最狭・操作対象)を
 // 圧迫するため、表示上はH/A/B/C/D/Sの1文字表記に統一する(相手ビルド箱・/box一覧の
@@ -340,7 +342,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		<section id="pokemon-team-section" class="pokemon-team-section" hidden={!pokemon.id} aria-labelledby="pokemon-team-heading">
 			<h2 id="pokemon-team-heading" class="pokemon-team-heading">チーム</h2>
 			<div id="pokemon-team-list" class="team-grid pokemon-team-list"></div>
-			<button id="create-team-button" class="btn-control pokemon-team-create-button" type="button" disabled={!Astro.locals.user} title={!Astro.locals.user ? "ログインするとチームを作成できます" : undefined}>
+			<button id="create-team-button" class="btn-control pokemon-team-create-button" type="button" disabled={isTrialUser} title={isTrialUser ? "ログインするとチームを作成できます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 				チームを作成
 			</button>
@@ -354,11 +356,11 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 		    (<script>のdeleteButtonクリックハンドラ)に委ねる。スタイルはsrc/styles/box-edit-page.cssの
 		    #delete-button参照。 */}
 		<div class="training-delete-actions">
-			<button id="copy-button" class="btn-control" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインするとコピーできます" : undefined}>
+			<button id="copy-button" class="btn-control" type="button" hidden={!pokemon.id} disabled={isTrialUser && !!pokemon.id} title={isTrialUser && pokemon.id ? "ログインするとコピーできます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
 				コピーを作成
 			</button>
-			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id} disabled={!Astro.locals.user && !!pokemon.id} title={!Astro.locals.user && pokemon.id ? "ログインすると削除できます" : undefined}>
+			<button id="delete-button" class="btn-danger" type="button" hidden={!pokemon.id} disabled={isTrialUser && !!pokemon.id} title={isTrialUser && pokemon.id ? "ログインすると削除できます" : undefined}>
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 				削除
 			</button>

@@ -19,7 +19,7 @@ interface Props {
 
 const { title, description, current, bodyClass, chrome = "app" } = Astro.props;
 const isPublicChrome = chrome === "public";
-const isGuestMode = !Astro.locals.user;
+const isGuestMode = Astro.locals.user?.isAnonymous === true;
 
 const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイド`;
 
@@ -74,6 +74,12 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 			import { setupItemIconFallback } from "../lib/sprite-urls";
 			setupSelectOnFocus();
 			setupItemIconFallback();
+			try {
+				localStorage.removeItem("pokeguide.guest.v2");
+				localStorage.removeItem("pokeguide.guest.v1");
+			} catch {
+				// ストレージが無効な環境でもページ表示は続ける。
+			}
 		</script>
 	</body>
 </html>

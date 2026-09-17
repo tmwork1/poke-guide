@@ -5,7 +5,6 @@ import AppLayout from '../../layouts/AppLayout.astro';
 import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.astro';
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
-import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { MATCHUP_TOP_N } from '../../lib/team-matchup';
 import '../../styles/box-insight-page.css';
@@ -17,20 +16,19 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
-const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
+const pokemon = result?.ok ? result.data : null;
 ---
 
 <AppLayout title="相性" description="使用率上位ポケモンとの攻守の相性" current="box" bodyClass="data-page">
   <div class="page box-data-page box-matchup-page">
-    <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="matchup" />
-    {canRenderSelectedPokemon && pokemon && (
+    <MobilePokemonPreview pokemon={pokemon} activeTab="matchup" />
+    {pokemon && (
       <div class="matchup-direction-tabs" role="tablist" aria-label="相性の方向" data-matchup-active-direction="attack">
         <button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
         <button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
       </div>
     )}
-    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
+    {pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="matchup-preview-title">
         <p class="data-kicker">相性チェック</p>
         <h1 id="matchup-preview-title">ポケモンを選択してください</h1>
@@ -39,11 +37,10 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
       </section>
     )}
 
-    {canRenderSelectedPokemon && pokemon && (
+    {pokemon && (
       <main
         id="box-matchup-main"
         class="box-data-main"
-        data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}
         data-pokemon={JSON.stringify({
           id: pokemon.id,
           species_name: pokemon.species_name,
@@ -73,7 +70,6 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
 
 <script>
   import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
-  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
 
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
   const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
@@ -83,9 +79,7 @@ const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
   const pokemonJson = main?.dataset.pokemon;
 
   if (listElement && statusElement && pokemonJson) {
-    let pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
-    const guestPokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
-    if (guestPokemon) pokemon = guestPokemon;
+    const pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
     const matchupPanel = createMatchupPanel({
       listElement,
       statusElement,

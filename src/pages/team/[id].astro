@@ -36,23 +36,12 @@ import '../../styles/team-edit-page.css';
 const user = Astro.locals.user;
 const id = Astro.params.id;
 const isNewMode = id === 'new';
-const isGuestNewMode = isNewMode && !user;
+const isGuestNewMode = isNewMode && (!user || user.isAnonymous);
 
 let team: Team | null = null;
 let loadError = false;
 
-if (!user && !isNewMode) {
-	const now = new Date().toISOString();
-	team = {
-		id: isNewMode ? '' : (id ?? ''),
-		user_id: '',
-		memo: null,
-		is_pinned: false,
-		created_at: now,
-		updated_at: now,
-		members: [],
-	};
-} else if (isNewMode) {
+if (user && isNewMode) {
 		const now = new Date().toISOString();
 		team = {
 			id: '',
@@ -63,7 +52,7 @@ if (!user && !isNewMode) {
 			updated_at: now,
 			members: [],
 		};
-	} else if (id) {
+	} else if (user && id) {
 		const supabase = await getSupabaseAdminClient();
 		const result = await getTeam(user.id, id, supabase);
 		if (result.ok) {
@@ -191,11 +180,11 @@ if (!isGuestNewMode) {
 								rows={Math.max(3, (team.memo ?? '').split('\n').length)}>{team.memo ?? ''}</textarea>
 							{!isNewMode && (
 								<div class="team-mobile-actions__controls training-delete-actions">
-									<button id="copy-button" class="btn-control" type="button" disabled={!user} title={!user ? "ログインするとコピーできます" : undefined}>
+									<button id="copy-button" class="btn-control" type="button" disabled={!user || user.isAnonymous} title={!user || user.isAnonymous ? "ログインするとコピーできます" : undefined}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="1"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
 										コピー
 									</button>
-									<button id="delete-team-button" class="btn-danger" type="button" disabled={!user} title={!user ? "ログインすると削除できます" : undefined}>
+									<button id="delete-team-button" class="btn-danger" type="button" disabled={!user || user.isAnonymous} title={!user || user.isAnonymous ? "ログインすると削除できます" : undefined}>
 										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 										削除
 									</button>
@@ -342,7 +331,7 @@ if (!isGuestNewMode) {
 		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type TeamRequestBody } from "../../lib/team-validation";
 		import { createOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
-		import { createTeam, deleteTeam, getTeamForGuest, updateTeam } from "../../lib/data/team-repo";
+		import { createTeam, deleteTeam, updateTeam } from "../../lib/data/team-repo";
 		import { isGuestMode } from "../../lib/data/guest-mode";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
 		import { STAT_KEYS, NATURE_STAT_MODIFIERS, calcHpStat, calcOtherStat } from "../../lib/stats";
@@ -461,14 +450,6 @@ if (!isGuestNewMode) {
 			setupAppHeaderSwipe(document.querySelector<HTMLElement>(".app-header"), layoutRoot);
 			let teamId = layoutRoot.dataset.teamId as string;
 			let initialTeam: InitialTeam = JSON.parse(layoutRoot.dataset.initialTeam || "{}");
-			if (isGuestMode() && teamId) {
-				const guestTeam = getTeamForGuest(teamId);
-				if (!guestTeam) {
-					window.location.href = "/team";
-					throw new Error("Guest team not found");
-				}
-				initialTeam = guestTeam;
-			}
 			const teamRegulation = initialTeam.regulation ?? null;
 
 			function el<T extends HTMLElement>(id: string): T {
@@ -1075,111 +1056,9 @@ if (!isGuestNewMode) {
 				return Array.from(membersBySlot.values()).map((p) => p.id);
 			}
 
-			// ゲストの個体IDは localStorage 専用の guest- 接頭辞であり、
-			// /api/team-suggestions が受け付ける UUID でも、サーバー側で所有確認できるIDでもない。
-			// 公開されているランク入り構築を使い、同じ「現在の編成と一緒に採用されやすい種族」を
-			// クライアント側で集計する。ログインユーザーは従来どおり、型まで考慮する API を使う。
-			let guestRankedTeamsPromise: Promise<RankedTeam[]> | null = null;
-			async function loadAllRankedTeamsForGuest(): Promise<RankedTeam[]> {
-				if (!rankedSeason) return [];
-				if (!guestRankedTeamsPromise) {
-					guestRankedTeamsPromise = (async () => {
-						const teams: RankedTeam[] = [];
-						let offset = 0;
-						const limit = 50;
-						while (true) {
-							const res = await fetch(`/api/ranked-teams?season=${encodeURIComponent(rankedSeason)}&limit=${limit}&offset=${offset}`, { credentials: "same-origin" });
-							if (!res.ok) throw new Error(`ゲスト用おすすめの取得に失敗しました (status=${res.status})`);
-							const page = (await res.json()) as { teams?: RankedTeam[]; hasMore?: boolean };
-							const pageTeams = page.teams ?? [];
-							teams.push(...pageTeams);
-							if (!page.hasMore || pageTeams.length === 0) return teams;
-							offset += pageTeams.length;
-						}
-					})().catch((error) => {
-						guestRankedTeamsPromise = null;
-						throw error;
-					});
-				}
-				return guestRankedTeamsPromise;
-			}
-
-			async function loadGuestSuggestions(): Promise<TeamSuggestion[]> {
-				const seedSpecies = new Set(
-					Array.from(membersBySlot.values())
-						.map((member) => member.species_name)
-						.filter((name) => name.trim() !== ""),
-				);
-				const usedDexNos = new Set(
-					Array.from(seedSpecies)
-						.map((name) => resolveDexNo(name))
-						.filter((dexNo): dexNo is number => dexNo !== null),
-				);
-				const teams = await loadAllRankedTeamsForGuest();
-				const seedTeamCounts = new Map<string, number>();
-				const candidates = new Map<string, {
-					member: RankedTeam["members"][number];
-					teams: number;
-					seedCounts: Map<string, number>;
-				}>();
-
-				for (const team of teams) {
-					const teamSpecies = new Set(team.members.map((member) => member.speciesKey ?? member.speciesName));
-					const matchedSeeds = Array.from(seedSpecies).filter((species) => teamSpecies.has(species));
-					if (seedSpecies.size > 0 && matchedSeeds.length === 0) continue;
-					for (const seed of matchedSeeds) seedTeamCounts.set(seed, (seedTeamCounts.get(seed) ?? 0) + 1);
-					for (const member of team.members) {
-						const speciesName = member.speciesKey ?? member.speciesName;
-						if (!speciesName || seedSpecies.has(speciesName)) continue;
-						const dexNo = resolveDexNo(speciesName);
-						if (dexNo !== null && usedDexNos.has(dexNo)) continue;
-						const candidate = candidates.get(speciesName) ?? {
-							member,
-							teams: 0,
-							seedCounts: new Map<string, number>(),
-						};
-						candidate.teams += 1;
-						for (const seed of matchedSeeds) {
-							candidate.seedCounts.set(seed, (candidate.seedCounts.get(seed) ?? 0) + 1);
-						}
-						candidates.set(speciesName, candidate);
-					}
-				}
-
-				return Array.from(candidates, ([speciesName, candidate]) => {
-					const topSeed = Array.from(candidate.seedCounts.entries())
-						.sort((a, b) => b[1] - a[1])[0];
-					const seedTeams = topSeed ? (seedTeamCounts.get(topSeed[0]) ?? 0) : 0;
-					return {
-						speciesName,
-						dexNo: resolveDexNo(speciesName),
-						abilityName: candidate.member.ability,
-						itemName: candidate.member.itemName,
-						role: null,
-						archetypeShare: null,
-						archetypeTeams: null,
-						usageTeams: candidate.teams,
-						totalTeams: teams.length,
-						itemConflict: false,
-						reason: topSeed ? {
-							seedSpeciesName: topSeed[0],
-							coTeams: topSeed[1],
-							seedTeams,
-							ratio: seedTeams > 0 ? topSeed[1] / seedTeams : 0,
-							lift: 0,
-						} : null,
-					};
-				})
-					.sort((a, b) => b.usageTeams - a.usageTeams || a.speciesName.localeCompare(b.speciesName, "ja"))
-					.slice(0, 12);
-			}
-
 			// 現在の編成に対するおすすめを1回取得する。描画も重複抑止も行わない純粋な取得処理で、
 			// 表示用の loadSuggestions と、自動構築(autoBuildFormation)の両方から使う。
 			async function fetchSuggestions(memberIds: string[]): Promise<{ suggestions: TeamSuggestion[]; basis: string }> {
-				if (isGuestMode()) {
-					return { suggestions: await loadGuestSuggestions(), basis: "ranked-teams" };
-				}
 				const query = memberIds.length > 0 ? `?member_ids=${encodeURIComponent(memberIds.join(","))}` : "";
 				const res = await fetch(`/api/team-suggestions${query}`, { credentials: "same-origin" });
 				if (!res.ok) throw new Error(`サジェストの取得に失敗しました (status=${res.status})`);

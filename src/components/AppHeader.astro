@@ -9,8 +9,8 @@ interface Props {
 }
 
 const { id, ariaLabel, toolbar = false, showGuestBadge = false, showGuestLogin = false, class: className } = Astro.props;
-const showGuestModeBadge = showGuestBadge && !Astro.locals.user;
-const showGuestLoginLink = showGuestLogin && !Astro.locals.user;
+const showGuestModeBadge = showGuestBadge && Astro.locals.user?.isAnonymous === true;
+const showGuestLoginLink = showGuestLogin && Astro.locals.user?.isAnonymous === true;
 ---
 
 <nav id={id} class={`app-header${toolbar ? ' app-header--toolbar' : ''}${className ? ` ${className}` : ''}`} {ariaLabel}>

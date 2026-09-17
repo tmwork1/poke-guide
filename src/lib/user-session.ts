@@ -39,12 +39,18 @@ export interface SessionUser {
   id: string;
   email: string | null;
   displayName: string | null;
+  isAnonymous: boolean;
 }
 
-function toSessionUser(user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> }): SessionUser {
+export function toSessionUser(user: {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown>;
+  is_anonymous?: boolean;
+}): SessionUser {
   const metadata = user.user_metadata ?? {};
   const displayName = (metadata.full_name as string | undefined) ?? (metadata.name as string | undefined) ?? null;
-  return { id: user.id, email: user.email ?? null, displayName };
+  return { id: user.id, email: user.email ?? null, displayName, isAnonymous: user.is_anonymous === true };
 }
 
 // `astro dev` 実行時のみ使うダミーユーザー。本番ビルドでは import.meta.env.DEV が false になるため使われない。
@@ -54,6 +60,15 @@ export const DEV_SESSION_USER: SessionUser = {
   id: '00000000-0000-0000-0000-000000000001',
   email: 'dev@localhost',
   displayName: 'ローカル開発ユーザー',
+  isAnonymous: false,
+};
+
+/** `--guest` 用の固定匿名ユーザー。ローカルAuthの匿名発行設定に依存せず画面を検証できる。 */
+export const DEV_ANONYMOUS_USER: SessionUser = {
+  id: '00000000-0000-0000-0000-000000000002',
+  email: null,
+  displayName: null,
+  isAnonymous: true,
 };
 
 // devモードのみ参照するゲスト強制cookie。`/api/auth/login`・`/api/auth/logout` は
@@ -65,7 +80,7 @@ const DEV_FORCE_GUEST_COOKIE = 'poke-dev-force-guest';
 
 export async function getSessionUser(request: Request, cookies: AstroCookies): Promise<SessionUser | null> {
   if (import.meta.env.DEV) {
-    if (cookies.get(DEV_FORCE_GUEST_COOKIE)?.value === '1') return null;
+    if (cookies.get(DEV_FORCE_GUEST_COOKIE)?.value === '1') return DEV_ANONYMOUS_USER;
     return DEV_SESSION_USER;
   }
 

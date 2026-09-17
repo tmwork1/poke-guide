@@ -7,20 +7,17 @@ const { currentUser } = Astro.props;
 import '../styles/debug-auth-toggle.css';
 ---
 
-<label class="debug-auth-toggle" aria-label="開発用ゲストモード切り替え">
+<label class="debug-auth-toggle" aria-label="開発用匿名ユーザー切り替え">
   <input id="debug-auth-toggle-input" type="checkbox" checked={!currentUser} />
   <span class="debug-auth-toggle__track" aria-hidden="true">
     <span class="debug-auth-toggle__thumb"></span>
   </span>
-  <span class="debug-auth-toggle__state">ゲストモード</span>
+  <span class="debug-auth-toggle__state">匿名ユーザー</span>
 </label>
 
 <script>
-  // `npm run dev` はセッションを見ずに常にダミーのログイン済みユーザーを返す
-  // (src/lib/user-session.ts の DEV_SESSION_USER)。そのため /api/auth/login・
-  // /api/auth/logout を実際に呼んでも次のリクエストで即座に上書きされてしまい、
-  // このトグルの見た目が常にONへ戻る不具合が実測で確認された。
-  // 代わりに同ファイルが読む dev 専用cookieを直接書き換えて表示を切り替える。
+  // `npm run dev` は固定の通常ユーザーを返す。ONでは固定の匿名ユーザーへ切り替え、
+  // `signInAnonymously()` を使わずに匿名画面と初期データを確認できる。
   const COOKIE_NAME = 'poke-dev-force-guest';
   const toggle = document.getElementById('debug-auth-toggle-input') as HTMLInputElement | null;
   toggle?.addEventListener('change', () => {

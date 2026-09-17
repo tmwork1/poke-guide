@@ -75,6 +75,7 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
 export async function DELETE({ request, cookies, params }: APIContext): Promise<Response> {
   const user = await getSessionUser(request, cookies);
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
+  if (user.isAnonymous) return jsonResponse({ error: 'Anonymous users cannot delete pokemon' }, 403);
 
   if (!isSameOrigin(request)) {
     return jsonResponse({ error: 'Forbidden' }, 403);

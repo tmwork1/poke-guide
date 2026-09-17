@@ -19,9 +19,9 @@ const previewPokemon: OwnedPokemonRecord = pokemon ?? createMobilePreviewPlaceho
 const isNew = !previewPokemon.id;
 const master = (pokemonMasterRaw as PreviewPokemonMasterEntry[]).find((entry) => entry.name === previewPokemon.species_name);
 const detail = (pokemonDetailRaw as PreviewPokemonDetailEntry[]).find((entry) => entry.name === previewPokemon.species_name);
-// ゲストのSSRではlocalStorageを読めないため、このプレビューは空の個体で先に描画される。
-// 値の有無で寸法が変わるCSSを足すとゲストだけ後続のhydrationで揺れるので、寸法は
-// プレースホルダ状態で確定させる（mobile-pokemon-preview.css）。
+// 新規作成時や未認証時は空の個体を描画する。値の有無で寸法が変わるCSSを足すと
+// 後続の描画で揺れるため、寸法はプレースホルダ状態で確定させる
+// （mobile-pokemon-preview.css）。
 const preview = buildPokemonPreviewViewModel(previewPokemon, { species: master, detail });
 const itemName = preview.itemName;
 // データ系タブのプレビューは編集フォームと同期しないため、持ち物がなければ

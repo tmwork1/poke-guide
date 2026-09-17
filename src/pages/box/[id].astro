@@ -26,16 +26,19 @@ import '../../styles/box-edit-page.css';
 import '../../styles/box-damage-page.css';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemon';
+import { listOpponentNotes, type OpponentNoteRecord } from '../../lib/opponent-notes';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
 const isNewMode = id === "new";
-const isGuestNewMode = isNewMode && !user;
+const isGuestNewMode = isNewMode && (!user || user.isAnonymous);
+const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'damage' ? 'damage' : 'training';
 
 let pokemon: OwnedPokemonRecord | null = null;
 let loadError = false;
+let initialOpponentNotes: OpponentNoteRecord[] = [];
 
 // 種族選択モーダルの並び順に使うOP.GGランキング。個体の取得結果に依存しないので、
 // ログイン中の個体取得とは並列に待つ(ゲスト・新規でも同じ並び順にするため常に取得する)。
@@ -61,9 +64,7 @@ const opggRankedSpeciesPromise = (async () => {
 	}
 })();
 
-if (!user && !isNewMode) {
-	pokemon = createMobilePreviewPlaceholder(id ?? '');
-} else if (user && isNewMode) {
+if (user && isNewMode) {
 	pokemon = { ...createMobilePreviewPlaceholder(''), user_id: user.id };
 } else if (user && id) {
 	const supabase = await getSupabaseAdminClient();
@@ -75,6 +76,11 @@ if (!user && !isNewMode) {
 	}
 	if (!pokemon && !loadError) {
 		Astro.response.status = 404;
+	}
+	if (pokemon && initialMobileTab === 'damage') {
+		const notesResult = await listOpponentNotes(user.id, pokemon.id, supabase);
+		if (notesResult.ok) initialOpponentNotes = notesResult.data;
+		else console.error('[box/[id]] failed to load opponent notes', notesResult.error);
 	}
 }
 
@@ -105,7 +111,6 @@ const pageTitle = pokemon && pokemon.species_name ? pokemon.species_name : "ポ�
 const bodyClass = pokemon ? "box-edit-page" : undefined;
 // クエリ指定時も最初のHTMLからヘッダーと本文の表示状態をそろえる。
 // クライアント初期化まで待つと、特に復帰表示時に「育成」が一瞬選択されたままになる。
-const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'damage' ? 'damage' : 'training';
 
 // 匿名集計サジェスト機能・第4段階(UI: 収集拒否トグル)。owned_pokemon.collection_opt_out_until
 // (null=収集対象、未来日時=拒否期間中)から、SSR時点での「拒否中かどうか」と「残り日数」を
@@ -186,7 +191,7 @@ const initialMobileTab = !isNewMode && Astro.url.searchParams.get('tab') === 'da
 				</section>
 			) : (
 				<>
-					<DamageCalcSection pokemonId={pokemon.id} />
+					<DamageCalcSection pokemonId={pokemon.id} initialNotes={initialOpponentNotes} />
 					<StatAdjustSheet />
 				</>
 			)}

@@ -50,10 +50,7 @@ import { shouldHighlightEvCalendarValue } from "../ev-calendar-highlight";
 import { classifyArchetype, type ArchetypeKey } from "../archetype";
 import { renderTeamCard } from "../team-card";
 import type { Team } from "../team";
-import { listGuestTeams } from "../data/guest-store";
 import { createTeam, updateTeam } from "../data/team-repo";
-import { isGuestMode } from "../data/guest-mode";
-import { hydrateGuestPagePokemon } from "../data/guest-page-hydration";
 import { createOwnedPokemon, deleteOwnedPokemon, updateOwnedPokemon } from "../data/pokemon-repo";
 import { OWNED_EDIT_CHANGED_EVENT, type OwnedEditChangedDetail } from "./owned-edit-events";
 import {
@@ -607,17 +604,6 @@ export async function loadPopularBuildSuggestions(
 let hasBaseStatsForDurabilityIndex = false;
 const form = typeof document === "undefined" ? null : document.getElementById("edit-form") as HTMLFormElement | null;
 if (form) {
-	const guestPokemonIdForHydration = form.dataset.id ?? "";
-	const guestPokemonForHydration = hydrateGuestPagePokemon(guestPokemonIdForHydration);
-	const shouldHydrateGuestPokemon = guestPokemonForHydration !== null;
-	if (guestPokemonForHydration) {
-		// レベル・タグ・性格は直接の入力UIが無いため、buildPayload()/性格初期化より先に
-		// SSR用data属性を実データへ差し替える。
-		form.dataset.level = guestPokemonForHydration.level == null ? "" : String(guestPokemonForHydration.level);
-		form.dataset.tags = JSON.stringify(guestPokemonForHydration.tags);
-		form.dataset.nature = guestPokemonForHydration.nature ?? "";
-	}
-	let isGuestHydrating = false;
 	/** Keep the mobile training preview synchronized with the training form. */
 	function syncPokemonPreview(): void {
 		const setText = (targetId: string, value: string): void => {
@@ -1161,11 +1147,8 @@ if (form) {
 		const speciesName = speciesInput.value.trim();
 		const isGameScreenOcrApplying = form.dataset.gameScreenOcrApplying === "true";
 		void evPresetBadges.load(speciesName);
-		// ゲスト個体のhydrationでは保存済みの構成を復元するため、種族選択時の
-		// 人気構成による自動入力を行わない。立ち絵タップのフォルム切り替えも既存の
-		// 育成内容を保持し、特性だけを切り替え先の候補へ再構築する。
 		const isFormToggle = isPreviewFormToggleChangeEvent(event);
-		const shouldAutoFill = !isGuestHydrating && !isFormToggle && !isGameScreenOcrApplying;
+		const shouldAutoFill = !isFormToggle && !isGameScreenOcrApplying;
 		// 種族モーダルは input→change の順で発火し、input に付いた保存リスナーが700msの
 		// 保存予約を先に入れている。OP.GG取得が700msを超えても途中状態を保存しないよう、
 		// ここで予約を取り消して一括適用フラグを立て、全項目の反映後に1回だけ保存する。
@@ -1400,7 +1383,7 @@ if (form) {
 	let isApplyingSpeedChartEdit = false;
 
 	async function saveNow(): Promise<void> {
-		if (isGuestHydrating || isNavigatingAfterCreate) return;
+		if (isNavigatingAfterCreate) return;
 		if (saving) {
 			pendingRetry = true;
 			return;
@@ -1455,7 +1438,7 @@ if (form) {
 		syncPokemonPreview();
 		// OCR適用中は各入力イベントでは保存せず、全項目の反映後のcommitイベントで1回だけ保存する。
 		if (form.dataset.gameScreenOcrApplying === "true") return;
-		if (isGuestHydrating || isNavigatingAfterCreate) return;
+		if (isNavigatingAfterCreate) return;
 		// すばやさ調整モーダル(iframe)は開いたページのSSRデータのまま動くため、保存の完了を
 		// 待たずに編集中の内容を流し込む(→ SpeedAdjustDialog.astro が iframe へ中継する)。
 		// 編集の入口はすべてscheduleSave()を通るので、ここ1箇所で持ち物・特性・性格・努力値・
@@ -1775,87 +1758,6 @@ if (form) {
 
 	void loadOwnedPokemonTeams();
 	setupCreateTeamButton();
-
-	async function hydrateGuestPokemon(): Promise<void> {
-		if (!shouldHydrateGuestPokemon) return;
-		const guestPokemon = guestPokemonForHydration;
-		if (!guestPokemon) return;
-
-		isGuestHydrating = true;
-		try {
-			// 保存経路にある既存リスナーへ通知して、候補再構築・画像・実数値・プレビュー更新を
-			// 通常の種族選択と同じ順路で動かす。hydration中のscheduleSaveは上で抑止する。
-			form.dataset.level = guestPokemon.level == null ? "" : String(guestPokemon.level);
-			form.dataset.tags = JSON.stringify(guestPokemon.tags);
-			form.dataset.nature = guestPokemon.nature ?? "";
-			speciesInput.value = guestPokemon.species_name;
-			speciesInput.dispatchEvent(new Event("input", { bubbles: true }));
-			speciesInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-			// 種族に応じた候補が非同期で作られるため、完了後に保存済み特性を戻す。マスターに
-			// 無い表記でも、SSR時の既存個体と同様に選択肢を1件足して値を失わせない。
-			await rebuildAbilityOptions(guestPokemon.species_name);
-			const abilityValue = guestPokemon.ability_name ?? "";
-			if (!Array.from(abilitySelectEl.options).some((option) => option.value === abilityValue)) {
-				const option = document.createElement("option");
-				option.value = abilityValue;
-				option.textContent = abilityValue || "特性";
-				abilitySelectEl.appendChild(option);
-			}
-			abilitySelectEl.value = abilityValue;
-			abilitySelectEl.dispatchEvent(new Event("input", { bubbles: true }));
-			abilitySelectEl.dispatchEvent(new Event("change", { bubbles: true }));
-
-			itemInput.value = guestPokemon.item_name ?? "";
-			itemInput.dispatchEvent(new Event("input", { bubbles: true }));
-			itemInput.dispatchEvent(new Event("change", { bubbles: true }));
-
-			teraSelect.value = guestPokemon.tera_type ?? "";
-			teraSelect.dispatchEvent(new Event("change", { bubbles: true }));
-
-			for (let slot = 1; slot <= 4; slot++) {
-				const input = document.getElementById(`move-${slot}`) as HTMLInputElement | null;
-				if (!input) continue;
-				input.value = guestPokemon.move_names[slot - 1] ?? "";
-				input.dispatchEvent(new Event("input", { bubbles: true }));
-			}
-
-			const memoInput = el<HTMLTextAreaElement>("memo");
-			memoInput.value = guestPokemon.memo ?? "";
-			memoInput.dispatchEvent(new Event("input", { bubbles: true }));
-
-			const natureModifier = NATURE_STAT_MODIFIERS[guestPokemon.nature ?? ""] ?? { up: null, down: null };
-			editNatureUp = natureModifier.up;
-			editNatureDown = natureModifier.down;
-			nextEditNatureNeutralAssignment = natureModifier.up && natureModifier.down ? "down" : "up";
-			refreshNatureButtons();
-
-			for (let index = 0; index < STAT_KEYS.length; index++) {
-				const key = STAT_KEYS[index];
-				const rawValue = guestPokemon.evs[index];
-				const value = Number.isFinite(rawValue) ? Math.min(32, Math.max(0, Math.round(rawValue))) : 0;
-				const input = el<HTMLInputElement>(`ev-${key}`);
-				const range = el<HTMLInputElement>(`ev-${key}-range`);
-				input.value = String(value);
-				range.value = String(value);
-				input.dispatchEvent(new Event("input", { bubbles: true }));
-			}
-
-			await recalcStats();
-	} finally {
-		isGuestHydrating = false;
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
-			debounceTimer = undefined;
-		}
-		pendingRetry = false;
-		statusEl.dataset.state = "saved";
-		statusTextEl.textContent = "保存済み";
-		retryButton.classList.remove("visible");
-	}
-	}
-
-	void hydrateGuestPokemon();
 }
 
 // メモ欄の下に、この個体が所属しているチーム一覧を表示する(読み取り専用。カードクリックで
@@ -1869,14 +1771,10 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";
 	if (!listEl || !sectionEl || !ownedPokemonId) return;
 	try {
-		const allTeams: Team[] = isGuestMode()
-			? listGuestTeams()
-			: await (async () => {
-				const res = await fetch("/api/teams", { credentials: "same-origin" });
-				if (!res.ok) return [];
-				const body = (await res.json().catch(() => ({}))) as { teams?: Team[] };
-				return body.teams ?? [];
-			})();
+		const res = await fetch("/api/teams", { credentials: "same-origin" });
+		if (!res.ok) return;
+		const body = (await res.json().catch(() => ({}))) as { teams?: Team[] };
+		const allTeams = body.teams ?? [];
 		const teams = allTeams.filter((t) =>
 			t.members.some((m) => m.owned_pokemon.id === ownedPokemonId),
 		);
@@ -1931,8 +1829,8 @@ async function loadOwnedPokemonTeams(): Promise<void> {
 }
 
 // 「チームを作成」: このポケモンを1枠目に入れた新規チームを作り、/team/[id]の編成タブへ遷移する。
-// 作成手順はteam/[id].astroのチームコピー(createTeam → updateTeam(members))と同じ。ゲストは
-// createTeamが失敗するので、SSR側(PokemonEditPanel.astro)でdisabledにしてある。
+// 作成手順はteam/[id].astroのチームコピー(createTeam → updateTeam(members))と同じ。匿名ユーザーは
+// 作成できないため、SSR側(PokemonEditPanel.astro)でdisabledにしてある。
 function setupCreateTeamButton(): void {
 	const button = document.getElementById("create-team-button") as HTMLButtonElement | null;
 	const ownedPokemonId = (document.getElementById("edit-form") as HTMLFormElement | null)?.dataset.id ?? "";

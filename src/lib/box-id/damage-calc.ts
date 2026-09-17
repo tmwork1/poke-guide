@@ -26,14 +26,6 @@ import {
 	type SequenceAttack,
 } from "../pyodide-engine";
 import type { OpponentNoteRecord } from "../opponent-notes";
-import {
-	createGuestOpponentNote,
-	deleteGuestOpponentNote,
-	listGuestOpponentNotes,
-	updateGuestOpponentNote,
-} from "../data/guest-store";
-import { isGuestMode } from "../data/guest-mode";
-import { ensureFixedGuestPokemon } from "../data/pokemon-repo";
 import type {
 	OpponentBuildInput,
 	OpponentFieldInput,
@@ -1897,41 +1889,31 @@ if (opponentNotesSection) {
 				// メモ欄はUIから廃止したが、既存メモに入っている文章は保ったまま送り返す
 				// (PUTは全項目上書きの契約なので、送らないと黙って消える)。
 				memo: row.memo.trim() === "" ? null : row.memo.trim(),
-			} satisfies import("../data/guest-store").GuestOpponentNoteInput;
+			};
 
-			if (isGuestMode()) {
-				// ゲストの個体と同じく対戦相手メモもブラウザにしか存在しない。
-				// API経由だと未ログインで弾かれるうえ、匿名集計の二次記録も発生しない。
-				if (row.id) {
-					if (!updateGuestOpponentNote(row.id, payload)) throw new Error("保存先のメモが見つかりません。");
-				} else {
-					row.id = createGuestOpponentNote(ownedPokemonId, payload).id;
-				}
+			let res: Response;
+			if (row.id) {
+				res = await fetch(`/api/opponent-notes/${encodeURIComponent(row.id)}`, {
+					method: "PUT",
+					credentials: "same-origin",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
 			} else {
-				let res: Response;
-				if (row.id) {
-					res = await fetch(`/api/opponent-notes/${encodeURIComponent(row.id)}`, {
-						method: "PUT",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify(payload),
-					});
-				} else {
-					res = await fetch("/api/opponent-notes", {
-						method: "POST",
-						credentials: "same-origin",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ ...payload, owned_pokemon_id: ownedPokemonId }),
-					});
-				}
-				if (!res.ok) {
-					const errBody = (await res.json().catch(() => ({}))) as { error?: string };
-					throw new Error(errBody.error ?? `保存に失敗しました (status=${res.status})`);
-				}
-				if (!row.id) {
-					const created = (await res.json()) as { data: OpponentNoteRecord };
-					row.id = created.data.id;
-				}
+				res = await fetch("/api/opponent-notes", {
+					method: "POST",
+					credentials: "same-origin",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ ...payload, owned_pokemon_id: ownedPokemonId }),
+				});
+			}
+			if (!res.ok) {
+				const errBody = (await res.json().catch(() => ({}))) as { error?: string };
+				throw new Error(errBody.error ?? `保存に失敗しました (status=${res.status})`);
+			}
+			if (!row.id) {
+				const created = (await res.json()) as { data: OpponentNoteRecord };
+				row.id = created.data.id;
 			}
 			setRowSaveStatus(row, "saved", "保存済み");
 		} catch (err) {
@@ -1950,15 +1932,11 @@ if (opponentNotesSection) {
 	async function deleteRow(row: DamageRowState): Promise<void> {
 		if (row.id) {
 			try {
-				if (isGuestMode()) {
-					if (!deleteGuestOpponentNote(row.id)) throw new Error("削除先のメモが見つかりません。");
-				} else {
-					const res = await fetch(`/api/opponent-notes/${encodeURIComponent(row.id)}`, {
-						method: "DELETE",
-						credentials: "same-origin",
-					});
-					if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
-				}
+				const res = await fetch(`/api/opponent-notes/${encodeURIComponent(row.id)}`, {
+					method: "DELETE",
+					credentials: "same-origin",
+				});
+				if (!res.ok) throw new Error(`削除に失敗しました (status=${res.status})`);
 			} catch (err) {
 				console.error(err);
 				window.alert("削除に失敗しました。時間をおいて再度お試しください。");
@@ -3683,16 +3661,12 @@ if (opponentNotesSection) {
 	async function fetchAndRenderRows(): Promise<void> {
 		damageRowsListEl.innerHTML = "";
 		try {
-			const notes = isGuestMode()
-				? (ensureFixedGuestPokemon(), listGuestOpponentNotes(ownedPokemonId))
-				: await (async (): Promise<OpponentNoteRecord[]> => {
-					const res = await fetch(`/api/opponent-notes?owned_pokemon_id=${encodeURIComponent(ownedPokemonId)}`, {
-						credentials: "same-origin",
-					});
-					if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { data: OpponentNoteRecord[] };
-					return body.data;
-				})();
+			const res = await fetch(`/api/opponent-notes?owned_pokemon_id=${encodeURIComponent(ownedPokemonId)}`, {
+				credentials: "same-origin",
+			});
+			if (!res.ok) throw new Error(`一覧の取得に失敗しました (status=${res.status})`);
+			const body = (await res.json()) as { data: OpponentNoteRecord[] };
+			const notes = body.data;
 			const rowsNeedingResave: DamageRowState[] = [];
 			rows = notes.map((note) => {
 				const { row, needsResave, order } = noteToRowState(note);

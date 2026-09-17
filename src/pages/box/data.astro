@@ -6,7 +6,6 @@ import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.a
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import BattleDataCard from '../../components/data/BattleDataCard.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
-import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { hasSingleBattleData } from '../../lib/battle-data-card';
 import {
@@ -25,9 +24,7 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-// ゲスト個体はlocalStorageにしかないため、SSRではIDだけの枠を描いてクライアントで反映する。
-const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
-const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
+const pokemon = result?.ok ? result.data : null;
 
 const lookupName = pokemon ? resolveOpggSpeciesName(pokemon.species_name) : null;
 const seasonManifest = await getOpggUsageManifest(env.OPGG_USAGE);
@@ -51,8 +48,8 @@ const hasData = hasSingleBattleData(opgg);
 
 <AppLayout title="バトルデータ" description="OP.GG使用率データ" current="box" bodyClass="data-page">
   <div class="page box-data-page">
-    <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="battle-data" />
-    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
+    <MobilePokemonPreview pokemon={pokemon} activeTab="battle-data" />
+    {pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="data-preview-title">
         <p class="data-kicker">育成データレビュー</p>
         <h1 id="data-preview-title">ポケモンを選択してください</h1>
@@ -61,10 +58,10 @@ const hasData = hasSingleBattleData(opgg);
       </section>
     )}
 
-    {canRenderSelectedPokemon && pokemon && (
-      <main class="box-data-main" data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}>
+    {pokemon && (
+      <main class="box-data-main">
         <section class:list={{ 'data-panel': true, 'data-panel--has-data': hasData }}>
-          {hasData || !user ? (
+          {hasData ? (
             <BattleDataCard single={single} />
           ) : (
             <section class="data-empty" aria-live="polite">
@@ -77,37 +74,3 @@ const hasData = hasSingleBattleData(opgg);
     )}
   </div>
 </AppLayout>
-
-<script>
-  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
-  import { renderBattleDataCardHtml } from '../../lib/battle-data-card-html';
-  import type { SingleFormatData } from '../../lib/battle-data-card';
-  const main = document.querySelector<HTMLElement>('.box-data-main');
-
-  function renderBattleDataCard(single: SingleFormatData): void {
-    const card = document.querySelector<HTMLElement>('[data-battle-data-card]');
-    if (!card) return;
-    card.outerHTML = renderBattleDataCardHtml(single);
-  }
-
-  // SSRの空プレビューをlocalStorageの個体で置き換え、種族名だけを使う公開APIから
-  // バトルデータを読む。個体の育成内容はサーバーへ送らない。
-  const guestPokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
-  if (guestPokemon) {
-      // プレビュー用マスターデータの読み込みに失敗しても、公開バトルデータは取得する。
-      const response = await fetch(`/api/opgg-usage?species=${encodeURIComponent(guestPokemon.species_name)}&category=all`);
-      const body = await response.json().catch(() => ({})) as { single?: SingleFormatData | null };
-      const single = body.single;
-      const hasData = Boolean(single && (['abilities', 'natures', 'items', 'moves', 'evs', 'teammates'] as const).some(
-        (key) => Array.isArray(single[key]) && single[key]!.length > 0,
-      ));
-      // SSRはゲストの種族名を知らないため .data-panel--has-data(カード拡大用、box-insight-page.css参照)を
-      // 付けられない。実データが揃ったここで、ログイン時と同じ判定基準(hasSingleBattleData)で
-      // 付け直す(サイズが縮んだままになる不具合の実測修正)。
-      if (response.ok && hasData && single) {
-        document.querySelector('.data-panel')?.classList.add('data-panel--has-data');
-        renderBattleDataCard(single);
-      }
-  }
-
-</script>

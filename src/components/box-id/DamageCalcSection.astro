@@ -1,11 +1,26 @@
 ---
+import type { OpponentNoteRecord } from '../../lib/opponent-notes';
+
 interface Props {
-
 	pokemonId: string;
-
+	/** JS 無効時にも保存済みカードであることを示すための SSR フォールバック。 */
+	initialNotes?: OpponentNoteRecord[];
 }
 
-const { pokemonId } = Astro.props;
+const { pokemonId, initialNotes = [] } = Astro.props;
+
+function stringValue(value: unknown): string {
+	return typeof value === 'string' ? value : '';
+}
+
+function attackNames(value: unknown): string[] {
+	if (!value || typeof value !== 'object') return [];
+	const attacks = (value as { attacks?: unknown }).attacks;
+	if (!Array.isArray(attacks)) return [];
+	return attacks
+		.map((attack) => attack && typeof attack === 'object' ? stringValue((attack as { moveName?: unknown }).moveName) : '')
+		.filter((name) => name !== '');
+}
 import '../../styles/box-damage-page.css';
 import '../../styles/box-add-button.css';
 import '../../styles/box-damage-card.css';
@@ -27,6 +42,16 @@ import '../../styles/box-damage-card.css';
 	</p>
 
 	<div id="damage-rows-list" class="damage-rows-list">
+		{initialNotes.map((note) => {
+			const opponentName = stringValue(note.opponent_build.name);
+			const moves = attackNames(note.field);
+			return (
+				<article class="card card-damage" data-opponent-note-id={note.id}>
+					<h2 class="card-title">{opponentName || '対戦相手'}</h2>
+					<p class="card-hint">{moves.length > 0 ? moves.join(' → ') : note.move_name ?? '技未設定'}</p>
+				</article>
+			);
+		})}
 	</div>
 
 	{/* 右下固定の追加ボタン。box/index.astroの.floating-list-add-button(常設1つの丸い

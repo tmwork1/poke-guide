@@ -6,7 +6,6 @@ import MobilePokemonPreview from '../../components/box-id/MobilePokemonPreview.a
 import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsModalHost.astro';
 import RankedTeamsSearchHeader from '../../components/ranked-teams/RankedTeamsSearchHeader.astro';
 import { getOwnedPokemon } from '../../lib/owned-pokemon';
-import { createMobilePreviewPlaceholder } from '../../lib/box-id/mobile-preview-placeholder';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
@@ -23,8 +22,7 @@ const selectedId = Astro.url.searchParams.get('pokemon');
 const result = user && selectedId
   ? await getOwnedPokemon(user.id, selectedId, await getSupabaseAdminClient())
   : null;
-const pokemon = result?.ok ? result.data : (selectedId ? createMobilePreviewPlaceholder(selectedId) : null);
-const canRenderSelectedPokemon = result?.ok || (!user && selectedId !== null);
+const pokemon = result?.ok ? result.data : null;
 let rankedSeason: string | null = null;
 let rankedSeasons: Awaited<ReturnType<typeof listRankedSeasons>> = [];
 if (pokemon) {
@@ -39,8 +37,8 @@ if (pokemon) {
 
 <AppLayout title="上位チーム" description="このポケモンを採用した上位構築" current="box" bodyClass="data-page">
   <div class="page box-data-page box-ranked-page">
-    <MobilePokemonPreview pokemon={canRenderSelectedPokemon ? pokemon : null} activeTab="ranked-teams" />
-    {canRenderSelectedPokemon && pokemon && (
+    <MobilePokemonPreview pokemon={pokemon} activeTab="ranked-teams" />
+    {pokemon && (
       <RankedTeamsSearchHeader
         idPrefix="box-ranked"
         seasons={rankedSeasons}
@@ -48,7 +46,7 @@ if (pokemon) {
         class="box-ranked-second-header"
       />
     )}
-    {canRenderSelectedPokemon && pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
+    {pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="ranked-preview-title">
         <p class="data-kicker">育成データレビュー</p>
         <h1 id="ranked-preview-title">ポケモンを選択してください</h1>
@@ -57,11 +55,10 @@ if (pokemon) {
       </section>
     )}
 
-    {canRenderSelectedPokemon && pokemon && (
+    {pokemon && (
       <main
         class="box-data-main"
         data-ranked-season={rankedSeason ?? ''}
-        data-guest-pokemon-id={!user ? selectedId ?? '' : undefined}
         data-pokemon-build={JSON.stringify({
           species_name: pokemon.species_name,
           ability_name: pokemon.ability_name,
@@ -97,7 +94,6 @@ if (pokemon) {
   import { matchesTopBuildSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
   import { createRankedTeamCardRenderer, setupRankedTeamsSearchHeader } from '../../lib/ranked-teams/search-header';
   import { reloadOnBfcacheRestore } from '../../lib/shared/reload-on-bfcache-restore';
-  import { hydrateGuestPagePokemon } from '../../lib/data/guest-page-hydration';
 
   const main = document.querySelector<HTMLElement>('.box-data-main');
   const panel = document.querySelector<HTMLElement>('#ranked-data-panel');
@@ -275,17 +271,6 @@ if (pokemon) {
     }
   }
 
-  function hydrateGuestRankedPokemon(): void {
-    const pokemon = hydrateGuestPagePokemon(main?.dataset.guestPokemonId ?? '');
-    if (!pokemon) return;
-    pokemonBuildJson = JSON.stringify({
-      species_name: pokemon.species_name,
-      ability_name: pokemon.ability_name,
-      item_name: pokemon.item_name,
-      move_names: pokemon.move_names,
-    });
-  }
-
   if (main) {
     header = setupRankedTeamsSearchHeader({
       idPrefix: 'box-ranked',
@@ -309,7 +294,6 @@ if (pokemon) {
       },
     });
 
-    hydrateGuestRankedPokemon();
     if (selectedRankedSeason) void loadRankedBuilds(true);
     reloadOnBfcacheRestore(() => {
       selectedRankedSeason = header.getSeason();
