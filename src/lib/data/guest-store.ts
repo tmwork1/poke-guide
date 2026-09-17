@@ -44,10 +44,26 @@ export interface GuestOpponentNoteInput {
   memo: string | null;
 }
 
+/** A deterministic opponent note bundled with the fixed guest samples. */
+export interface FixedGuestOpponentNoteInput {
+  id: string;
+  owned_pokemon_id: string;
+  input: GuestOpponentNoteInput;
+}
+
+export interface FixedGuestDataInput {
+  version: number;
+  pokemon: ReadonlyArray<{ id: string } & GuestPokemonInput>;
+  opponentNotes: ReadonlyArray<FixedGuestOpponentNoteInput>;
+}
+
 type GuestOpponentNoteData = Omit<OpponentNoteRecord, 'user_id'>;
 
 interface GuestStoreState {
   version: 2;
+  // This is independent from the storage schema version above. Older v2
+  // snapshots did not have it, and are treated as fixed-data version 0.
+  fixedDataVersion: number;
   initialized: boolean;
   pokemon: GuestPokemonData[];
   teams: GuestTeamData[];
@@ -59,7 +75,7 @@ let storageUnavailable = false;
 let legacyStorageChecked = false;
 
 function emptyState(): GuestStoreState {
-  return { version: 2, initialized: false, pokemon: [], teams: [], opponentNotes: [] };
+  return { version: 2, fixedDataVersion: 0, initialized: false, pokemon: [], teams: [], opponentNotes: [] };
 }
 
 function isGuestId(value: unknown): value is string {
@@ -96,6 +112,7 @@ function cloneOpponentNote(note: GuestOpponentNoteData): GuestOpponentNoteData {
 function cloneState(state: GuestStoreState): GuestStoreState {
   return {
     version: 2,
+    fixedDataVersion: state.fixedDataVersion ?? 0,
     initialized: state.initialized,
     pokemon: state.pokemon.map(clonePokemon),
     teams: state.teams.map(cloneTeam),
@@ -120,8 +137,11 @@ function isStoredState(value: unknown): value is GuestStoreState {
     && typeof state.initialized === 'boolean'
     && Array.isArray(state.pokemon)
     && Array.isArray(state.teams)
-    // opponentNotes追加前のv2スナップショットを無効化せず、読み込み時に空配列で補う。
-    && (state.opponentNotes === undefined || Array.isArray(state.opponentNotes));
+    // opponentNotes / fixedDataVersion追加前のv2スナップショットを無効化しない。
+    // 読み込み時にそれぞれ空配列 / 0で補う。
+    && (state.opponentNotes === undefined || Array.isArray(state.opponentNotes))
+    && (state.fixedDataVersion === undefined
+      || (typeof state.fixedDataVersion === 'number' && Number.isInteger(state.fixedDataVersion) && state.fixedDataVersion >= 0));
 }
 
 /**
@@ -159,7 +179,7 @@ function readState(): GuestStoreState {
       memoryState = emptyState();
       return cloneState(memoryState);
     }
-    memoryState = cloneState({ ...parsed, opponentNotes: parsed.opponentNotes ?? [] });
+    memoryState = cloneState({ ...parsed, fixedDataVersion: parsed.fixedDataVersion ?? 0, opponentNotes: parsed.opponentNotes ?? [] });
     return cloneState(memoryState);
   } catch (error) {
     warnInvalidStoredData(error);
@@ -299,6 +319,79 @@ export function createGuestPokemonWithId(id: string, input: GuestPokemonInput = 
     };
     state.pokemon.push(pokemon);
     return toOwnedPokemonRecord(pokemon);
+  });
+}
+
+/**
+ * Insert the fixed guest samples once and migrate only their canonical item
+ * and Tera-type values when the bundled sample data changes. User-created
+ * Pokémon and notes are deliberately left untouched.
+ */
+export function ensureFixedGuestData(input: FixedGuestDataInput): void {
+  if (!Number.isInteger(input.version) || input.version < 1) {
+    throw new Error('Fixed guest data version must be a positive integer');
+  }
+
+  mutateState((state) => {
+    const needsMigration = state.fixedDataVersion < input.version;
+    const now = new Date().toISOString();
+
+    for (const { id, ...pokemonInput } of input.pokemon) {
+      const existing = state.pokemon.find((pokemon) => pokemon.id === id);
+      if (!existing) {
+        state.pokemon.push({
+          id,
+          species_name: pokemonInput.species_name ?? '',
+          level: pokemonInput.level ?? null,
+          nature: pokemonInput.nature ?? null,
+          ability_name: pokemonInput.ability_name ?? null,
+          item_name: pokemonInput.item_name ?? null,
+          tera_type: pokemonInput.tera_type ?? null,
+          evs: [...(pokemonInput.evs ?? [0, 0, 0, 0, 0, 0])],
+          ivs: [...(pokemonInput.ivs ?? [31, 31, 31, 31, 31, 31])],
+          move_names: [...(pokemonInput.move_names ?? [])],
+          memo: pokemonInput.memo ?? null,
+          tags: [...(pokemonInput.tags ?? [])],
+          source_build_slug: pokemonInput.source_build_slug ?? null,
+          share_slug: pokemonInput.share_slug ?? null,
+          is_public: pokemonInput.is_public ?? false,
+          created_at: now,
+          updated_at: now,
+          last_used_at: pokemonInput.last_used_at ?? null,
+          collection_opt_out_until: pokemonInput.collection_opt_out_until ?? null,
+          archetype_id: pokemonInput.archetype_id ?? null,
+        });
+        continue;
+      }
+
+      // The fixed-data migration is intentionally narrow: do not reset moves,
+      // EVs, memo, or any other values a guest may have customized.
+      if (needsMigration && (existing.item_name !== (pokemonInput.item_name ?? null)
+        || existing.tera_type !== (pokemonInput.tera_type ?? null))) {
+        existing.item_name = pokemonInput.item_name ?? null;
+        existing.tera_type = pokemonInput.tera_type ?? null;
+        existing.updated_at = now;
+      }
+    }
+
+    if (needsMigration) {
+      for (const fixedNote of input.opponentNotes) {
+        if (state.opponentNotes.some((note) => note.id === fixedNote.id)) continue;
+        if (!state.pokemon.some((pokemon) => pokemon.id === fixedNote.owned_pokemon_id)) continue;
+        state.opponentNotes.push({
+          id: fixedNote.id,
+          owned_pokemon_id: fixedNote.owned_pokemon_id,
+          opponent_build: { ...fixedNote.input.opponent_build },
+          field: { ...fixedNote.input.field },
+          move_name: fixedNote.input.move_name,
+          client_result: fixedNote.input.client_result ? { ...fixedNote.input.client_result } : null,
+          memo: fixedNote.input.memo,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      state.fixedDataVersion = input.version;
+    }
   });
 }
 

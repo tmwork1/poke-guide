@@ -33,6 +33,7 @@ import {
 	updateGuestOpponentNote,
 } from "../data/guest-store";
 import { isGuestMode } from "../data/guest-mode";
+import { ensureFixedGuestPokemon } from "../data/pokemon-repo";
 import type {
 	OpponentBuildInput,
 	OpponentFieldInput,
@@ -3683,7 +3684,7 @@ if (opponentNotesSection) {
 		damageRowsListEl.innerHTML = "";
 		try {
 			const notes = isGuestMode()
-				? listGuestOpponentNotes(ownedPokemonId)
+				? (ensureFixedGuestPokemon(), listGuestOpponentNotes(ownedPokemonId))
 				: await (async (): Promise<OpponentNoteRecord[]> => {
 					const res = await fetch(`/api/opponent-notes?owned_pokemon_id=${encodeURIComponent(ownedPokemonId)}`, {
 						credentials: "same-origin",

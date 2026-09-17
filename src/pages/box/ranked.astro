@@ -115,9 +115,19 @@ if (pokemon) {
     similarity: number;
   };
   let scoredRankedTeams: ScoredRankedTeam[] = [];
+  let rankedList: HTMLElement | null = null;
+  let typeMatchedList: HTMLElement | null = null;
+  let speciesMatchedList: HTMLElement | null = null;
+  const rankedTeamCards = new Map<string, HTMLElement>();
 
   function setRankedStatus(message: string, state?: 'loading' | 'error'): void {
     if (!panel) return;
+    const currentStatus = panel.querySelector<HTMLElement>('#ranked-data-status');
+    if (
+      panel.childElementCount === 1 &&
+      currentStatus?.textContent === message &&
+      currentStatus.dataset.state === state
+    ) return;
     panel.innerHTML = '';
     const status = document.createElement('p');
     // SSRが出す <p id="ranked-data-status"> を作り直しているので、idも引き継ぐ。
@@ -128,6 +138,23 @@ if (pokemon) {
     if (state) status.dataset.state = state;
     status.textContent = message;
     panel.appendChild(status);
+  }
+
+  function ensureRankedLists(): void {
+    if (rankedList && typeMatchedList && speciesMatchedList) return;
+    rankedList = document.createElement('div');
+    rankedList.className = 'box-ranked-results';
+    typeMatchedList = document.createElement('div');
+    typeMatchedList.className = 'team-grid';
+    speciesMatchedList = document.createElement('div');
+    speciesMatchedList.className = 'team-grid';
+    rankedList.append(typeMatchedList, speciesMatchedList);
+  }
+
+  function resetRankedCards(): void {
+    rankedTeamCards.clear();
+    typeMatchedList?.replaceChildren();
+    speciesMatchedList?.replaceChildren();
   }
 
   function renderRankedBuilds(): void {
@@ -144,22 +171,31 @@ if (pokemon) {
       return;
     }
 
-    panel.replaceChildren();
-    const rankedList = document.createElement('div');
-    rankedList.className = 'box-ranked-results';
-    const typeMatchedList = document.createElement('div');
-    typeMatchedList.className = 'team-grid';
-    const speciesMatchedList = document.createElement('div');
-    speciesMatchedList.className = 'team-grid';
-    rankedList.append(typeMatchedList, speciesMatchedList);
-    panel.append(rankedList);
+    ensureRankedLists();
+    const lists = [typeMatchedList!, speciesMatchedList!];
+    if (panel.firstElementChild !== rankedList || panel.childElementCount !== 1) {
+      panel.replaceChildren(rankedList!);
+    }
 
+    const displayedCards = new Set<HTMLElement>();
     for (const entry of filtered) {
-      const destination = entry.similarity > 0 ? typeMatchedList : speciesMatchedList;
-      destination.appendChild(cardRenderer.renderCard(
-        entry.team,
-        entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
-      ));
+      const destination = entry.similarity > 0 ? typeMatchedList! : speciesMatchedList!;
+      let card = rankedTeamCards.get(entry.team.id);
+      if (!card) {
+        card = cardRenderer.renderCard(
+          entry.team,
+          entry.similarity > 0 ? { highlightSlot: entry.matched.slot } : undefined,
+        );
+        rankedTeamCards.set(entry.team.id, card);
+      }
+      displayedCards.add(card);
+      destination.append(card);
+    }
+
+    for (const list of lists) {
+      for (const card of Array.from(list.children)) {
+        if (!displayedCards.has(card as HTMLElement)) card.remove();
+      }
     }
   }
 
@@ -171,7 +207,9 @@ if (pokemon) {
       rankedOffset = 0;
       hasMoreRankedTeams = false;
       scoredRankedTeams = [];
+      resetRankedCards();
       cardRenderer.resetTapExpandedTeams();
+      setRankedStatus('上位チームを計算中…', 'loading');
     }
     const generation = rankedLoadGeneration;
     if (rankedLoadingGeneration === generation) return;
@@ -254,6 +292,7 @@ if (pokemon) {
       onSearchChange: renderRankedBuilds,
       onDensityChange: () => {
         cardRenderer.resetTapExpandedTeams();
+        resetRankedCards();
         renderRankedBuilds();
       },
       onSeasonChange: (season) => {
@@ -264,7 +303,10 @@ if (pokemon) {
     });
     cardRenderer = createRankedTeamCardRenderer({
       getDisplayMode: header.getDisplayMode,
-      onCardExpand: renderRankedBuilds,
+      onCardExpand: () => {
+        resetRankedCards();
+        renderRankedBuilds();
+      },
     });
 
     hydrateGuestRankedPokemon();

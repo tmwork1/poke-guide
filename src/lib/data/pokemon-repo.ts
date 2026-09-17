@@ -3,11 +3,13 @@
 
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import type { OwnedPokemonRequestBody } from '../owned-pokemon-validation';
+import type { OpponentBuildInput } from '../opponent-notes';
 import {
-  createGuestPokemonWithId,
   deleteGuestPokemon,
+  ensureFixedGuestData,
   listGuestPokemon,
   updateGuestPokemon,
+  type FixedGuestOpponentNoteInput,
   type GuestPokemonInput,
 } from './guest-store';
 import { isGuestMode } from './guest-mode';
@@ -34,7 +36,7 @@ export const GUEST_FIXED_POKEMON: Array<{ id: string } & GuestPokemonInput> = [
   {
     id: 'guest-fixed-リザードン',
     species_name: 'リザードン', level: 50, nature: 'おくびょう', ability_name: 'もうか',
-    item_name: 'あつぞこブーツ', tera_type: 'はがね', evs: [2, 0, 0, 32, 0, 32],
+    item_name: 'リザードナイトY', tera_type: 'はがね', evs: [2, 0, 0, 32, 0, 32],
     move_names: ['かえんほうしゃ', 'エアスラッシュ', 'りゅうのはどう', 'おにび'],
   },
   {
@@ -58,35 +60,102 @@ export const GUEST_FIXED_POKEMON: Array<{ id: string } & GuestPokemonInput> = [
   {
     id: 'guest-fixed-ラグラージ',
     species_name: 'ラグラージ', level: 50, nature: 'いじっぱり', ability_name: 'げきりゅう',
-    item_name: 'とつげきチョッキ', tera_type: 'はがね', evs: [32, 32, 0, 0, 0, 2],
+    item_name: 'ラグラージナイト', tera_type: 'はがね', evs: [32, 32, 0, 0, 0, 2],
     move_names: ['じしん', 'たきのぼり', 'れいとうパンチ', 'クイックターン'],
   },
   {
     id: 'guest-fixed-メガニウム',
     species_name: 'メガニウム', level: 50, nature: 'ずぶとい', ability_name: 'しんりょく',
-    item_name: 'ゴツゴツメット', tera_type: '水', evs: [32, 0, 32, 0, 0, 2],
+    item_name: 'メガニウムナイト', tera_type: 'みず', evs: [32, 0, 32, 0, 0, 2],
     move_names: ['やどりぎのタネ', 'リフレクター', 'ちょうはつ', 'タネマシンガン'],
   },
   {
     id: 'guest-fixed-バクフーン',
     species_name: 'バクフーン', level: 50, nature: 'おくびょう', ability_name: 'もうか',
-    item_name: 'こだわりメガネ', tera_type: '草', evs: [2, 0, 0, 32, 0, 32],
+    item_name: 'こだわりスカーフ', tera_type: 'くさ', evs: [2, 0, 0, 32, 0, 32],
     move_names: ['かえんほうしゃ', 'だいちのちから', 'きあいだま', 'れいとうビーム'],
   },
   {
     id: 'guest-fixed-オーダイル',
     species_name: 'オーダイル', level: 50, nature: 'いじっぱり', ability_name: 'げきりゅう',
-    item_name: 'こだわりハチマキ', tera_type: 'ノーマル', evs: [2, 32, 0, 0, 0, 32],
+    item_name: 'ラムのみ', tera_type: 'ノーマル', evs: [2, 32, 0, 0, 0, 32],
     move_names: ['じしん', 'たきのぼり', 'しんそく', 'アイアンテール'],
   },
 ];
 
-/** Create any missing fixed guest records without replacing guest edits. */
+export const GUEST_FIXED_DATA_VERSION = 1;
+
+const GUEST_FIXED_OPPONENTS = {
+  garchomp: {
+    name: 'ガブリアス', level: 50, nature: 'いじっぱり', abilityName: 'さめはだ', itemName: 'オボンのみ',
+    moveNames: ['ドラゴンテール', 'じしん', 'ステルスロック', 'まきびし'], evs: [32, 0, 32, 0, 0, 2],
+  },
+  incineroar: {
+    name: 'ガオガエン', level: 50, abilityName: 'いかく', itemName: 'オボンのみ',
+    moveNames: ['つるぎのまい', 'ドレインパンチ'],
+  },
+  gholdengo: {
+    name: 'サーフゴー', level: 50, abilityName: 'おうごんのからだ', itemName: 'こだわりスカーフ',
+    moveNames: ['ゴールドラッシュ', 'シャドーボール', '10まんボルト', 'トリック'], evs: [1, 0, 0, 32, 1, 32],
+  },
+  corviknight: {
+    name: 'アーマーガア', level: 50, nature: 'しんちょう', abilityName: 'プレッシャー', itemName: 'たべのこし',
+    moveNames: ['ブレイブバード', 'ビルドアップ', 'はねやすめ', 'ちょうはつ'], evs: [32, 0, 0, 0, 28, 6],
+  },
+  swampert: {
+    name: 'ラグラージ', level: 50, nature: 'いじっぱり', abilityName: 'すいすい', itemName: 'ラグラージナイト',
+    moveNames: ['ウェーブタックル', 'じしん', 'れいとうパンチ', 'まもる'], evs: [16, 23, 0, 0, 0, 27],
+  },
+} satisfies Record<string, OpponentBuildInput>;
+
+function fixedGuestNote(
+  speciesName: string,
+  noteNumber: number,
+  opponent_build: OpponentBuildInput,
+  moveNames: string[],
+): FixedGuestOpponentNoteInput {
+  return {
+    id: `guest-fixed-note-${speciesName}-${noteNumber}`,
+    owned_pokemon_id: `guest-fixed-${speciesName}`,
+    input: {
+      opponent_build,
+      field: { direction: 'attack', attacks: moveNames.map((moveName) => ({ moveName })) },
+      move_name: moveNames[0] ?? null,
+      client_result: null,
+      memo: null,
+    },
+  };
+}
+
+/** Two deterministic damage cards per fixed Pokémon: one hit and a sequence. */
+export const GUEST_FIXED_OPPONENT_NOTES: FixedGuestOpponentNoteInput[] = [
+  fixedGuestNote('フシギバナ', 1, GUEST_FIXED_OPPONENTS.garchomp, ['ヘドロばくだん']),
+  fixedGuestNote('フシギバナ', 2, GUEST_FIXED_OPPONENTS.garchomp, ['ギガドレイン', 'ヘドロばくだん']),
+  fixedGuestNote('リザードン', 1, GUEST_FIXED_OPPONENTS.gholdengo, ['かえんほうしゃ']),
+  fixedGuestNote('リザードン', 2, GUEST_FIXED_OPPONENTS.gholdengo, ['エアスラッシュ', 'かえんほうしゃ']),
+  fixedGuestNote('カメックス', 1, GUEST_FIXED_OPPONENTS.incineroar, ['ハイドロポンプ']),
+  fixedGuestNote('カメックス', 2, GUEST_FIXED_OPPONENTS.incineroar, ['ハイドロポンプ', 'れいとうビーム']),
+  fixedGuestNote('ジュカイン', 1, GUEST_FIXED_OPPONENTS.swampert, ['リーフストーム']),
+  fixedGuestNote('ジュカイン', 2, GUEST_FIXED_OPPONENTS.swampert, ['リーフストーム', 'きあいだま']),
+  fixedGuestNote('バシャーモ', 1, GUEST_FIXED_OPPONENTS.corviknight, ['フレアドライブ']),
+  fixedGuestNote('バシャーモ', 2, GUEST_FIXED_OPPONENTS.corviknight, ['フレアドライブ', 'インファイト']),
+  fixedGuestNote('ラグラージ', 1, GUEST_FIXED_OPPONENTS.garchomp, ['じしん']),
+  fixedGuestNote('ラグラージ', 2, GUEST_FIXED_OPPONENTS.garchomp, ['じしん', 'たきのぼり']),
+  fixedGuestNote('メガニウム', 1, GUEST_FIXED_OPPONENTS.garchomp, ['タネマシンガン']),
+  fixedGuestNote('メガニウム', 2, GUEST_FIXED_OPPONENTS.garchomp, ['タネマシンガン', 'タネマシンガン']),
+  fixedGuestNote('バクフーン', 1, GUEST_FIXED_OPPONENTS.gholdengo, ['かえんほうしゃ']),
+  fixedGuestNote('バクフーン', 2, GUEST_FIXED_OPPONENTS.gholdengo, ['かえんほうしゃ', 'だいちのちから']),
+  fixedGuestNote('オーダイル', 1, GUEST_FIXED_OPPONENTS.incineroar, ['たきのぼり']),
+  fixedGuestNote('オーダイル', 2, GUEST_FIXED_OPPONENTS.incineroar, ['じしん', 'たきのぼり']),
+];
+
+/** Create and migrate the fixed guest Pokémon and their deterministic note cards. */
 export function ensureFixedGuestPokemon(): void {
-  const existingIds = new Set(listGuestPokemon().map((pokemon) => pokemon.id));
-  for (const { id, ...pokemon } of GUEST_FIXED_POKEMON) {
-    if (!existingIds.has(id)) createGuestPokemonWithId(id, pokemon);
-  }
+  ensureFixedGuestData({
+    version: GUEST_FIXED_DATA_VERSION,
+    pokemon: GUEST_FIXED_POKEMON,
+    opponentNotes: GUEST_FIXED_OPPONENT_NOTES,
+  });
 }
 
 export async function listOwnedPokemonPage(
