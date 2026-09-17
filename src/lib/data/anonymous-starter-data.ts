@@ -30,23 +30,36 @@ const STARTER_OPPONENTS = {
   swampert: { name: 'ラグラージ', level: 50, nature: 'いじっぱり', abilityName: 'すいすい', itemName: 'ラグラージナイト', moveNames: ['ウェーブタックル', 'じしん', 'れいとうパンチ', 'まもる'], evs: [16, 23, 0, 0, 0, 27] },
 } satisfies Record<string, OpponentBuildInput>;
 
-type StarterOpponentNote = { speciesName: string; opponentBuild: OpponentBuildInput; moveNames: string[] };
+type StarterOpponentNote = {
+  speciesName: string;
+  opponentBuild: OpponentBuildInput;
+  // 'attack': この所持ポケモンが moveNames で相手を殴る。'defense': 相手が moveNames でこの所持ポケモンを殴る。
+  direction: 'attack' | 'defense';
+  moveNames: string[];
+};
 
-function starterNote(speciesName: string, opponentBuild: OpponentBuildInput, moveNames: string[]): StarterOpponentNote {
-  return { speciesName, opponentBuild, moveNames };
+function attackNote(speciesName: string, opponentBuild: OpponentBuildInput, moveNames: string[]): StarterOpponentNote {
+  return { speciesName, opponentBuild, direction: 'attack', moveNames };
 }
 
-/** Two fixed damage cards for each starter Pokémon. */
+function defenseNote(speciesName: string, opponentBuild: OpponentBuildInput, moveNames: string[]): StarterOpponentNote {
+  return { speciesName, opponentBuild, direction: 'defense', moveNames };
+}
+
+/**
+ * Two fixed damage cards for each starter Pokémon: a single-move attack card and a
+ * multi-move defense card (opponent's moves added together against this Pokémon).
+ */
 export const ANONYMOUS_STARTER_OPPONENT_NOTES: StarterOpponentNote[] = [
-  starterNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['ヘドロばくだん']), starterNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['ギガドレイン', 'ヘドロばくだん']),
-  starterNote('リザードン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), starterNote('リザードン', STARTER_OPPONENTS.gholdengo, ['エアスラッシュ', 'かえんほうしゃ']),
-  starterNote('カメックス', STARTER_OPPONENTS.incineroar, ['ハイドロポンプ']), starterNote('カメックス', STARTER_OPPONENTS.incineroar, ['ハイドロポンプ', 'れいとうビーム']),
-  starterNote('ジュカイン', STARTER_OPPONENTS.swampert, ['リーフストーム']), starterNote('ジュカイン', STARTER_OPPONENTS.swampert, ['リーフストーム', 'きあいだま']),
-  starterNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['フレアドライブ']), starterNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['フレアドライブ', 'インファイト']),
-  starterNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん']), starterNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん', 'たきのぼり']),
-  starterNote('メガニウム', STARTER_OPPONENTS.garchomp, ['タネマシンガン']), starterNote('メガニウム', STARTER_OPPONENTS.garchomp, ['タネマシンガン', 'タネマシンガン']),
-  starterNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), starterNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ', 'だいちのちから']),
-  starterNote('オーダイル', STARTER_OPPONENTS.incineroar, ['たきのぼり']), starterNote('オーダイル', STARTER_OPPONENTS.incineroar, ['じしん', 'たきのぼり']),
+  attackNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['ヘドロばくだん']), defenseNote('フシギバナ', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
+  attackNote('リザードン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), defenseNote('リザードン', STARTER_OPPONENTS.gholdengo, ['10まんボルト', 'シャドーボール']),
+  attackNote('カメックス', STARTER_OPPONENTS.incineroar, ['ハイドロポンプ']), defenseNote('カメックス', STARTER_OPPONENTS.incineroar, ['ドレインパンチ', 'ドレインパンチ']),
+  attackNote('ジュカイン', STARTER_OPPONENTS.swampert, ['リーフストーム']), defenseNote('ジュカイン', STARTER_OPPONENTS.swampert, ['れいとうパンチ', 'ウェーブタックル']),
+  attackNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['フレアドライブ']), defenseNote('バシャーモ', STARTER_OPPONENTS.corviknight, ['ブレイブバード', 'ブレイブバード']),
+  attackNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん']), defenseNote('ラグラージ', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
+  attackNote('メガニウム', STARTER_OPPONENTS.garchomp, ['タネマシンガン']), defenseNote('メガニウム', STARTER_OPPONENTS.garchomp, ['じしん', 'ドラゴンテール']),
+  attackNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['かえんほうしゃ']), defenseNote('バクフーン', STARTER_OPPONENTS.gholdengo, ['シャドーボール', 'ゴールドラッシュ']),
+  attackNote('オーダイル', STARTER_OPPONENTS.incineroar, ['たきのぼり']), defenseNote('オーダイル', STARTER_OPPONENTS.incineroar, ['ドレインパンチ', 'ドレインパンチ']),
 ];
 
 const initializedUserIds = new Set<string>();
@@ -82,13 +95,14 @@ async function seedAnonymousStarterData(userId: string, supabase: SupabaseClient
   const savedTeam = await replaceTeam(userId, createdTeam.data.id, teamInput, supabase);
   if (!savedTeam.ok || !savedTeam.data) throw new Error(savedTeam.ok ? 'Failed to create starter team' : savedTeam.error);
 
-  for (const note of ANONYMOUS_STARTER_OPPONENT_NOTES) {
+  // The damage tab lists cards by created_at DESC, so insert in reverse to show the attack card first.
+  for (const note of [...ANONYMOUS_STARTER_OPPONENT_NOTES].reverse()) {
     const ownedPokemonId = starterIds.get(note.speciesName);
     if (!ownedPokemonId) throw new Error(`Starter Pokémon is missing: ${note.speciesName}`);
     const input = required(validateOpponentNoteRequestBody({
       owned_pokemon_id: ownedPokemonId,
       opponent_build: note.opponentBuild,
-      field: { direction: 'attack', attacks: note.moveNames.map((moveName) => ({ moveName })) },
+      field: { direction: note.direction, attacks: note.moveNames.map((moveName) => ({ moveName })) },
       move_name: note.moveNames[0] ?? null,
       client_result: null,
       memo: null,
