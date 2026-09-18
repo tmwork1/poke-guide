@@ -1,0 +1,36 @@
+---
+import '../../styles/opponent-select-dialog.css';
+---
+
+<div id="opponent-select-backdrop" class="opponent-select-backdrop" hidden></div>
+<div id="opponent-select-dialog" class="opponent-select-dialog" role="dialog" aria-modal="true" aria-labelledby="opponent-select-dialog-title" tabindex="-1" hidden>
+	<div class="species-select-header opponent-select-header">
+		<h2 id="opponent-select-dialog-title" class="species-select-title opponent-select-title">相手ポケモンを選ぶ</h2>
+		<button type="button" id="opponent-select-close-button" class="btn-ghost species-select-close opponent-select-close" aria-label="閉じる">×</button>
+	</div>
+	<div class="species-select-search-sort-row opponent-select-search-sort-row">
+		<div class="search-input-wrap species-select-search-wrap opponent-select-search-wrap">
+			<svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="11" cy="11" r="7" />
+				<line x1="21" y1="21" x2="16.65" y2="16.65" />
+			</svg>
+			<input type="text" id="opponent-select-search-input" class="field-control species-select-search-input opponent-select-search-input" placeholder="ポケモン・タイプ・特性・わざ" aria-label="ポケモン・タイプ・特性・わざで検索" autocomplete="off" />
+		</div>
+		<div class="species-select-sort-wrap opponent-select-sort-wrap">
+			<button type="button" id="opponent-select-sort-button" class="species-select-sort-button opponent-select-sort-button" aria-haspopup="true" aria-expanded="false">⇅ 人気</button>
+			<div id="opponent-select-sort-panel" class="species-select-sort-panel opponent-select-sort-panel" hidden>
+				<button type="button" class="species-select-sort-option opponent-select-sort-option" data-sort="popularity">人気</button>
+				<button type="button" class="species-select-sort-option opponent-select-sort-option" data-sort="dex">番号</button>
+				<button type="button" class="species-select-sort-option opponent-select-sort-option" data-sort="kana">名前</button>
+			</div>
+		</div>
+	</div>
+	<div id="opponent-select-list-wrap" class="opponent-select-list-wrap">
+		<div id="opponent-select-list" class="opponent-select-list" role="listbox" aria-label="相手ポケモンを選ぶ"></div>
+		<p id="opponent-select-empty" class="opponent-select-empty" hidden>条件に一致するポケモンがありません</p>
+	</div>
+</div>
+
+<script>
+	import '../../lib/box-id/opponent-select-dialog';
+</script>

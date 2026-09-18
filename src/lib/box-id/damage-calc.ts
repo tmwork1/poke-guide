@@ -61,6 +61,7 @@ import { loadMatchupTargets } from "../matchup-panel";
 // 持ち物ドロップダウン(pokemon-edit-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
 import { kanaIncludes } from "../kana";
 import { MODAL_PORTAL_SELECTOR } from "../modal-dismiss";
+import { openOpponentSelectDialog } from "./opponent-select-dialog";
 // もちもの候補の並び順(box/のもちもの選択モーダルと同じ、使用率降順+タイプ強化/きのみ/
 // メガストーンのグルーピング)を共有するため、item-select-dialog.tsのsortItemsByUsageを使う。
 import { sortItemsByUsage } from "./item-select-dialog";
@@ -2657,96 +2658,36 @@ if (opponentNotesSection) {
 		detailDirectionToggle.append(detailAttackOption, detailDefenseOption);
 		detailIdentityRow.appendChild(detailDirectionToggle);
 
+		// 既存の input/change の副作用(プリセット、特性、保存、再計算など)は全てここへ
+		// 集約されているため、表示はボタンへ変えても値の受け渡し用inputは維持する。
 		const nameInput = document.createElement("input");
-		nameInput.type = "text";
-		nameInput.placeholder = "相手ポケモン";
-		nameInput.setAttribute("aria-label", "相手ポケモン名");
-		nameInput.autocomplete = "off";
+		nameInput.type = "hidden";
 		nameInput.value = row.name;
 		rowOpponentNameInputs.set(row, nameInput);
-		nameInput.setAttribute("aria-haspopup", "listbox");
-		nameInput.setAttribute("aria-expanded", "false");
-		const nameComboWrap = document.createElement("div");
-		nameComboWrap.className = "damage-build-detail-name-combo";
-		const nameDropdownList = document.createElement("ul");
-		nameDropdownList.className = "damage-build-detail-name-dropdown-list";
-		nameDropdownList.setAttribute("role", "listbox");
-		nameDropdownList.hidden = true;
-		nameComboWrap.append(nameInput, nameDropdownList);
-		const nameField = makeDetailField("種族名", nameComboWrap, true);
+		const nameSelectButton = document.createElement("button");
+		nameSelectButton.type = "button";
+		nameSelectButton.className = "species-select-trigger";
+		nameSelectButton.setAttribute("aria-haspopup", "dialog");
+		nameSelectButton.setAttribute("aria-label", "相手ポケモンを選ぶ");
+		const nameSelectLabel = document.createElement("span");
+		nameSelectLabel.className = "species-select-trigger-label";
+		nameSelectButton.appendChild(nameSelectLabel);
+		function updateNameSelectButton(): void {
+			const name = nameInput.value.trim();
+			nameSelectButton.classList.toggle("is-empty", name === "");
+			nameSelectLabel.textContent = name || "相手ポケモン";
+		}
+		updateNameSelectButton();
+		nameSelectButton.addEventListener("click", () => {
+			void openOpponentSelectDialog(nameSelectButton, (name) => {
+				nameInput.value = name;
+				nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+				nameInput.dispatchEvent(new Event("change", { bubbles: true }));
+			});
+		});
+		const nameField = makeDetailField("種族名", nameSelectButton, true);
 		nameField.classList.add("damage-build-detail-name-field");
 		detailIdentityRow.appendChild(nameField);
-		nameInput.addEventListener("keydown", (event) => {
-			if (event.key !== "Enter") return;
-			event.preventDefault();
-			nameInput.blur();
-		});
-		const opponentNames = Array.from(el<HTMLDataListElement>("pokemon-list").options).map((option) => option.value);
-		function closeNameDropdown(): void {
-			nameDropdownList.hidden = true;
-			nameInput.setAttribute("aria-expanded", "false");
-		}
-		function renderNameDropdown(): void {
-			const query = nameInput.value.trim();
-			// 種族選択モーダル(SpeciesSelectDialog)と同じ考え方: 絞り込みだけを行い、
-			// opponentNames自体の並び順(pokemon-listのopgg順位+図鑑番号順、
-			// owned-pokemon-form.tsのsortPokemonNamesByOpggRanking)はそのまま保つ。
-			// 以前は一致度(完全一致→前方一致→かな部分一致)で候補全体を再ソートしていたが、
-			// 検索時にopgg順が崩れてしまっていた。
-			// 一致しない候補も末尾に残す(絞り込んで消してしまうと、変換ミス等でうまく
-			// 一致しなかったときに目的の種族へ辿り着けなくなるため)。一致/不一致それぞれの
-			// 中ではopgg順を保つ。
-			const candidates = query === ""
-				? opponentNames
-				: [
-					...opponentNames.filter((name) => kanaIncludes(name, query)),
-					...opponentNames.filter((name) => !kanaIncludes(name, query)),
-				];
-			nameDropdownList.replaceChildren();
-			const fragment = document.createDocumentFragment();
-			for (const candidateName of candidates) {
-				const option = document.createElement("li");
-				option.className = "damage-build-detail-name-dropdown-option";
-				option.setAttribute("role", "option");
-				option.setAttribute("aria-label", candidateName);
-				const icon = document.createElement("img");
-				icon.className = "damage-build-detail-name-dropdown-option-icon";
-				icon.alt = "";
-				// 候補は全件(1000件超)描画するため、素朴にapplySpriteへ渡すと
-				// キー入力のたびに画面外の候補も含めて一斉に画像取得が走り、
-				// 同時多発するリクエストの渋滞で肝心の入力欄自身のアイコン
-				// (spriteImg/detailSpriteImg)の読み込みまで割を食って遅延する
-				// (=種族名を確定してもアイコンがすぐ反映されないバグの原因)。
-				// loading="lazy"でスクロールに入るまで取得を遅らせ、渋滞そのものを避ける。
-				icon.loading = "lazy";
-				icon.decoding = "async";
-				const fallback = document.createElement("span");
-				fallback.className = "damage-build-detail-name-dropdown-option-fallback";
-				fallback.setAttribute("aria-hidden", "true");
-				void applySprite(icon, fallback, candidateName, "icon");
-				const text = document.createElement("span");
-				text.className = "damage-build-detail-name-dropdown-option-text";
-				text.textContent = candidateName;
-				option.append(icon, fallback, text);
-				option.addEventListener("mousedown", (event) => event.preventDefault());
-				option.addEventListener("click", (event) => {
-					event.stopPropagation();
-					nameInput.value = candidateName;
-					nameInput.dispatchEvent(new Event("input", { bubbles: true }));
-					nameInput.dispatchEvent(new Event("change", { bubbles: true }));
-					closeNameDropdown();
-				});
-				fragment.appendChild(option);
-			}
-			nameDropdownList.appendChild(fragment);
-			nameDropdownList.hidden = false;
-			nameInput.setAttribute("aria-expanded", "true");
-		}
-		nameInput.addEventListener("focus", renderNameDropdown);
-		nameInput.addEventListener("input", renderNameDropdown);
-		document.addEventListener("click", (event) => {
-			if (!nameComboWrap.contains(event.target as Node)) closeNameDropdown();
-		});
 
 		// モバイル専用UIでも相手ポケモンはドット絵で統一する。
 		// 詳細パネル側のアイコン(旧detailSpriteImg)は撤去済みのため、行カード側の
@@ -2782,6 +2723,7 @@ if (opponentNotesSection) {
 
 		nameInput.addEventListener("input", () => {
 			row.name = nameInput.value.trim();
+			updateNameSelectButton();
 			refreshSprite();
 			onFieldInput();
 		});

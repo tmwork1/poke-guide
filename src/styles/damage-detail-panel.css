@@ -1507,24 +1507,3 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-stats {
 		min-width: 0;
 	}
-	#damage-detail-panel-body .damage-build-detail-name-combo { position: relative; width: 100%; }
-	#damage-detail-panel-body .damage-build-detail-name-combo > input { width: 100%; }
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-list {
-		position: absolute; z-index: 6; top: calc(100% + var(--damage-detail-space-xs)); left: 0; right: 0;
-		max-height: 15rem; margin: 0; padding: var(--damage-detail-space-xs); overflow-y: auto; list-style: none;
-		background: var(--damage-detail-surface-background); border: var(--damage-detail-tera-list-border);
-		border-radius: var(--damage-detail-radius-sm); box-shadow: var(--damage-detail-shadow-md);
-	}
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-list[hidden] { display: none; }
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option {
-		display: flex; align-items: center; gap: var(--damage-detail-space-sm); min-height: 2.35rem;
-		padding: var(--damage-detail-space-xs) var(--damage-detail-space-sm); border-radius: var(--damage-detail-radius-sm); cursor: pointer;
-	}
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option:hover { background: var(--damage-detail-primary-soft-color); }
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-icon,
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-fallback { width: 28px; height: 28px; flex: none; object-fit: contain; }
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-fallback {
-		display: none; align-items: center; justify-content: center; border-radius: 50%; background: var(--damage-detail-primary-soft-color);
-		color: var(--damage-detail-primary-strong-color); font-size: var(--damage-detail-font-size-xs); font-weight: var(--damage-detail-font-weight-bold);
-	}
-	#damage-detail-panel-body .damage-build-detail-name-dropdown-option-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

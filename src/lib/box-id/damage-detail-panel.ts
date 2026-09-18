@@ -2231,14 +2231,6 @@ export function initDamageDetailPanel(): void {
 	// damage-calc.tsの候補行は選択後にclickの伝播を止める。そのためバブリングでは
 	// 捕まえられず、ここでcaptureして「候補を押した」ことだけを確認し、同じターンの
 	// 確定処理(input/change)が終わった後にblurする。入力途中には一切作用しない。
-	detailPanelBodyEl.addEventListener("click", (event) => {
-		if (!(event.target instanceof Element)) return;
-		const option = event.target.closest<HTMLElement>(".damage-build-detail-name-dropdown-option");
-		if (!option || option.getAttribute("aria-disabled") === "true") return;
-		const combo = option.closest<HTMLElement>(".damage-build-detail-name-combo");
-		const nameInput = combo?.querySelector<HTMLInputElement>("input");
-		if (nameInput) window.setTimeout(() => nameInput.blur(), 0);
-	}, true);
 	// 育成タブの持ち物入力はこのモジュールの変更経路外なので、プレビューを開いたまま
 	// 持ち物だけ変えた場合も即時に追随させる。相手側は既存の再計算経路で同期される。
 	el<HTMLInputElement>("item").addEventListener("input", () => {
