@@ -16,10 +16,11 @@ const TYPE_IDS = new Map([
   ["みず", 11], ["くさ", 12], ["でんき", 13], ["エスパー", 14], ["こおり", 15],
   ["ドラゴン", 16], ["あく", 17], ["フェアリー", 18], ["ステラ", 19],
 ]);
-// 同期元のディレクトリと拡張子。webp が基本だが、アイテムだけは Real-ESRGAN で
-// 拡大した upscaled/(384px PNG、webp 版は poke-sprites に無い)を取り、こちら側で
-// 表示サイズ(96px)へ縮小する。poke-sprites の 96px webp をそのまま使うより縮小の
-// サンプリングが効き、拡大時のノイズが落ちてエッジが滑らかになる。
+// 同期元のディレクトリと拡張子。表示サイズより大きい画像を取ってこちら側で縮小すると、
+// 縮小のサンプリングが効いて拡大時のノイズが落ちエッジが滑らかになるので、そうできる
+// カテゴリはそうする。立ち絵の webp/ は poke-sprites 側で Real-ESRGAN 4倍化した 512px
+// そのもの。アイテムは webp/ が表示サイズ(96px)なので、代わりに upscaled/(384px PNG、
+// webp 版は poke-sprites に無い)を取る。
 const SOURCES = [
   { prefix: "sprites/pokemon-artwork/webp/", extension: ".webp" },
   { prefix: "sprites/pokemon-champion/webp/", extension: ".webp" },

@@ -85,7 +85,8 @@ export function officialArtworkUrl(imageId: number): string {
 // この画像が取得できない場合、officialArtworkUrl() → 頭文字バッジの順にフォールバックすること
 // (shared-core.tsのapplySprite・owned-pokemon-card.tsのapplyCardArtwork参照)。
 //
-// ⚠️ 同期元の原寸(320px)は public/ に置いていない。表示サイズ帯ごとの派生2種
+// ⚠️ 同期元の原寸(512px。poke-sprites 側で Real-ESRGAN により原画128pxを4倍化したもの)は
+// public/ に置いていない。表示サイズ帯ごとの派生2種
 // (icon 96px / medium 192px)だけを npm run sync-sprites が生成しており、両者は常に揃う。
 // このため「派生が無ければ原寸に退避する」段は不要で、退避先は公式絵が最初になる。
 
