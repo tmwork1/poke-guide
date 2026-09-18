@@ -2031,6 +2031,40 @@ if (opponentNotesSection) {
 	// moveAdoptionBySpeciesの使用率で安定ソートし直す。
 	const OPPONENT_POPULARITY_MOVE_DATALIST_ID = "move-list-opponent-popularity";
 	let opponentPopularityMoveDatalistSpeciesName: string | null = null;
+	// メガ種族の採用率データだけは、同じdexNoを持つ基本フォルムの技採用率へフォールバックする。
+	// もちもの・特性の採用率には使わないこと。メガ種族はメガストーン固定・特性単一のため、
+	// それらはメガ種族自身のデータをそのまま扱う。
+	let opponentMoveAdoptionPokemonMaster: Awaited<ReturnType<typeof loadPokemonMasterList>> | null = null;
+	let opponentMoveAdoptionPokemonMasterPromise: Promise<void> | null = null;
+	function moveAdoptionSpeciesName(speciesName: string): string {
+		const trimmed = speciesName.trim();
+		// 将来メガ種族自身のキーが追加された場合は、そちらを優先する。
+		if (trimmed === "" || moveAdoptionBySpecies[trimmed]) return trimmed;
+		if (opponentMoveAdoptionPokemonMaster) {
+			const current = opponentMoveAdoptionPokemonMaster.find((entry) => entry.name === trimmed);
+			if (!current || !isMegaForm(current)) return trimmed;
+			return opponentMoveAdoptionPokemonMaster.find(
+				(entry) => entry.dexNo === current.dexNo && !isMegaForm(entry),
+			)?.name ?? trimmed;
+		}
+		// マスターの到着前は従来どおり種族自身のキーで試し、到着後に自動入力列だけ選び直す。
+		if (!opponentMoveAdoptionPokemonMasterPromise) {
+			opponentMoveAdoptionPokemonMasterPromise = loadPokemonMasterList().then((master) => {
+				opponentMoveAdoptionPokemonMaster = master;
+				for (const row of rows) {
+					const current = master.find((entry) => entry.name === row.name.trim());
+					const base = current && isMegaForm(current)
+						? master.find((entry) => entry.dexNo === current.dexNo && !isMegaForm(entry))
+						: undefined;
+					if (row.direction === "defense" && base && !moveAdoptionBySpecies[row.name.trim()]) {
+						refreshOpponentPopularityMoveDatalist(row.name);
+						refreshOpponentAutomaticMoves(row);
+					}
+				}
+			});
+		}
+		return trimmed;
+	}
 	function ensureOpponentPopularityMoveDatalist(): HTMLDataListElement {
 		let list = document.getElementById(OPPONENT_POPULARITY_MOVE_DATALIST_ID) as HTMLDataListElement | null;
 		if (!list) {
@@ -2069,7 +2103,7 @@ if (opponentNotesSection) {
 		// 個体の#regulationセレクトの現在値が指定されていればそのレギュレーションキー、
 		// 未指定(プレースホルダー)なら全レギュレーション横断の"all"キーを使う。
 		const regulationKey = currentIndividualRegulation() ?? "all";
-		const ratioMap = moveAdoptionBySpecies[speciesName]?.[regulationKey];
+		const ratioMap = moveAdoptionBySpecies[moveAdoptionSpeciesName(speciesName)]?.[regulationKey];
 		let ordered = baseOptions;
 		if (ratioMap && Object.keys(ratioMap).length > 0) {
 			// Array.prototype.sortは安定ソートなので、データの無い技(ratio未定義=-1扱い)・
@@ -2100,7 +2134,7 @@ if (opponentNotesSection) {
 		const trimmed = speciesName.trim();
 		if (trimmed === "") return null;
 		const regulationKey = currentIndividualRegulation() ?? "all";
-		const ratioMap = moveAdoptionBySpecies[trimmed]?.[regulationKey];
+		const ratioMap = moveAdoptionBySpecies[moveAdoptionSpeciesName(trimmed)]?.[regulationKey];
 		if (!ratioMap) return null;
 		const names = Object.entries(ratioMap)
 			.filter(([, ratio]) => ratio >= DEFENSE_MOVE_ADOPTION_MIN_RATIO)
@@ -3241,12 +3275,13 @@ if (opponentNotesSection) {
 
 			refreshRowNatureButtons(row);
 
-			// abilitySelectはこの時点でまだ「入力途中の仮プレースホルダ」しか持たない
-			// (候補一覧はこの後rebuildRowAbilityOptionsが非同期に組み立てる)ため、値を
-			// 一致させるための一時optionを追加してからvalueを設定する(初期描画時の
-			// プレースホルダ生成と同じ考え方)。rebuildRowAbilityOptions再開時、
+			// abilitySelectは通常この時点でまだ「入力途中の仮プレースホルダ」しか持たない
+			// (候補一覧はこの後rebuildRowAbilityOptionsが非同期に組み立てる)が、候補一覧が
+			// 既に組み上がっている場合もあるため、同じ値がなければ一時optionを追加してから
+			// valueを設定する(初期描画時のプレースホルダ生成と同じ考え方)。
+			// rebuildRowAbilityOptions再開時、
 			// abilities.includes(previousValue)がtrueならこの値がそのまま維持される。
-			if (row.abilityName) {
+			if (row.abilityName && !Array.from(abilitySelect.options).some((option) => option.value === row.abilityName)) {
 				const opt = document.createElement("option");
 				opt.value = row.abilityName;
 				opt.textContent = row.abilityName;
