@@ -5,7 +5,7 @@ description: 新シーズンの公式ランキングJSON(docs/ranker/s{n}_single
 
 # 上位入賞チーム データ更新パイプライン
 
-`docs/ranker/derived/README.md`「再生成」節の手順2〜6(記事ダウンロード〜サジェスト再集計)を、新シーズン追加のたびに一気通貫で回す。手順0-1(公式ランキングJSON・記事検索HTMLの取得)もP1冒頭で `npm run ranker:fetch-pokedb` により行う(champs.pokedb.tokyo は GitHub Actions のランナーIPを403で弾くため、CIには載せられない。→README「再生成」節)。
+`docs/ranker/derived/README.md`「再生成」節の手順2〜7(記事ダウンロード〜本番投入・サジェスト再集計)を、新シーズン追加のたびに一気通貫で回す。手順0-1(公式ランキングJSON・記事検索HTMLの取得)もP1冒頭で `npm run ranker:fetch-pokedb` により行う(champs.pokedb.tokyo は GitHub Actions のランナーIPを403で弾くため、CIには載せられない。→README「再生成」節)。
 
 **特に指示のない限り `main` で直接作業する**(→ルートの `CLAUDE.md`「作業方針」)。**作業が一区切りついたら Coordinator が `git commit` する**(`git push` はしない)。
 
@@ -92,6 +92,16 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run ref
 - `docs/ranker/derived/README.md` の「カバー範囲」表を新しい数値に更新する。
 - `.tmp-*` の消し忘れが無いか確認する。
 - Coordinatorが `git commit` する(`git push` はしない)。
+
+### P7. 本番へ投入する
+
+P6 の commit 後、リモート(実プロジェクト)用の `.env` にある `DATABASE_URL` を使って、本番へ migrate・seed・サジェスト再集計を順に実行する:
+
+```bash
+npm run ranker:seed:prod
+```
+
+実行前に出力される `DATABASE_URL host` で接続先を確認する。実行後は `.env` の `DATABASE_URL` を指定して `psql "$DATABASE_URL" -c "SELECT season, count(*) FROM ranked_teams GROUP BY season ORDER BY season;"` を実行し、`docs/ranker/derived/ranked-teams.json` のシーズン別件数と一致することを確認する。
 
 ## 参照
 

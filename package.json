@@ -44,7 +44,8 @@
 		"ranker:text": "python scripts/ranker/html2text.py",
 		"ranker:tasks": "python scripts/ranker/make_tasks.py",
 		"ranker:build": "python scripts/ranker/build_ranked_teams.py",
-		"ranker:seed": "node scripts/db/seed-ranked-teams.mjs"
+		"ranker:seed": "node scripts/db/seed-ranked-teams.mjs",
+		"ranker:seed:prod": "node scripts/db/run-with-env.mjs .env migrate ranker:seed refresh-suggestions"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^14.1.1",

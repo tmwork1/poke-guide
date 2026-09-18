@@ -122,6 +122,9 @@ LLMが「テラスタイプ」として返してきた値は記事の読み違�
 ## 再生成
 
 新シーズン追加時の実行手順は `.claude/skills/ranker/SKILL.md` を参照(`/ranker` で起動)。
+本番への投入は同手順の P7 で `npm run ranker:seed:prod` を実行して行う。
+2026-09-18 に、M-4/M-5 を含む `ranked-teams.json` の追加後も本番への投入手順がなく、M-3 までしか表示されない漏れが判明した。
+以後は P7 で本番投入し、`ranked_teams` のシーズン別件数を `ranked-teams.json` と照合する。
 公式ランキングJSON・記事検索HTMLの取得(手順0-1)は `npm run ranker:fetch-pokedb` でローカルから行う。
 **GitHub Actions では回せない**: champs.pokedb.tokyo は GitHub ホストランナーのIPからのアクセスを
 トップページ含め全て 403 で弾く(2026-09-17 に確認。UA・Referer を変えても不変)。

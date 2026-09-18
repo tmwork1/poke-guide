@@ -118,7 +118,7 @@
 - **マスターデータ生成**: `scripts/build-master-data/build.mjs`, `extract_autocomplete.py` → `public/master-data/`, `src/lib/pokemon-master-data.ts`
 - **OPGG採用率取得**: `scripts/opgg/fetch-champions-usage.mjs`(GitHub Actions `fetch-opgg-champions-usage.yml` で日次実行)→ Cloudflare KV(`OPGG_USAGE`バインディング、読み取りは`src/lib/opgg-usage.ts`)、`config/opgg-champions-pokemon-map.json`
 - **画像アセット同期**: `scripts/sync-sprites.mjs` が [poke-sprites](https://github.com/tmwork1/poke-sprites) から `public/pokemon-artwork/`、`public/pokemon-champion-sprites/{icon,medium}/`、`public/item-icons/`、`public/type-icons/{,tera}/`、`public/ui-icons/` を同期する。
-- **DB運用**: `scripts/db/`(migration実行 `run-migrations.mjs`、開発用シード `seed-*.mjs`、集計バックフィル `backfill-*.mjs`, `refresh-suggestions.mjs`)。DBスキーマ本体は `migrations/*.sql`
+- **DB運用**: `scripts/db/`(migration実行 `run-migrations.mjs`、`.env` を読んで npm script を実行する `run-with-env.mjs`、開発用シード `seed-*.mjs`、集計バックフィル `backfill-*.mjs`, `refresh-suggestions.mjs`)。DBスキーマ本体は `migrations/*.sql`
 
 ## ダメージ計算エンジン(vendor)
 
