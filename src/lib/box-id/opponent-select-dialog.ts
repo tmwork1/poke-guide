@@ -18,10 +18,10 @@ function getDialog(): SpeciesSelectDialogController {
 	dialog = createSpeciesSelectDialog({
 		elements: {
 			backdrop, dialog: dialogEl, closeButton: el<HTMLButtonElement>("opponent-select-close-button"),
-			list: el<HTMLElement>("opponent-select-list"), listWrap: el<HTMLElement>("opponent-select-list-wrap"), empty: el<HTMLElement>("opponent-select-empty"),
+			list: el<HTMLElement>("opponent-select-grid"), listWrap: el<HTMLElement>("opponent-select-grid-wrap"), empty: el<HTMLElement>("opponent-select-empty"),
 			searchInput: el<HTMLInputElement>("opponent-select-search-input"), sortButton: el<HTMLButtonElement>("opponent-select-sort-button"), sortPanel: el<HTMLElement>("opponent-select-sort-panel"),
 		},
-		variant: "list",
+		variant: "grid",
 		onSelect: (name) => activeSelect?.(name),
 		onClose: () => { const trigger = activeTrigger; activeSelect = null; activeTrigger = null; trigger?.focus(); },
 	});
