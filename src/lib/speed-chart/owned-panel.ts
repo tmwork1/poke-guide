@@ -414,6 +414,9 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'btn-primary speed-chart-apply-button';
+      button.dataset.speedApplyNature = selection.nature;
+      button.dataset.speedApplyEvSpe = String(selection.evSpe);
+      button.dataset.speedApplyUsesScarf = String(selection.usesScarf);
       const buttonLabel = `${selection.nature} ${selection.evSpe}`;
       const label = document.createElement('span');
       label.className = 'speed-chart-apply-label';
@@ -422,9 +425,6 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
         ? `${buttonLabel} / ${ctx.scarfItemName}を使用`
         : `${buttonLabel} / すばやさ補正もちものなし`;
       button.append(label);
-      button.addEventListener('click', () => {
-        void handleApply(selection, button);
-      });
       wrap.append(button);
     }
 
@@ -489,6 +489,20 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     }
     window.location.href = `/box/${ctx.ownedRecord.id}`;
   }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target instanceof Element
+      ? event.target.closest<HTMLButtonElement>('.speed-chart-apply-button')
+      : null;
+    if (!button || !button.dataset.speedApplyNature || !button.dataset.speedApplyEvSpe) return;
+    const evSpe = Number(button.dataset.speedApplyEvSpe);
+    if (!Number.isInteger(evSpe)) return;
+    void handleApply({
+      nature: button.dataset.speedApplyNature,
+      evSpe,
+      usesScarf: button.dataset.speedApplyUsesScarf === 'true',
+    }, button);
+  }, { signal: listeners.signal });
 
   updateSummary();
   // 初期化直後にも1回発火させる。chart-table.ts はこの値をrender()完了後に直接

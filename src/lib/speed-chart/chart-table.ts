@@ -130,6 +130,8 @@ export async function initSpeedChartPage(): Promise<void> {
   let ownedController: OwnedPanelController | null = null;
   let currentRegulation = initialRegulation;
   let currentHighlightValue: number | null = null;
+  let applyingSpeedOptionPointer = false;
+  let pendingOwnedRecordUpdate: { record: Partial<OwnedPokemonRecord>; visible?: boolean } | null = null;
   let lastKnownOwnedValue: number | null = null;
   let hasScrolledInitially = false;
   let pendingInitialScrollValue: number | null = null;
@@ -486,6 +488,27 @@ export async function initSpeedChartPage(): Promise<void> {
   // しまい、次に開いたとき現在値へ移動しない。
   const isEmbedded = window.parent !== window;
 
+  const flushPendingOwnedRecordUpdate = (): void => {
+    if (!pendingOwnedRecordUpdate) return;
+    const update = pendingOwnedRecordUpdate;
+    pendingOwnedRecordUpdate = null;
+    window.postMessage({ type: 'speed-chart:owned-record-updated', ...update }, window.location.origin);
+  };
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest('.speed-chart-apply-button')) return;
+    applyingSpeedOptionPointer = true;
+  }, true);
+  window.addEventListener('pointerup', () => {
+    if (!applyingSpeedOptionPointer) return;
+    applyingSpeedOptionPointer = false;
+    window.setTimeout(flushPendingOwnedRecordUpdate, 0);
+  }, true);
+  window.addEventListener('pointercancel', () => {
+    applyingSpeedOptionPointer = false;
+    flushPendingOwnedRecordUpdate();
+  }, true);
+
   function requestInitialScroll(value: number): void {
     if (hasScrolledInitially) return;
     pendingInitialScrollValue = value;
@@ -519,6 +542,10 @@ export async function initSpeedChartPage(): Promise<void> {
       return;
     }
     if (data?.type !== 'speed-chart:owned-record-updated' || !data.record || !ownedRecord) return;
+    if (applyingSpeedOptionPointer) {
+      pendingOwnedRecordUpdate = { record: data.record, visible: data.visible };
+      return;
+    }
     const patch = data.record;
     const next: OwnedPokemonRecord = {
       ...ownedRecord,
