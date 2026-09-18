@@ -23,6 +23,7 @@
 
 - 同期先は `public/pokemon-artwork/`、`public/pokemon-champion-sprites/{icon,medium}/`、`public/item-icons/`、`public/type-icons/{,tera}/`、`public/ui-icons/`。すべて WebP で、同期スクリプトがディレクトリごと作り直すため手で置いたファイルは消える。
 - poke-sprites のファイル名は和名、poke-guide 側は imageId / typeId。対応付けは `public/master-data/autocomplete/pokemon.json` を正とし、`scripts/sync-sprites.mjs` が変換する。
+- アイテムアイコンは poke-sprites の `upscaled/`(384px PNG)を同期元にし、96px WebP へ縮小して置く(同サイズの `webp/` をそのまま使うより縮小のサンプリングが効く)。
 - 立ち絵は原寸(320px)を置かず、`icon`(96px)と `medium`(192px)の派生だけを持つ。画像が無いときの退避先は公式絵 → 頭文字バッジ。
 - **実行時に外部サイトの画像を参照しない**(CSPの `img-src` は `'self' data:` のみ)。新しい画像が要るときは poke-sprites 側に追加してから同期する。
 - 新しいポケモン/アイテムを master-data に足したら `npm run sync-sprites` を実行する。画像が無いものは警告が出るので、poke-sprites 側の追加漏れはそこで分かる。

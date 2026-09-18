@@ -16,14 +16,21 @@ const TYPE_IDS = new Map([
   ["みず", 11], ["くさ", 12], ["でんき", 13], ["エスパー", 14], ["こおり", 15],
   ["ドラゴン", 16], ["あく", 17], ["フェアリー", 18], ["ステラ", 19],
 ]);
-const SOURCE_PREFIXES = [
-  "sprites/pokemon-artwork/webp/",
-  "sprites/pokemon-champion/webp/",
-  "sprites/items/webp/",
-  "sprites/types/webp/",
-  "sprites/tera-types/webp/",
-  "sprites/ui/webp/",
+// 同期元のディレクトリと拡張子。webp が基本だが、アイテムだけは Real-ESRGAN で
+// 拡大した upscaled/(384px PNG、webp 版は poke-sprites に無い)を取り、こちら側で
+// 表示サイズ(96px)へ縮小する。poke-sprites の 96px webp をそのまま使うより縮小の
+// サンプリングが効き、拡大時のノイズが落ちてエッジが滑らかになる。
+const SOURCES = [
+  { prefix: "sprites/pokemon-artwork/webp/", extension: ".webp" },
+  { prefix: "sprites/pokemon-champion/webp/", extension: ".webp" },
+  { prefix: "sprites/items/upscaled/", extension: ".png" },
+  { prefix: "sprites/types/webp/", extension: ".webp" },
+  { prefix: "sprites/tera-types/webp/", extension: ".webp" },
+  { prefix: "sprites/ui/webp/", extension: ".webp" },
 ];
+const ITEM_SOURCE_PREFIX = "sprites/items/upscaled/";
+const ITEM_SOURCE_EXTENSION = ".png";
+const ITEM_ICON_SIZE = 96;
 
 function usage(message) {
   if (message) console.error(`エラー: ${message}`);
@@ -89,7 +96,7 @@ async function loadTree() {
   const data = await response.json();
   if (data.truncated) throw new Error("GitHub tree API の結果が切り詰められました");
   return new Map(data.tree
-    .filter((entry) => entry.type === "blob" && SOURCE_PREFIXES.some((prefix) => entry.path.startsWith(prefix)) && entry.path.endsWith(".webp"))
+    .filter((entry) => entry.type === "blob" && SOURCES.some(({ prefix, extension }) => entry.path.startsWith(prefix) && entry.path.endsWith(extension)))
     .map((entry) => [entry.path, entry.sha]));
 }
 
@@ -119,9 +126,9 @@ async function buildTasks(tree) {
   }
 
   for (const [path, sha] of tree) {
-    if (path.startsWith("sprites/items/webp/")) {
-      const name = basename(path, ".webp");
-      tasks.push(makeTask(path, sha, `item-icons/${name}.webp`, name));
+    if (path.startsWith(ITEM_SOURCE_PREFIX)) {
+      const name = basename(path, ITEM_SOURCE_EXTENSION);
+      tasks.push(makeTask(path, sha, `item-icons/${name}.webp`, name, ITEM_ICON_SIZE));
     }
   }
 
@@ -176,7 +183,7 @@ function filterTasks(tasks, args) {
 // ポケモンと違いアイテムは和名がそのままファイル名なので対応表は要らないが、新規アイテムが
 // master-data に入って poke-sprites 側が追随していない状況は検出したい。
 async function findMissingItemImages(tree) {
-  const remote = new Set([...tree.keys()].filter((path) => path.startsWith("sprites/items/webp/")).map((path) => basename(path, ".webp")));
+  const remote = new Set([...tree.keys()].filter((path) => path.startsWith(ITEM_SOURCE_PREFIX)).map((path) => basename(path, ITEM_SOURCE_EXTENSION)));
   const items = JSON.parse(await readFile(join(PUBLIC_DIR, "master-data", "autocomplete", "items.json"), "utf8"));
   return [...new Set(items.map((item) => item.name))].filter((name) => !remote.has(toSpriteFilename(name))).sort();
 }
@@ -267,7 +274,9 @@ async function main() {
     await replaceDirectories(stage);
     await rm(stage, { recursive: true, force: true });
   }
-  await writeFile(STATE_PATH, `${JSON.stringify({ version: 1, files: state.files }, null, 2)}\n`, "utf8");
+  // 同期元から外れたパス(アイテムの旧 sprites/items/webp/ など)を台帳に残さない。
+  const files = Object.fromEntries(Object.entries(state.files).filter(([path]) => tree.has(path)));
+  await writeFile(STATE_PATH, `${JSON.stringify({ version: 1, files }, null, 2)}\n`, "utf8");
   console.log(`同期完了: ダウンロード ${downloaded.size}件 / 出力 ${tasks.length}件${partial ? "（絞り込み実行のため既存ディレクトリは維持）" : ""}`);
   console.log(`スキップ: 公式絵 ${warnings.artwork.length}件 / 立ち絵 ${warnings.champion.length}件 / タイプ ${warnings.types.length}件 / テラタイプ ${warnings.teraTypes.length}件 / UI ${warnings.ui.length}件`);
   if (warnings.artwork.length) console.warn(`警告: 公式絵がない和名: ${displayNames(warnings.artwork)}`);
