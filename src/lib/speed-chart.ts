@@ -90,6 +90,7 @@ export interface SpeedSpreadConditions {
 export interface SpeedChartConfig {
   population: { topN: number };
   adoptionRate: AdoptionRateConfig;
+  formAdoptionRate: { threshold: number };
   spreadConditions: SpeedSpreadConditions;
   disabled: {
     abilities: string[];
@@ -179,6 +180,7 @@ export function buildOpggSpeedChartPopulation(
   pokemonIndex: SpeedChartPokemonIndexEntry[],
   megaStones: SpeedChartMegaStoneEntry[],
   speedModifierLearnsets: ReadonlyMap<string, string[]> = new Map(),
+  formAdoptionRateThreshold = 0.1,
 ): SpeedChartForm[] {
   const detailByName = new Map(pokemonDetail.map((entry) => [entry.name, entry]));
   const indexByName = new Map(pokemonIndex.map((entry) => [entry.name, entry]));
@@ -190,14 +192,23 @@ export function buildOpggSpeedChartPopulation(
   for (const base of baseNames) {
     const detail = detailByName.get(base.name);
     if (!detail) continue;
-    forms.push({ ...detail, baseSpeed: detail.baseStats[5], learnset: speedModifierLearnsets.get(base.name) ?? detail.learnset, rank: base.rank, usageSourceName: base.name, isMega: false });
     const baseIndex = indexByName.get(base.name);
-    if (!baseIndex) continue;
-    for (const mega of megaStones) {
+    const baseUsage = rankedPokemon.find((entry) => entry.name === base.name)?.single;
+    const megaForms: Array<{ detail: SpeedChartPokemonDetailEntry; item: string }> = [];
+    if (baseIndex) for (const mega of megaStones) {
       const megaDetail = detailByName.get(mega.species);
       const megaIndex = indexByName.get(mega.species);
       if (!megaDetail || !megaIndex || !megaIndex.forme?.startsWith('Mega') || megaIndex.dexNo !== baseIndex.dexNo) continue;
-      forms.push({ ...megaDetail, baseSpeed: megaDetail.baseStats[5], learnset: speedModifierLearnsets.get(mega.species) ?? megaDetail.learnset, rank: base.rank, usageSourceName: base.name, isMega: true });
+      megaForms.push({ detail: megaDetail, item: mega.item });
+    }
+    const stoneRate = (item: string) => sumRate(baseUsage?.items ?? [], (row) => row.name === item);
+    const totalMegaRate = sumRate(baseUsage?.items ?? [], (row) => megaForms.some((mega) => mega.item === row.name));
+    const normalForm = { ...detail, baseSpeed: detail.baseStats[5], learnset: speedModifierLearnsets.get(base.name) ?? detail.learnset, rank: base.rank, usageSourceName: base.name, isMega: false };
+    const keptMegaForms = megaForms.filter((mega) => stoneRate(mega.item) >= formAdoptionRateThreshold);
+    const keepNormal = megaForms.length === 0 || 1 - totalMegaRate >= formAdoptionRateThreshold;
+    if (keepNormal || keptMegaForms.length === 0) forms.push(normalForm);
+    for (const mega of keptMegaForms) {
+      forms.push({ ...mega.detail, baseSpeed: mega.detail.baseStats[5], learnset: speedModifierLearnsets.get(mega.detail.name) ?? mega.detail.learnset, rank: base.rank, usageSourceName: base.name, isMega: true });
     }
   }
   return forms.sort((a, b) => a.rank - b.rank || Number(a.isMega) - Number(b.isMega) || a.name.localeCompare(b.name, 'ja'));

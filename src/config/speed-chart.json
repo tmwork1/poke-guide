@@ -10,12 +10,17 @@
     "adoptionRate: 持ち物・技・特性を、その種族のOP.GG採用率で絞る設定。",
     "  threshold: usageRateがこの比率以上のときだけ補正行を出す(0.2 = 20%)。",
     "  appliesTo: 採用率判定する補正種別。OP.GGには全3種別があるためすべてを対象にする。",
+    "formAdoptionRate: メガストーンのOP.GG採用率で、母集団に入れる通常・メガフォルムを絞る設定。adoptionRateとは別物。",
+    "  threshold: メガストーン採用率がこの比率未満のメガ、または通常採用率がこの比率未満の通常フォルムを除外する(0.1 = 10%)。",
     "spreadConditions: OP.GGの努力値・性格補正の周辺分布から振り方を判定する閾値。",
     "  evRateThreshold / natureRateThreshold: usageRateの合計を比率で比較する(0.2 = 20%)。"
   ],
   "adoptionRate": {
     "threshold": 0.2,
     "appliesTo": ["items", "moves", "abilities"]
+  },
+  "formAdoptionRate": {
+    "threshold": 0.1
   },
   "population": {
     "topN": 100

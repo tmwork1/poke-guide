@@ -49,7 +49,7 @@ export async function loadSpeedChartSsr(
     rank: entry.rank ?? index + 1,
     single: entry.single,
   }));
-  const population = buildOpggSpeedChartPopulation(ranked, config.population.topN, core.map((entry) => ({ ...entry, learnset: [] })), pokemonIndex, megaStones, learnsets);
+  const population = buildOpggSpeedChartPopulation(ranked, config.population.topN, core.map((entry) => ({ ...entry, learnset: [] })), pokemonIndex, megaStones, learnsets, config.formAdoptionRate.threshold);
   const usageByName = new Map(ranked.map((entry) => [entry.name, entry.single]));
   return {
     seasons,

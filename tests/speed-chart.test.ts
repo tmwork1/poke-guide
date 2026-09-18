@@ -79,7 +79,7 @@ describe('OP.GG順位で作る母集団', () => {
   ];
 
   it('top Nは基本フォルムだけで数え、基本が入ったメガは同順位で後ろに同伴する', () => {
-    const forms = buildOpggSpeedChartPopulation(ranked, 1, details, index, [{ species: 'メガA', item: 'Aナイト' }]);
+    const forms = buildOpggSpeedChartPopulation([{ ...ranked[1], single: { ...ranked[1].single, items: [{ rank: 1, name: 'Aナイト', usageRate: 10 }] } }], 1, details, index, [{ species: 'メガA', item: 'Aナイト' }]);
     assert.deepEqual(forms.map((form) => [form.name, form.rank, form.isMega]), [['A', 1, false], ['メガA', 1, true]]);
   });
 
@@ -112,6 +112,27 @@ describe('OP.GG順位で作る母集団', () => {
     assert.ok(equalValueRow);
     assert.deepEqual(equalValueRow!.entries.map((entry) => entry.formName), ['A', 'B']);
   });
+
+  it('メガストーン採用率95%では通常フォルムを除外し、メガフォルムを残す', () => {
+    const forms = buildOpggSpeedChartPopulation(
+      [{ name: 'A', rank: 1, single: { ...single(20, 0, 20, 0, 0), items: [{ rank: 1, name: 'Aナイト', usageRate: 95 }] } }],
+      1, details, index, [{ species: 'メガA', item: 'Aナイト' }], new Map(), 0.1,
+    );
+    assert.deepEqual(forms.map((form) => form.name), ['メガA']);
+  });
+
+  it('メガストーン採用率3%ではメガフォルムを除外し、通常フォルムを残す', () => {
+    const forms = buildOpggSpeedChartPopulation(
+      [{ name: 'A', rank: 1, single: { ...single(20, 0, 20, 0, 0), items: [{ rank: 1, name: 'Aナイト', usageRate: 3 }] } }],
+      1, details, index, [{ species: 'メガA', item: 'Aナイト' }], new Map(), 0.1,
+    );
+    assert.deepEqual(forms.map((form) => form.name), ['A']);
+  });
+
+  it('メガストーンを持たない種族は通常フォルムを残す', () => {
+    const forms = buildOpggSpeedChartPopulation([{ name: 'A', rank: 1, single: single(20, 0, 20, 0, 0) }], 1, details, index, [], new Map(), 0.1);
+    assert.deepEqual(forms.map((form) => form.name), ['A']);
+  });
 });
 
 describe('OP.GG採用率による補正要因の絞り込み', () => {
@@ -127,7 +148,7 @@ describe('OP.GG採用率による補正要因の絞り込み', () => {
       abilities: { 特性高: { kind: 'rank', stages: 1 }, 特性低: { kind: 'rank', stages: 1 } },
       items: { 持ち物高: { kind: 'multiplier', numerator: 3, denominator: 1 }, 持ち物低: { kind: 'multiplier', numerator: 3, denominator: 1 } },
       moves: { 技高: { kind: 'rank', stages: 2 }, 技低: { kind: 'rank', stages: 2 } },
-    }, { population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, spreadConditions: thresholds, disabled: { abilities: [], items: [], moves: [] } });
+    }, { population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, formAdoptionRate: { threshold: 0.1 }, spreadConditions: thresholds, disabled: { abilities: [], items: [], moves: [] } });
     const rows = buildSpeedChartRows([form], modifiers, { threshold: 0.2, appliesTo: ['abilities', 'items', 'moves'] }, new Map([['A', usage]]), thresholds);
     const names = rows.flatMap((row) => row.entries.map((entry) => entry.modifier?.name).filter(Boolean));
     assert.deepEqual(new Set(names), new Set(['特性高', '持ち物高', '技高']));
@@ -208,7 +229,7 @@ describe('speed-modifiers.jsonの回帰', () => {
 
 describe('disabledの採否', () => {
   const all: SpeedModifiersData = { items: { A: { kind: 'rank', stages: 1 } }, abilities: { B: { kind: 'rank', stages: 1 } }, moves: { C: { kind: 'rank', stages: 1 } } };
-  const config = (disabled: SpeedChartConfig['disabled']): SpeedChartConfig => ({ population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, spreadConditions: thresholds, disabled });
+  const config = (disabled: SpeedChartConfig['disabled']): SpeedChartConfig => ({ population: { topN: 1 }, adoptionRate: { threshold: 0.2, appliesTo: [] }, formAdoptionRate: { threshold: 0.1 }, spreadConditions: thresholds, disabled });
   it('disabledに載っていないものは全て有効になる', () => assert.equal(getEffectiveSpeedModifiers(all, config({ items: [], abilities: [], moves: [] })).length, 3));
   it('disabledに載っているものは除外される', () => assert.deepEqual(getEffectiveSpeedModifiers(all, config({ items: ['A'], abilities: [], moves: [] })).map((entry) => entry.name), ['B', 'C']));
   it('findUnknownDisabledModifierNamesは未知名を列挙する', () => assert.deepEqual(findUnknownDisabledModifierNames(all, config({ items: ['missing'], abilities: [], moves: [] })), ['items.missing']));
