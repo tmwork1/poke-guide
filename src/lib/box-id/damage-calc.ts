@@ -37,8 +37,11 @@ import {
 	loadAbilitiesMap,
 	loadMoveDetailMap,
 	loadPokemonMasterList,
+	loadTypesMap,
+	loadTypeChart,
 	type MoveDetail,
 	type MoveCategory,
+	type TypeChart,
 } from "../pokemon-master-data";
 // メガシンカ種族の状態でメガストーン以外のもちものを選んだ際に基本フォルムへ戻す補正
 // (下のapplyRowMegaStoneAutofill周辺)で、育成パネル(pokemon-edit-panel.ts)と同じ
@@ -188,6 +191,19 @@ function getMoveCategory(name: string): MoveCategory | null {
 	if (!trimmed || !moveDetailMapCache) return null;
 	return moveDetailMapCache.get(trimmed)?.category ?? null;
 }
+
+// 攻/守の技自動選択(下のfillFirstMoveCandidate参照)を同期関数のまま実装するための、
+// 種族タイプ・タイプ相性表の同期キャッシュ。moveDetailMapCacheと同じ方針(ローカルの
+// 静的JSONなのでページ表示直後にほぼ即解決する。未解決の間はfillFirstMoveCandidate側が
+// 空配列/等倍フォールバックで動く)。
+let speciesTypesCache: Map<string, string[]> | null = null;
+loadTypesMap().then((m) => {
+	speciesTypesCache = m;
+});
+let typeChartCache: TypeChart | null = null;
+loadTypeChart().then((c) => {
+	typeChartCache = c;
+});
 
 // calc_lethal経路(pyodide-engine.ts)はカウンター・ちきゅうなげ・OHKO技等の固定/割合
 // ダメージ技も正しく計算する(vendor/jpoke/src/jpoke/core/lethal.py・handlers/lethal.pyに
@@ -1980,13 +1996,18 @@ if (opponentNotesSection) {
 		}
 		return list;
 	}
+	// 育成タブの#move-1〜#move-4に入力済みの技名(空欄は除く)。攻撃側の技自動選択
+	// (下のfillFirstMoveCandidate)の第一候補プールと、このdatalistの最上位候補の両方で使う。
+	function selfLearnedMoveNames(): string[] {
+		return ["move-1", "move-2", "move-3", "move-4"]
+			.map((id) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() ?? "")
+			.filter((name) => name !== "");
+	}
 	// 呼ばれるたびに現在の#move-1〜#move-4の値・#move-listの中身から最新の候補順を作り直す
 	// (技名inputにフォーカスするたび=編集を始める直前に呼べば十分新しい)。
 	function refreshSelfFirstMoveDatalist(): void {
 		const list = ensureSelfFirstMoveDatalist();
-		const learnedMoves = ["move-1", "move-2", "move-3", "move-4"]
-			.map((id) => (document.getElementById(id) as HTMLInputElement | null)?.value.trim() ?? "")
-			.filter((name) => name !== "");
+		const learnedMoves = selfLearnedMoveNames();
 		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
 		const baseOptions = baseList ? Array.from(baseList.options).map((o) => o.value) : [];
 		const seen = new Set<string>();
@@ -2030,12 +2051,12 @@ if (opponentNotesSection) {
 			void loadMoveAdoption().then(() => {
 				if (opponentPopularityMoveDatalistSpeciesName !== null) {
 					refreshOpponentPopularityMoveDatalist(opponentPopularityMoveDatalistSpeciesName);
-					// 到着前の覚え技順で自動選択した行だけ、使用率順の候補セットから選び直す。
-					// rows は非同期コールバック実行時には初期化済みで、手入力済み列は
+					// 到着前の覚え技順・使用率順で自動選択した行だけ、採用率20%以上の候補セットから
+					// 選び直す。rows は非同期コールバック実行時には初期化済みで、手入力済み列は
 					// refreshOpponentAutomaticMoves() 内の判定でそのまま保たれる。
 					for (const row of rows) {
 						if (row.direction === "defense" && row.name === opponentPopularityMoveDatalistSpeciesName) {
-							refreshOpponentAutomaticMoves(row, row.attacks, true);
+							refreshOpponentAutomaticMoves(row);
 						}
 					}
 				}
@@ -2064,112 +2085,145 @@ if (opponentNotesSection) {
 		}
 	}
 
-	// 相手の技を自動入力するときだけ、使用率順の上位候補から最大乱数ダメージが最大の技を選ぶ。
-	// 全覚え技をPyodideへ渡すと待ち時間が大きくなるため、使用率順（データ未到着時は覚え技順）
-	// の先頭8件に限定する。手動入力後はcolumn.moveNameが初期候補から変わるため、非同期計算の
-	// 結果が到着しても上書きしない。
-	const OPPONENT_MAX_DAMAGE_CANDIDATE_LIMIT = 8;
 	const automaticOpponentMoveNames = new WeakMap<DamageColumnState, string>();
-	// 候補の並び順が使用率データ到着で変わる場合など、同じ列に対する古い非同期計算結果を
-	// 捨てるための世代。攻守再切替・候補の再投入のたびに進める。
-	const automaticOpponentMoveGenerations = new WeakMap<DamageColumnState, number>();
-	function nextAutomaticOpponentMoveGeneration(column: DamageColumnState): number {
-		const generation = (automaticOpponentMoveGenerations.get(column) ?? 0) + 1;
-		automaticOpponentMoveGenerations.set(column, generation);
-		return generation;
+
+	// 相手の採用率(moveAdoptionBySpecies)の単位は0〜1(小数)。migrations/020_damage_calc_suggestions.sql
+	// の集計が round(cnt/sample_size, 3) で書き込むため(実データでも0.881等の小数で届く。
+	// /api/move-adoption参照)。team-matchup.tsのOPPONENT_MIN_MOVE_RATIO(=20、OP.GGのusageRateが
+	// 0〜100%で届く別データ源)とは単位もデータ源も異なるので混同しないこと。
+	const DEFENSE_MOVE_ADOPTION_MIN_RATIO = 0.2;
+
+	// 守: moveAdoptionBySpeciesから採用率20%以上の技名を採用率降順で返す。データ未到着・
+	// 該当技0件はnull(呼び出し側は使用率順(OPPONENT_POPULARITY_MOVE_DATALIST_ID)の
+	// 先頭候補へフォールバックする)。
+	function highAdoptionOpponentMoveNames(speciesName: string): string[] | null {
+		const trimmed = speciesName.trim();
+		if (trimmed === "") return null;
+		const regulationKey = currentIndividualRegulation() ?? "all";
+		const ratioMap = moveAdoptionBySpecies[trimmed]?.[regulationKey];
+		if (!ratioMap) return null;
+		const names = Object.entries(ratioMap)
+			.filter(([, ratio]) => ratio >= DEFENSE_MOVE_ADOPTION_MIN_RATIO)
+			.sort((a, b) => b[1] - a[1])
+			.map(([name]) => name);
+		return names.length > 0 ? names : null;
 	}
-	async function selectOpponentMaximumDamageMove(
+
+	// 技カード(column)1枚分の、攻撃側/防御側の有効タイプ(テラスタル発動・タイプ上書きを
+	// 反映した後の実際のタイプ)を解決する。damage-detail-panel.ts buildSideSection呼び出し
+	// 箇所(attackerSection/defenderSectionの引数組み立て)・buildSequenceInputsのテラス
+	// 利用可否判定と同じ解決順序(column本体のattacker/defenderTeraType上書き→未指定なら
+	// 自分側は#tera、相手側はrow.teraTypeへフォールバック→テラスタル未発動または
+	// テラスタイプ未指定ならcolumn.attacker/defenderTypesの上書き→それも空なら種族本来の
+	// タイプ)に合わせている(新しい解決ロジックの二重定義を避けるため、この関数だけに集約する)。
+	function resolveColumnEffectiveTypes(
 		row: DamageRowState,
 		column: DamageColumnState,
-		generation: number,
-	): Promise<void> {
-		if (row.direction !== "defense" || !isEngineReady()) return;
-		refreshOpponentPopularityMoveDatalist(row.name);
-		const candidateNames = Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value)
-			.slice(0, OPPONENT_MAX_DAMAGE_CANDIDATE_LIMIT);
-		const automaticMoveName = automaticOpponentMoveNames.get(column) ?? column.moveName;
-		if (automaticMoveName === "" || candidateNames.length === 0) return;
-
-		const scores = await Promise.all(candidateNames.map(async (moveName) => {
-			const candidateColumn: DamageColumnState = {
-				...column,
-				moveName,
-				attackerBoosts: [...column.attackerBoosts],
-				defenderBoosts: [...column.defenderBoosts],
-				defenderSideFields: [...column.defenderSideFields],
-				attackerVolatiles: [...column.attackerVolatiles],
-				defenderVolatiles: [...column.defenderVolatiles],
-			};
-			resolveColumnDerivedFields(candidateColumn);
-			const attack = validAttacksOf({ ...row, attacks: [candidateColumn] })[0];
-			if (!attack) return { moveName, maximumDamage: Number.NEGATIVE_INFINITY };
-			const { attackerSpec, defenderSpec, safeAttacks, options } = buildSequenceInputs(row, [attack]);
-			const result = await calcLethalSequence(attackerSpec, defenderSpec, safeAttacks, options);
-			return {
-				moveName,
-				maximumDamage: Math.max(...(result.perAttackDamages[0] ?? [Number.NEGATIVE_INFINITY])),
-			};
-		}));
-		const best = scores.reduce((current, score) => score.maximumDamage > current.maximumDamage ? score : current);
-		// 攻守の再切替・技の手動入力・列の削除より古い非同期結果は捨てる。
-		if (
-			row.direction !== "defense"
-			|| !row.attacks.includes(column)
-			|| column.moveName !== automaticMoveName
-			|| automaticOpponentMoveGenerations.get(column) !== generation
-		) return;
-		if (!Number.isFinite(best.maximumDamage) || best.moveName === automaticMoveName) return;
-		column.moveName = best.moveName;
-		automaticOpponentMoveNames.set(column, best.moveName);
-		resolveColumnDerivedFields(column);
-		// 手入力の input イベントと同じ追従(必ず急所になる技の急所ON、へんげんじざいのタイプ同期)を
-		// 自動選択でも通す。列の再描画はその結果を反映してから行う。
-		await notifyDetailMoveChanged(row, column);
-		if (automaticOpponentMoveGenerations.get(column) !== generation || column.moveName !== best.moveName) return;
-		renderColumns(row);
-		scheduleRowCalc(row);
-		scheduleRowSave(row);
+	): { attackerTypes: string[]; defenderTypes: string[] } {
+		const selfIsAttacker = row.direction !== "defense";
+		const selfSpeciesName = el<HTMLInputElement>("species-name").value.trim();
+		const selfTeraTypeValue = el<HTMLSelectElement>("tera").value;
+		const attackerSpeciesName = selfIsAttacker ? selfSpeciesName : row.name.trim();
+		const defenderSpeciesName = selfIsAttacker ? row.name.trim() : selfSpeciesName;
+		const attackerFallbackTeraType = selfIsAttacker ? selfTeraTypeValue : row.teraType;
+		const defenderFallbackTeraType = selfIsAttacker ? row.teraType : selfTeraTypeValue;
+		const attackerTeraType = column.attackerTeraType || attackerFallbackTeraType;
+		const defenderTeraType = column.defenderTeraType || defenderFallbackTeraType;
+		const attackerTerastallized = column.attackerTerastallized && attackerTeraType !== "";
+		const defenderTerastallized = column.defenderTerastallized && defenderTeraType !== "";
+		const attackerBaseTypes = column.attackerTypes.length > 0
+			? column.attackerTypes
+			: speciesTypesCache?.get(attackerSpeciesName) ?? [];
+		const defenderBaseTypes = column.defenderTypes.length > 0
+			? column.defenderTypes
+			: speciesTypesCache?.get(defenderSpeciesName) ?? [];
+		return {
+			attackerTypes: attackerTerastallized ? [attackerTeraType] : attackerBaseTypes,
+			defenderTypes: defenderTerastallized ? [defenderTeraType] : defenderBaseTypes,
+		};
 	}
 
-	// 相手が攻撃側の列だけ、使用率順の先頭候補を入れた上で最大ダメージ技を自動選択する。
-	// 使用率データの到着後もここを通すことで、到着前の覚え技順で選んだ結果を残さない。
-	function refreshOpponentAutomaticMoves(
-		row: DamageRowState,
-		columns: readonly DamageColumnState[] = row.attacks,
-		resetCandidates = false,
-	): void {
-		if (row.direction !== "defense") return;
-		refreshOpponentPopularityMoveDatalist(row.name);
-		const candidates = Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value);
-		for (const column of columns) {
-			// 手入力済みの列は使用率データ到着後にも上書きしない。
-			if (automaticOpponentMoveNames.get(column) !== column.moveName) continue;
-			if (resetCandidates) {
-				const index = Math.max(0, row.attacks.indexOf(column));
-				column.moveName = candidates[index] ?? candidates[0] ?? "";
-				automaticOpponentMoveNames.set(column, column.moveName);
-				resolveColumnDerivedFields(column);
-			}
-			const generation = nextAutomaticOpponentMoveGeneration(column);
-			void selectOpponentMaximumDamageMove(row, column, generation).catch(console.error);
+	// 技名の集合を「タイプ相性×威力×(タイプ一致なら1.5倍のSTAB)」の降順に並べ替える。
+	// 変化技・威力なし・技詳細が引けない技は候補から除外する(=戻り値に含まれない)。
+	// タイプ相性倍率の掛け合わせ方はsrc/lib/team-matchup.tsのtypeEffectiveness()と同じ式
+	// (未exportのため計算式のみ踏襲し、この関数内に閉じて持つ)。同スコアはArray#sortの
+	// 安定ソート特性により候補プールの元の並びを保つ。
+	function rankMovesByTypeScore(
+		candidateNames: readonly string[],
+		attackerTypes: readonly string[],
+		defenderTypes: readonly string[],
+	): string[] {
+		const scored: { name: string; score: number }[] = [];
+		for (const name of candidateNames) {
+			const detail = moveDetailMapCache?.get(name.trim());
+			if (!detail || detail.category === "status" || !detail.power) continue;
+			const moveType = detail.type;
+			const effectiveness = moveType
+				? defenderTypes.reduce((eff, defType) => eff * (typeChartCache?.[moveType]?.[defType] ?? 1), 1)
+				: 1;
+			const stab = moveType != null && attackerTypes.includes(moveType) ? 1.5 : 1;
+			scored.push({ name, score: detail.power * effectiveness * stab });
 		}
+		scored.sort((a, b) => b.score - a.score);
+		return scored.map((entry) => entry.name);
 	}
 
-	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする。
-	// 復元処理では呼ばないため、保存済みの空欄を勝手に書き換えない。
+	// 新規カード・新規列と、空欄のまま攻守を切り替えた列だけ候補先頭を初期値にする
+	// (overwrite=falseかつ入力済みなら何もしない)。攻守切り替え・相手ポケモン変更時は
+	// overwrite=trueで呼び、ユーザーの手入力があっても常に選び直す(呼び出し元のコメント参照)。
+	// 復元処理(noteToRowState経由の初期描画)では呼ばないため、保存済みの技を勝手に書き換えない。
+	//
+	// 攻: 育成タブの#move-1〜#move-4(空なら覚え技優先のSELF_FIRST_MOVE_DATALIST_ID)から、
+	// 守: 相手の採用率20%以上の技(0件/未到着ならOPPONENT_POPULARITY_MOVE_DATALIST_IDの
+	//     使用率順)から、それぞれ「タイプ相性×威力×STAB」最大の技を選ぶ(rankMovesByTypeScore)。
+	// 複数のわざ列がある場合は、そのランキングの上位から1列目=1位、2列目=2位…と割り当てる
+	// (候補数が足りない/全滅時は先頭へフォールバック)。
 	function fillFirstMoveCandidate(row: DamageRowState, column: DamageColumnState, overwrite = false, candidateIndex = 0): void {
 		if (!overwrite && column.moveName.trim() !== "") return;
-		const list = row.direction === "defense"
-			? (refreshOpponentPopularityMoveDatalist(row.name), ensureOpponentPopularityMoveDatalist())
-			: (refreshSelfFirstMoveDatalist(), ensureSelfFirstMoveDatalist());
-		// 複数のわざ列がある場合は、1列目=候補1位、2列目=候補2位…とする。
-		// 候補数が足りないときだけ先頭へフォールバックする。
-		column.moveName = list.options[candidateIndex]?.value ?? list.options[0]?.value ?? "";
+		const { attackerTypes, defenderTypes } = resolveColumnEffectiveTypes(row, column);
+		let pool: string[];
+		if (row.direction === "defense") {
+			refreshOpponentPopularityMoveDatalist(row.name);
+			pool = highAdoptionOpponentMoveNames(row.name)
+				?? Array.from(ensureOpponentPopularityMoveDatalist().options, (option) => option.value);
+		} else {
+			refreshSelfFirstMoveDatalist();
+			const learnedNames = selfLearnedMoveNames();
+			pool = learnedNames.length > 0 ? learnedNames : Array.from(ensureSelfFirstMoveDatalist().options, (option) => option.value);
+		}
+		const ranked = rankMovesByTypeScore(pool, attackerTypes, defenderTypes);
+		const ordered = ranked.length > 0 ? ranked : pool;
+		column.moveName = ordered[candidateIndex] ?? ordered[0] ?? "";
 		if (row.direction === "defense") {
 			automaticOpponentMoveNames.set(column, column.moveName);
 		} else {
 			automaticOpponentMoveNames.delete(column);
 		}
+	}
+
+	// 相手の技候補(採用率データの到着、列の削除など)が変わったとき、まだ手入力されていない
+	// 列(automaticOpponentMoveNames.get(column) === column.moveNameの列)だけ選び直す。
+	// fillFirstMoveCandidate自体が同期処理になったため、旧実装にあった「候補だけ先に差し替えて
+	// 非同期の最大ダメージ探索を後追いさせる」世代管理は不要(このファイル内・他ファイルとも
+	// 参照が無いことをgrep済み)。
+	function refreshOpponentAutomaticMoves(
+		row: DamageRowState,
+		columns: readonly DamageColumnState[] = row.attacks,
+	): void {
+		if (row.direction !== "defense") return;
+		let changed = false;
+		for (const column of columns) {
+			if (automaticOpponentMoveNames.get(column) !== column.moveName) continue;
+			const index = Math.max(0, row.attacks.indexOf(column));
+			const previousMoveName = column.moveName;
+			fillFirstMoveCandidate(row, column, true, index);
+			resolveColumnDerivedFields(column);
+			if (column.moveName !== previousMoveName) changed = true;
+		}
+		if (!changed) return;
+		renderColumns(row);
+		scheduleRowCalc(row);
+		scheduleRowSave(row);
 	}
 
 	// 技列(加算条件)を1つ追加する処理を共通関数にまとめる。
@@ -2178,9 +2232,11 @@ if (opponentNotesSection) {
 		// 直前のカラム(row.attacks末尾)があれば、その詳細設定を引き継ぐ。
 		const previousColumn = row.attacks[row.attacks.length - 1];
 		const column = createEmptyColumn(previousColumn ? inheritedColumnDetailDefaults(previousColumn) : undefined);
+		// fillFirstMoveCandidate自体が同期でタイプ相性スコアを解決するため、旧実装と違い
+		// 追加の非同期再選定(refreshOpponentAutomaticMoves)は不要(呼ぶとrow.attacks内の
+		// 位置=2列目以降でcandidateIndexがずれ、1位ではなく2位以降を選んでしまう)。
 		fillFirstMoveCandidate(row, column);
 		row.attacks.push(column);
-		refreshOpponentAutomaticMoves(row, [column]);
 		renderColumns(row);
 		scheduleRowCalc(row);
 		scheduleRowSave(row);
@@ -2753,6 +2809,20 @@ if (opponentNotesSection) {
 			row.name = nextSpeciesName;
 			presetSpeciesName = nextSpeciesName;
 			refreshSprite();
+			// 相手ポケモンが変わったら、技も「タイプ相性×威力×STAB」の単純計算で選び直す
+			// (setDirectionと同じfillFirstMoveCandidate)。ユーザーの手入力があっても常に
+			// 上書きする。メガストーン補正によるフォーム内部変更(isFormToggle)は「相手が
+			// 変わった」わけではないため対象外(上のコメントと同じ考え方)。
+			if (speciesChanged && !isFormToggle) {
+				row.attacks.forEach((column, index) => fillFirstMoveCandidate(row, column, true, index));
+				for (const column of row.attacks) resolveColumnDerivedFields(column);
+				renderColumns(row);
+				void Promise.all(row.attacks.map((column) => notifyDetailMoveChanged(row, column))).then(() => {
+					renderColumns(row);
+					scheduleRowCalc(row);
+					scheduleRowSave(row);
+				});
+			}
 			void rebuildRowAbilityOptions(nameInput.value.trim()).then(() => {
 				// ユーザーの種族確定に伴うJS側の特性フォールバックも自動入力対象。
 				notifyDetailAbilityChanged(row, row.abilityName, row.direction === "defense");
@@ -2808,10 +2878,12 @@ if (opponentNotesSection) {
 			// デバウンスを待つとrow.directionが既に変わり、逆側のキーを上書きしてしまう。
 			saveCurrentOpponentBuildPreset(row);
 			row.direction = next;
-			// 攻守を選ぶたびに、選択した攻撃側の先頭の攻撃技を初期値として反映する。
-			// 攻撃は自分の1つ目の攻撃技、防御は相手の採用率1位の攻撃技になる。
+			// 攻守を選ぶたびに、選択した攻撃側の技を「タイプ相性×威力×STAB」の単純計算
+			// (fillFirstMoveCandidate参照)で選び直す。攻撃は自分の技1〜4のうち最も有利な技、
+			// 防御は相手の採用率20%以上の技のうち最も有利な技になる。ユーザーが手入力・
+			// 手選択済みでも、攻守の切り替えでは常に上書きする(overwrite=true)。
 			row.attacks.forEach((column, index) => fillFirstMoveCandidate(row, column, true, index));
-			refreshOpponentAutomaticMoves(row, row.attacks, true);
+			for (const column of row.attacks) resolveColumnDerivedFields(column);
 			refreshDirectionUi();
 			// 技列のplaceholder/aria-label(「技」⇄「相手の技」)も向きで変わるため作り直す。
 			// renderColumns()自身が末尾でselectedRow===rowなら
@@ -2822,6 +2894,14 @@ if (opponentNotesSection) {
 			// localStorageへ保存している。切替先の値は、入力済みかどうかに関わらず
 			// 必ずその向き用のプリセットへ入れ替える。
 			applyOpponentBuildPreset(row.name);
+			// 手入力のinputイベントと同じ追従(必ず急所になる技の急所ON、へんげんじざい/リベロの
+			// タイプ同期)を自動選択でも通す。反映後にもう一度描画・再計算・保存する
+			// (旧selectOpponentMaximumDamageMoveの末尾と同じ流れ)。
+			void Promise.all(row.attacks.map((column) => notifyDetailMoveChanged(row, column))).then(() => {
+				renderColumns(row);
+				scheduleRowCalc(row);
+				scheduleRowSave(row);
+			});
 		}
 		// カード上のattackOption/defenseOptionは状態表示専用(クリックによる攻守反転は廃止)。
 		// 向きの変更は詳細設定パネル側のdetailAttackOption/detailDefenseOptionのみで行う。
