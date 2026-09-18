@@ -39,7 +39,7 @@ export function loadPokemonMasterList(): Promise<PokemonMasterEntry[]> {
   return loadMasterMap().then((m) => [...m.values()]);
 }
 
-// 画像取得(championSpriteUrl/officialArtworkUrl)専用のIDマップ。dexNoではなくimageIdを返す
+// 画像取得(championSpriteIconUrl/championSpriteMediumUrl/officialArtworkUrl)専用のIDマップ。dexNoではなくimageIdを返す
 // (メガシンカ等の特殊フォルムをベース種族の画像にしないため)。
 export async function loadImageIdMap(): Promise<Map<string, number>> {
   const master = await loadMasterMap();
@@ -71,33 +71,31 @@ export function loadTypeChart(): Promise<TypeChart> {
 }
 
 // Pokemon.png ワイヤーフレームの「ポケモンアイコン(公式絵)」用。
-// ドット絵と同じく public/pokemon-artwork/ から同一オリジンで配信するが、こちらは原画をそのまま
-// 置いていない。原画は475x475/平均145.8KBで1284件=178.6MBになり、gitにもデプロイにも載らない。
-// 原画よりはるかに小さいため、Retina(2倍)を見込んだ320pxに縮小しWebP(q82)で保存している
-// (生成: scripts/pokemon-artwork/generate_pokemon_artwork.py。約1/8の22.6MB)。
+// public/pokemon-artwork/ から同一オリジンで配信する。原画(475x475/平均145.8KB)は1284件で
+// 178.6MBになりgitにもデプロイにも載らないため、Retina(2倍)を見込んだ320pxに縮小しWebP(q82)で
+// 保存したもの(約1/8の22.6MB)を poke-sprites から同期している(npm run sync-sprites)。
 export function officialArtworkUrl(imageId: number): string {
   return `/pokemon-artwork/${imageId}.webp`;
 }
 
 // Pokémon Champions公式のメニュー用アイコン(bulbagarden archives の
-// Category:Champions_menu_sprites)。public/pokemon-champion-sprites/ から同一オリジンで配信する
-// (生成: scripts/pokemon-champion-sprites/generate_pokemon_champion_sprites.py)。
-// bulbagarden側はChampionsに現在実装済みのポケモン/フォルムしか提供していないため、
-// 存在しないimageIdがある(2026-08時点で1284件中316件のみ)。呼び出し側はこの画像が
-// 取得できない場合、officialArtworkUrl() → 頭文字バッジの順にフォールバックすること
+// Category:Champions_menu_sprites)を poke-sprites から同期し、public/pokemon-champion-sprites/
+// から同一オリジンで配信する。bulbagarden側はChampionsに現在実装済みのポケモン/フォルムしか
+// 提供していないため、存在しないimageIdがある(2026-09時点で1292件中350件のみ)。呼び出し側は
+// この画像が取得できない場合、officialArtworkUrl() → 頭文字バッジの順にフォールバックすること
 // (shared-core.tsのapplySprite・owned-pokemon-card.tsのapplyCardArtwork参照)。
-export function championSpriteUrl(imageId: number): string {
-  return `/pokemon-champion-sprites/${imageId}.png`;
-}
+//
+// ⚠️ 同期元の原寸(320px)は public/ に置いていない。表示サイズ帯ごとの派生2種
+// (icon 96px / medium 192px)だけを npm run sync-sprites が生成しており、両者は常に揃う。
+// このため「派生が無ければ原寸に退避する」段は不要で、退避先は公式絵が最初になる。
 
-// Champions スプライトの小表示用派生画像。320px PNG は大きいプレビューに残し、
-// 一覧やレールでは転送量を抑えた96px WebPを優先する。
+// 概ね48px以下の表示(一覧のジャンプレール・見出し・同時採用など)用の派生画像。
 export function championSpriteIconUrl(imageId: number): string {
   return `/pokemon-champion-sprites/icon/${imageId}.webp`;
 }
 
-// 64〜128px表示(カード・プレビュー・相性グリッド等)用の派生画像。
-// 320px PNG(平均74KB)に対して192px WebPは平均約10KBで、実機の表示解像度には十分。
+// 概ね64〜128px表示(カード・プレビュー・相性グリッド等)用の派生画像。
+// 原画(平均74KB)に対して192px WebPは平均約10KBで、実機の表示解像度には十分。
 export function championSpriteMediumUrl(imageId: number): string {
   return `/pokemon-champion-sprites/medium/${imageId}.webp`;
 }
@@ -285,7 +283,7 @@ export function loadMoveDetailMap(): Promise<Map<string, MoveDetail>> {
 let itemNameSetCache: Promise<Set<string>> | null = null;
 
 // items.json に存在するアイテム名の集合(= jpoke の ITEMS に実在するアイテム)。
-// loadItemSpriteMap()(sprite-urls.ts)と違い spritePath の有無で絞り込まない。
+// アイコンの有無では絞り込まず、マスターデータに存在するアイテム名をすべて保持する。
 // メガストーン名がアプリで有効かどうかの判定にはこちらを使うこと ── 画像は
 // itemIconUrl()の /item-icons/ 側とメガストーン共通フォールバック
 // (setupItemIconFallback)で必ず出るため、spritePath が null であること
@@ -319,7 +317,7 @@ let megaStoneCache: Promise<Map<string, string>> | null = null;
 // MEGA_STONES(逆引き)では曖昧になって漏れる「メガニャオニクス(オス)/(メス)」も含む。
 // 「ニャオニクスナイト」自体はjpokeのITEMS(=items.json)に存在しないという
 // 既知の不整合がある(build_mega_stonesのdocstring参照)。呼び出し側は値をそのまま
-// 信用せず、loadItemNameSet()で実在を確認すること(loadItemSpriteMap()ではない。
+// 信用せず、loadItemNameSet()で実在を確認すること。
 // 理由は同関数のコメント参照)。
 // 命名規則("メガXXX"→"XXXナイト")では導出できない例が85件中32件(約38%)あるため、
 // 必ずこの静的JSONを情報源にすること(命名規則から推測しない)。

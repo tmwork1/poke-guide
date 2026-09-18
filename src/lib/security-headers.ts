@@ -8,7 +8,7 @@ export const SECURITY_HEADERS = {
 	'Referrer-Policy': 'strict-origin-when-cross-origin',
 	'X-Frame-Options': 'DENY',
 	'Content-Security-Policy':
-		"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://raw.githubusercontent.com https://img.gamewith.jp; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:",
+		"default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net; worker-src 'self' blob:",
 } as const;
 
 // /speed-chart, /data/speed-chart はボックス編集画面のすばやさ調整モーダルが同一オリジンiframeとして

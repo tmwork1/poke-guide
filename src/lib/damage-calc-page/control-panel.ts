@@ -1,6 +1,6 @@
 import { DAMAGE_AILMENTS, DAMAGE_TERRAINS, DAMAGE_WEATHERS, clampInt } from "../box-id/damage-calc";
 import { DEFAULT_FIELD_STATE, DEFAULT_OPPONENT_STATE, DEFAULT_SELF_STATE, getFieldState, getOpponentBuild, getOpponentState, getSelfBuilds, getSelfState, setFieldState, setOpponentState, setSelfState } from "./shared-core";
-import { teraTypeIconUrl } from "../sprite-urls";
+import { genericTeraIconUrl, teraTypeIconUrl } from "../sprite-urls";
 import { createTeraSelectDialog } from "../tera-select-dialog";
 import { createRankPicker } from "../shared/rank-picker";
 
@@ -15,7 +15,7 @@ const emit = () => document.dispatchEvent(new CustomEvent("damage-calc:change", 
 // ダメージ計算詳細設定モーダル(box-id/damage-detail-panel.ts)と同じ汎用テラスタルアイコン。
 // タイプ別アイコン(teraTypeIconUrl)が引けない(チーム/相手未選択でタイプ不明)間も
 // ボタンを空にせず、この汎用アイコンを薄く表示してテラスタルボタンだと分かるようにする。
-const GENERIC_TERA_ICON_URL = "https://img.gamewith.jp/article_tools/pokemon-sv/gacha/map_icon_terra2.png";
+const GENERIC_TERA_ICON_URL = genericTeraIconUrl();
 const formatRank = (value: number): string => (value > 0 ? `+${value}` : String(value));
 
 interface RankStepper { row: HTMLElement; setValue: (value: number) => void; }

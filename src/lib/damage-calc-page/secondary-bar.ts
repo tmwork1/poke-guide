@@ -1,4 +1,4 @@
-import { championSpriteIconUrl, championSpriteUrl, loadPokemonMasterList, officialArtworkUrl } from "../pokemon-master-data";
+import { championSpriteIconUrl, loadPokemonMasterList, officialArtworkUrl } from "../pokemon-master-data";
 import { normalizeForSearch } from "../kana";
 import { splitSearchTokens } from "../search-tokens";
 import { getOpponentBuild, setOpponentBuild } from "./shared-core";
@@ -75,7 +75,7 @@ export function initSecondaryBar(): void {
       rail.replaceChildren(...visibleNames.map((name) => {
         const item = document.createElement("button"); item.type = "button"; item.className = "damage-calc-summary-rail-item"; item.ariaLabel = name;
         const imageId = imageIds.get(name);
-        if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteIconUrl(imageId); img.alt = ""; let triedPngFallback = false; img.onerror = () => { if (!triedPngFallback) { triedPngFallback = true; img.src = championSpriteUrl(imageId); return; } img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
+        if (imageId != null) { const img = document.createElement("img"); img.src = championSpriteIconUrl(imageId); img.alt = ""; img.onerror = () => { img.onerror = null; img.src = officialArtworkUrl(imageId); }; item.append(img); }
         else item.textContent = name.slice(0, 1);
         item.addEventListener("click", () => selectOpponent(name));
         return item;

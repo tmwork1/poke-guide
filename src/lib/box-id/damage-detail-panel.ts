@@ -15,7 +15,7 @@
 // #opponent-notes-section と常に同時にSSR描画されるため、ガードの共有は安全)。
 import { el, readEv } from "../owned-pokemon-form";
 import { bindModalDismissal } from "../modal-dismiss";
-import { typeIconUrl } from "../sprite-urls";
+import { genericTeraIconUrl, typeIconUrl } from "../sprite-urls";
 import { createRankPicker } from "../shared/rank-picker";
 import { kanaIncludes } from "../kana";
 import { loadMoveDetailMap, loadTypesMap } from "../pokemon-master-data";
@@ -1557,7 +1557,7 @@ export function buildSideSection(
 		teraToggle.type = "button";
 		teraToggle.className = "damage-detail-tera-toggle";
 		const teraIcon = document.createElement("img");
-		teraIcon.src = "https://img.gamewith.jp/article_tools/pokemon-sv/gacha/map_icon_terra2.png";
+		teraIcon.src = genericTeraIconUrl();
 		teraIcon.alt = "";
 		teraToggle.appendChild(teraIcon);
 		const syncTeraToggle = (): void => {

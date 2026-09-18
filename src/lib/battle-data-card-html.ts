@@ -9,7 +9,7 @@ import {
   usageRateLabel,
   type SingleFormatData,
 } from './battle-data-card';
-import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from './pokemon-master-data';
+import { championSpriteIconUrl, officialArtworkUrl } from './pokemon-master-data';
 import { itemIconUrl } from './sprite-urls';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from './type-colors';
 
@@ -67,7 +67,7 @@ export function renderBattleDataCardHtml(single: SingleFormatData | null | undef
   const teammatesHtml = emptyOrList(teammates.map((row, index) => {
     const imageId = imageIdByName(row.name);
     const imageHtml = imageId === null ? '' : (() => {
-      const onerror = `this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(imageId)}';};this.src='${championSpriteUrl(imageId)}';};`;
+      const onerror = `this.onerror=null;this.src='${officialArtworkUrl(imageId)}';`;
       return `<span class="trend-rank-icon"><img class="trend-rank-icon--pokemon" src="${escapeHtml(championSpriteIconUrl(imageId))}" onerror="${escapeHtml(onerror)}" alt="" loading="lazy"></span>`;
     })();
     return selectedRow('teammate', row.name, imageId !== null ? 'trend-rank-row--rank-icon3' : 'trend-rank-row--rank-name2', `<span class="trend-rank-order" aria-label="${index + 1}位">${index + 1}</span>${imageHtml}<span class="trend-rank-name">${escapeHtml(row.name)}</span>`);

@@ -48,7 +48,6 @@ import {
 	officialArtworkUrl,
 	championSpriteIconUrl,
 	championSpriteMediumUrl,
-	championSpriteUrl,
 } from "../pokemon-master-data";
 import { applyItemIconWithFallback, teraTypeIconUrl } from "../sprite-urls";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
@@ -176,10 +175,9 @@ const itemNameSetPromise = loadItemNameSet();
 // 後者を弾かないと、ダメージ計算に反映されない「設定できるのに効かない」UIになるため、
 // items.jsonに実在するかを都度確認する(特定のアイテム名をハードコードしない。
 // 将来jpoke側の不整合が直れば自動的に有効になる)。
-// ⚠️ 存在確認は loadItemNameSet()(名前の集合)で行い、loadItemSpriteMap()(spritePathが
-// 解決できたものだけ)は使わない。jpoke v0.4.0で入った「アブソルナイトZ」「ガブリアス
-// ナイトZ」はitems.jsonに実在するがspritePathがnullで、spritePathで弾くと固有アイテム
-// なのにロックされず変更できてしまっていた。画像は/item-icons/とメガストーン共通
+// ⚠️ 存在確認は loadItemNameSet()(名前の集合)で行う。アイコンの有無で判定しない。
+// jpoke v0.4.0で入った「アブソルナイトZ」「ガブリアスナイトZ」のように、アイコンの
+// 有無とアイテムの有効性は別である。画像は/item-icons/とメガストーン共通
 // フォールバック(sprite-urls.tsのsetupItemIconFallback)で出るため支障はない。
 export async function resolveMegaStoneItem(speciesName: string): Promise<string | null> {
 	const trimmed = speciesName.trim();
@@ -219,7 +217,7 @@ export async function applySprite(
 	imgEl: HTMLImageElement,
 	fallbackEl: HTMLElement,
 	name: string,
-	variant: "icon" | "medium" | "full" = "medium",
+	variant: "icon" | "medium" = "medium",
 ): Promise<void> {
 	const imageId = name ? (await imageIdMapPromise).get(name) : undefined;
 	if (imageId == null) {
@@ -233,14 +231,8 @@ export async function applySprite(
 	// フォールバックは表示のたびにインラインの display を書き込むため、hidden だけでは
 	// 消えない(インライン指定が [hidden] の display:none に勝つ)。両方を戻す。
 	hideFallback(fallbackEl);
-	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
-		if (variant !== "full" && !triedPngFallback) {
-			triedPngFallback = true;
-			imgEl.src = championSpriteUrl(imageId);
-			return;
-		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);
@@ -251,11 +243,7 @@ export async function applySprite(
 		fallbackEl.style.display = "flex";
 		fallbackEl.textContent = name.charAt(0);
 	};
-	imgEl.src = variant === "icon"
-		? championSpriteIconUrl(imageId)
-		: variant === "medium"
-			? championSpriteMediumUrl(imageId)
-			: championSpriteUrl(imageId);
+	imgEl.src = variant === "icon" ? championSpriteIconUrl(imageId) : championSpriteMediumUrl(imageId);
 }
 
 // UI刷新(Pokemon.png): テラスタイプ画像(select横)。呼び出し元は育成パネルの読み取り専用画像

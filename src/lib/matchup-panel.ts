@@ -1,6 +1,5 @@
 import {
 	championSpriteMediumUrl,
-	championSpriteUrl,
 	loadImageIdMap,
 	loadMoveDetailMap,
 	loadMultiHitMoveMap,
@@ -159,14 +158,8 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 		fallbackEl.textContent = name ? name.charAt(0) : '?';
 		return;
 	}
-	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
-		if (!triedPngFallback) {
-			triedPngFallback = true;
-			imgEl.src = championSpriteUrl(imageId);
-			return;
-		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);

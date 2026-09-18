@@ -198,7 +198,7 @@ Pyodideの内訳(CDN実測): `pyodide.asm.wasm` 2,991,722B + `python_stdlib.zip`
 | `detail/learnsets.json` | 1,416,596B | 種族選択ダイアログ。入力文字列で全種族の覚え技を横断検索するため全件が要る。開いたときだけ読む |
 | `detail/speed-modifier-learnset.json` | 46,774B(884種族) | すばやさ早見表。`speed-modifiers.json` の `moves`(18件)に含まれるかの判定1箇所でしか使わない |
 
-種族名はファイル名にそのまま使う(`public/item-icons/<日本語のアイテム名>.png` と同じ方式)。
+種族名はファイル名にそのまま使う(`public/item-icons/<日本語のアイテム名>.webp` と同じ方式)。
 Windowsで使えない文字だけを `%`+コードポイントへ変換し(該当は「タイプ:ヌル」1件)、
 変換規則は `build.mjs` と `pokemon-master-data.ts` の2箇所に閉じている。
 

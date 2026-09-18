@@ -1,7 +1,6 @@
 import {
 	championSpriteIconUrl,
 	championSpriteMediumUrl,
-	championSpriteUrl,
 	loadImageIdMap,
 	officialArtworkUrl,
 } from "./pokemon-master-data";
@@ -9,7 +8,7 @@ import { applyItemIconWithFallback } from "./sprite-urls";
 
 const imageIdMapPromise = loadImageIdMap();
 
-export type CompactPokemonSpriteVariant = "icon" | "medium" | "full";
+export type CompactPokemonSpriteVariant = "icon" | "medium";
 
 export interface CompactPokemonSpriteOptions {
 	/** 画像を出せないときに、頭文字の代わりに隠す要素。 */
@@ -31,8 +30,7 @@ function showInitialFallback(fallbackEl: HTMLElement, name: string): void {
  * コンパクト表示用のポケモン画像を適用する。
  *
  * variant は一次URLを選ぶ(既定は icon WebP)。box-id/shared-core.ts の
- * applySprite と同じ意味にそろえてあり、"full" だけは Champions PNG が一次なので
- * PNGへの退避段を飛ばす。退避順は 一次URL → Champions PNG → 公式絵 →
+ * applySprite と同じ意味にそろえてある。退避順は 一次URL → 公式絵 →
  * 頭文字(または hideContainer によるラッパー非表示)。
  *
  * ⚠️ icon WebP(96px)で足りるのは実表示48px以下の箇所だけ。63pxのコンパクトタイル以上
@@ -67,14 +65,8 @@ export async function applyCompactPokemonSprite(
 		return;
 	}
 
-	let triedPngFallback = false;
 	let triedArtworkFallback = false;
 	imgEl.onerror = () => {
-		if (variant !== "full" && !triedPngFallback) {
-			triedPngFallback = true;
-			imgEl.src = championSpriteUrl(imageId);
-			return;
-		}
 		if (!triedArtworkFallback) {
 			triedArtworkFallback = true;
 			imgEl.src = officialArtworkUrl(imageId);
@@ -87,12 +79,7 @@ export async function applyCompactPokemonSprite(
 		if (fallbackEl) hideFallback(fallbackEl);
 		if (options.hideContainer) options.hideContainer.hidden = false;
 	};
-	imgEl.src =
-		variant === "icon"
-			? championSpriteIconUrl(imageId)
-			: variant === "medium"
-				? championSpriteMediumUrl(imageId)
-				: championSpriteUrl(imageId);
+	imgEl.src = variant === "icon" ? championSpriteIconUrl(imageId) : championSpriteMediumUrl(imageId);
 }
 
 /** 持ち物アイコンを適用し、読込失敗時はアイコン（および任意のラッパー）を隠す。 */

@@ -1,6 +1,5 @@
 import type { RankedTeam } from '../ranked-teams';
-import { championSpriteMediumUrl,
-  championSpriteUrl, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteMediumUrl, officialArtworkUrl } from '../pokemon-master-data';
 import { applyItemIconWithFallback, typeIconUrl } from '../sprite-urls';
 import { renderTeamCard } from '../team-card';
 import { getAppBandRect } from '../app-band';

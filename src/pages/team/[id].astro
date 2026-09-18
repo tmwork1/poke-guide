@@ -1555,8 +1555,8 @@ if (!isGuestNewMode) {
 					fallback.textContent = p.species_name.slice(0, 1);
 					spriteWrap.append(img, fallback);
 					// team-overview-preview-cardは6列コンパクトタイルより大きく表示するため、
-					// 一次URLはicon WebPではなくChampions PNG("full")のままにする。
-					void applySprite(img, fallback, p.species_name, "full");
+					// 一次URLはicon WebP(96px)ではなくmedium(192px)にする。
+					void applySprite(img, fallback, p.species_name, "medium");
 					identity.appendChild(spriteWrap);
 					const itemName = effectiveItemName(slot, p);
 					// ダメージ詳細パネルのteam-damage-stats/team-damage-stats-line(display:contentsで6列

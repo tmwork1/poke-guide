@@ -9,7 +9,7 @@ import { getOpggUsageBattleDataList, getOpggUsageManifest, sortOpggSeasons } fro
 import { listRankedSeasons } from '../../lib/ranked-teams';
 import { resolveDefaultSeason } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
-import { championSpriteIconUrl, championSpriteUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
+import { championSpriteIconUrl, officialArtworkUrl } from '../../lib/pokemon-master-data';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
 import { env } from 'cloudflare:workers';
 import '../../styles/data-hub-page.css';
@@ -135,7 +135,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 						<nav class="battle-data-rail" aria-label="ポケモン一覧へジャンプ">
 							{entries.map((entry) => (
 								<a class="battle-data-rail-item" href={`#${entry.elementId}`} data-battle-data-rail-item data-species-name={entry.name} aria-label={entry.name}>
-									{entry.imageId !== null && <img src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';};this.src='${championSpriteUrl(entry.imageId)}';};`} alt="" width="36" height="36" style="width:36px;height:36px;object-fit:contain;" loading="lazy" />}
+									{entry.imageId !== null && <img src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" width="36" height="36" style="width:36px;height:36px;object-fit:contain;" loading="lazy" />}
 								</a>
 							))}
 						</nav>
@@ -156,7 +156,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 								>
 									<header class="battle-data-entry-header">
 										<span class="badge battle-data-entry-rank" aria-label={`使用率順位 ${entry.rank}位`}>{entry.rank}</span>
-										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=()=>{this.onerror=()=>{this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';};this.src='${championSpriteUrl(entry.imageId)}';};`} alt="" loading="lazy" />}
+										{entry.imageId !== null && <img class="battle-data-entry-icon" src={championSpriteIconUrl(entry.imageId)} onerror={`this.onerror=null;this.src='${officialArtworkUrl(entry.imageId)}';`} alt="" loading="lazy" />}
 										<span class="battle-data-entry-name">{entry.name}</span>
 									</header>
 									{entry.rank <= BATTLE_DATA_SSR_CARD_COUNT && <BattleDataCard single={entry.single} />}

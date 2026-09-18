@@ -31,7 +31,7 @@ import {
   type SpeedModifiersData,
   type SpeedSpreadKind,
 } from '../speed-chart';
-import { championSpriteIconUrl, championSpriteUrl, loadCoreDetailList, officialArtworkUrl } from '../pokemon-master-data';
+import { championSpriteIconUrl, loadCoreDetailList, officialArtworkUrl } from '../pokemon-master-data';
 import { kanaIncludes } from '../kana';
 import {
   initOwnedPanel,
@@ -841,9 +841,7 @@ function buildChip(formName: string, imageIdByName: Map<string, number>): HTMLEl
     img.className = 'sprite-icon speed-chart-chip-icon';
     // 行内のチップは小さいので96pxのWebPで足りる。
     img.src = championSpriteIconUrl(imageId);
-    let triedPng = false;
     img.onerror = () => {
-      if (!triedPng) { triedPng = true; img.src = championSpriteUrl(imageId); return; }
       img.onerror = null;
       img.src = officialArtworkUrl(imageId);
     };

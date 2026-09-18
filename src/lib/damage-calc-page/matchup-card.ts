@@ -1,6 +1,6 @@
 import { describeStandaloneLethal } from "../box-id/damage-calc-helpers";
 import { splitBoxCardDisplayName } from "../box-card-display-name";
-import { championSpriteMediumUrl, championSpriteUrl, loadAbilitiesMap, loadImageIdMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
+import { championSpriteMediumUrl, loadAbilitiesMap, loadImageIdMap, loadMoveDetailMap, loadPokemonMasterList, officialArtworkUrl, type MoveCategory, type PokemonMasterEntry } from "../pokemon-master-data";
 import { calcDamages, calcStats, initEngine, registerOfflineCache, type PokemonSpec } from "../pyodide-engine";
 import { NATURE_STAT_MODIFIERS, STAT_KEYS, type StatKey } from "../stats";
 import type { PopularMoveOption } from "../team-matchup";
@@ -254,13 +254,7 @@ function renderArtwork(root: HTMLElement, name: string, imageId: number | undefi
   // 68px表示なので192pxのWebPを優先し、失敗時に320px PNG→公式絵へ退避する。
   image.src = championSpriteMediumUrl(imageId);
   image.alt = name;
-  let triedPng = false;
   image.onerror = () => {
-    if (!triedPng) {
-      triedPng = true;
-      image.src = championSpriteUrl(imageId);
-      return;
-    }
     image.onerror = null;
     image.src = officialArtworkUrl(imageId);
   };

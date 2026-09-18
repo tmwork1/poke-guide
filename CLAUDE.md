@@ -17,6 +17,16 @@
 - `position: fixed` の要素は `left/right: var(--app-band-inset)` で帯に揃える(ダイアログのバックドロップだけは全画面)。JSで位置を出すときは `src/lib/app-band.ts` の `getAppBandRect` / `clampToAppBand` を使い、`window.innerWidth` を直接使わない。
 - 帯幅を意味する `100vw` は `var(--app-band-width)` を使う。
 
+## 画像アセット
+
+**アプリで使う画像(ポケモン公式絵・立ち絵、アイテム、タイプ/テラスタルタイプ、UI)の一次ソースは [tmwork1/poke-sprites](https://github.com/tmwork1/poke-sprites) に集約している。** poke-guide 側は `npm run sync-sprites` で同期するだけとし、画像を取得・加工するスクリプトをこのリポジトリに追加しない(過去にあった生成スクリプト4種はすべて poke-sprites へ移した)。
+
+- 同期先は `public/pokemon-artwork/`、`public/pokemon-champion-sprites/{icon,medium}/`、`public/item-icons/`、`public/type-icons/{,tera}/`、`public/ui-icons/`。すべて WebP で、同期スクリプトがディレクトリごと作り直すため手で置いたファイルは消える。
+- poke-sprites のファイル名は和名、poke-guide 側は imageId / typeId。対応付けは `public/master-data/autocomplete/pokemon.json` を正とし、`scripts/sync-sprites.mjs` が変換する。
+- 立ち絵は原寸(320px)を置かず、`icon`(96px)と `medium`(192px)の派生だけを持つ。画像が無いときの退避先は公式絵 → 頭文字バッジ。
+- **実行時に外部サイトの画像を参照しない**(CSPの `img-src` は `'self' data:` のみ)。新しい画像が要るときは poke-sprites 側に追加してから同期する。
+- 新しいポケモン/アイテムを master-data に足したら `npm run sync-sprites` を実行する。画像が無いものは警告が出るので、poke-sprites 側の追加漏れはそこで分かる。
+
 ## スタイル定義
 
 画面・コンポーネント固有のスタイルは、`owned-pokemon-card.css` や `box-page.css` のように対象ごとの CSS ファイルへ集約することを必須とする。開発者が見た目を調整しやすいよう、テンプレート内の `style` 属性、コンポーネント内の分散した `<style>`、および同一対象のスタイルを複数ファイルへ無秩序に分ける実装は行わない。共有スタイルのみ `global.css` 等の共通スタイルシートに置く。

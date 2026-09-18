@@ -40,6 +40,9 @@
 /type-icons/*
   Cache-Control: public, max-age=2592000
 
+/ui-icons/*
+  Cache-Control: public, max-age=2592000
+
 # マスタデータJSONはURLにハッシュが無く、参照するJS(/_astro/、ハッシュ付き)はデプロイごとに変わる。
 # 30日のブラウザキャッシュを付けていたところ、古いJSONを持ったまま新しいJSを実行して
 # すばやさ早見表が空になる事故が起きた(2026-09-11、Android Chrome。キャッシュ削除で復旧)。
