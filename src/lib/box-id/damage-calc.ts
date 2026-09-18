@@ -60,14 +60,14 @@ import { teraTypeIconUrl } from "../sprite-urls";
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../type-colors";
 import { initializeCardDeleteMode, playCardDeleteExitEffect } from "../card-delete-mode";
 import { loadMatchupTargets } from "../matchup-panel";
-// 相手ポケモンのアイテムドロップダウン(下のbuildItemDropdown参照)の検索欄で、育成タブの
-// 持ち物ドロップダウン(pokemon-edit-panel.ts)と同じかな・文字幅・英字大小を無視した絞り込みにする。
-import { kanaIncludes } from "../kana";
 import { MODAL_PORTAL_SELECTOR } from "../modal-dismiss";
 import { openOpponentSelectDialog } from "./opponent-select-dialog";
-// もちもの候補の並び順(box/のもちもの選択モーダルと同じ、使用率降順+タイプ強化/きのみ/
-// メガストーンのグルーピング)を共有するため、item-select-dialog.tsのsortItemsByUsageを使う。
-import { sortItemsByUsage } from "./item-select-dialog";
+import {
+	openOpponentItemSelectDialog,
+	setOpponentItemSelectPopularity,
+	type OpponentItemPopularity,
+} from "./opponent-item-select-dialog";
+import { openOpponentTeraSelectDialog } from "./opponent-tera-select-dialog";
 import {
 	attachKanaTypeAhead,
 	applySprite,
@@ -379,20 +379,7 @@ function loadMoveAdoption(): Promise<void> {
 	return moveAdoptionPromise;
 }
 
-// テラスタイプ選択ボックスはPokemonEditPanel.astro
-// 226〜249行目・pokemon-edit-panel.ts 500〜613行目の#tera-dropdown-button/#tera-dropdown-list
-// (ボタン+リストボックスのカスタムドロップダウン)と同じ見た目・挙動を持つが、育成パネル側は
-// ページに1個しか無い前提でid固定のgetElementById()を使っているのに対し、ダメージカードは
-// 1枚につき1個・複数枚同時に存在しうるため、idを一切使わずクロージャで状態を閉じ込める
-// ファクトリ関数として書き直した(コピーではなく複数インスタンス生成できる形に再実装)。
-// CSSは#opponent-notes-section .tera-dropdown-button/.tera-dropdown-list/
-// .tera-dropdown-image/.tera-dropdown-placeholder/.tera-dropdown-option等
-// (DamageCalcSection.astroの<style is:global>、育成パネルの#edit-form接頭辞ルールと
-// 値を共有)を参照する。
-// 「相手ポケモン」タブのテラスタイプ欄廃止(わざタブへ移設)に伴い、damage-detail-panel.tsの
-// buildSideSection()からも呼べるようモジュール top-level へ移設してexportした
-// (元は#opponent-notes-sectionガード内のprivate関数だった。TERA_TYPES/teraTypeIconUrlは
-// どちらもファイル冒頭のモジュールimportのため、この位置でも参照可能)。
+// 相手のテラスタルは、共有のグリッド式モーダルを開くトリガーだけをここで組み立てる。
 export function buildTeraDropdown(
 	initialValue: string,
 	ariaLabelPrefix: string,
@@ -404,8 +391,8 @@ export function buildTeraDropdown(
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "tera-dropdown-button";
-	button.setAttribute("aria-haspopup", "listbox");
-	button.setAttribute("aria-expanded", "false");
+	button.setAttribute("aria-haspopup", "dialog");
+	button.setAttribute("aria-controls", "opponent-tera-select-dialog");
 
 	const image = document.createElement("img");
 	image.className = "tera-dropdown-image";
@@ -413,18 +400,9 @@ export function buildTeraDropdown(
 	image.style.display = "none";
 	const placeholder = document.createElement("span");
 	placeholder.className = "tera-dropdown-placeholder";
-	placeholder.textContent = "テラスタルなし";
 	button.append(image, placeholder);
 
-	const list = document.createElement("ul");
-	list.className = "tera-dropdown-list";
-	list.setAttribute("role", "listbox");
-	list.setAttribute("aria-label", `${ariaLabelPrefix}を選択`);
-	list.hidden = true;
-
 	let value = initialValue;
-	const optionEls: { value: string; li: HTMLLIElement }[] = [];
-
 	function updateButton(): void {
 		const isUnselected = value === "";
 		button.classList.toggle("is-tera-unselected", isUnselected);
@@ -442,102 +420,24 @@ export function buildTeraDropdown(
 			return;
 		}
 		image.alt = value;
-		image.onload = () => {
-			image.style.display = "";
-		};
-		image.onerror = () => {
-			image.style.display = "none";
-		};
+		image.onload = () => { image.style.display = ""; };
+		image.onerror = () => { image.style.display = "none"; };
 		image.src = url;
 	}
 
-	function closeList(): void {
-		list.hidden = true;
-		button.setAttribute("aria-expanded", "false");
-	}
-	function openList(): void {
-		for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-		list.hidden = false;
-		button.setAttribute("aria-expanded", "true");
-	}
 	button.addEventListener("click", () => {
-		if (list.hidden) openList();
-		else closeList();
-	});
-	// リストの外側をクリックしたら閉じる(育成パネル側と同じ一般的な挙動。pitfalls.md参照)。
-	document.addEventListener("click", (e) => {
-		if (list.hidden) return;
-		const target = e.target as Node;
-		if (button.contains(target) || list.contains(target)) return;
-		closeList();
-	});
-	button.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") closeList();
-	});
-
-	function addOption(optValue: string, label: string): void {
-		const li = document.createElement("li");
-		li.className = "tera-dropdown-option";
-		li.setAttribute("role", "option");
-		li.tabIndex = -1;
-		li.dataset.value = optValue;
-		if (optValue === "") {
-			li.setAttribute("aria-label", "テラスタルなし");
-			const textEl = document.createElement("span");
-			textEl.className = "tera-dropdown-option-text";
-			textEl.textContent = "テラスタルなし";
-			li.appendChild(textEl);
-		} else {
-			li.setAttribute("aria-label", label);
-			const imgEl = document.createElement("img");
-			imgEl.className = "tera-dropdown-option-image";
-			imgEl.alt = label;
-			const url = teraTypeIconUrl(optValue);
-			if (url) imgEl.src = url;
-			li.appendChild(imgEl);
-			const textEl = document.createElement("span");
-			textEl.className = "tera-dropdown-option-text";
-			textEl.textContent = label;
-			li.appendChild(textEl);
-		}
-		li.addEventListener("click", () => {
-			if (value !== optValue) {
-				value = optValue;
-				updateButton();
-				onChange(value);
-			}
-			for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-			closeList();
+		openOpponentTeraSelectDialog(button, () => value, (nextValue) => {
+			if (value === nextValue) return;
+			value = nextValue;
+			updateButton();
+			onChange(value);
 		});
-		list.appendChild(li);
-		optionEls.push({ value: optValue, li });
-	}
-
-	addOption("", "テラスタルなし");
-	for (const t of TERA_TYPES) addOption(t, t);
-
-	wrap.append(button, list);
+	});
+	wrap.appendChild(button);
 	updateButton();
-
-	// 種族プリセット適用時に、クリック操作を介さず外部から表示だけを更新できるようにする
-	// (onChangeは呼ばない。値の反映・再計算・保存のトリガーは呼び出し側=
-	// applyOpponentBuildPreset側でまとめて行う)。
-	function setValue(newValue: string): void {
-		value = newValue;
-		for (const opt of optionEls) opt.li.classList.toggle("is-active", opt.value === value);
-		updateButton();
-	}
-
-	return { wrap, setValue };
+	return { wrap, setValue: (nextValue) => { value = nextValue; updateButton(); } };
 }
 
-// 「相手ポケモン」タブのアイテム欄は、育成タブ(PokemonEditPanel.astro 116-146行目・pokemon-edit-panel.ts
-// 626-809行目付近)の持ち物カスタムドロップダウン(アイコン表示・使用率順の並び・検索フィルタ付き
-// 開閉パネル)と同じ見た目・操作性に揃える。pokemon-edit-panel.ts側はページに1個しか無い前提でid直書きの
-// 実装のため、上のbuildTeraDropdownと同じ「idを一切使わずクロージャで状態を閉じ込めるファクトリ
-// 関数」として複数インスタンス生成できる形に書き直す(コピーではなく再実装)。
-// CSSは#damage-detail-panel-body .damage-build-detail-item-dropdown-*(damage-detail-panel.css、
-// PokemonEditPanel.astro側の#edit-form .item-dropdown-*と同じ値を使う別ルールとして新設)を参照する。
 type ItemSuggestionOption = { value: string; ratio: number };
 type ItemSuggestionPayload = { options: ItemSuggestionOption[] };
 type ItemSuggestionApiRow = { payload?: { options?: ItemSuggestionOption[] } };
@@ -601,24 +501,8 @@ async function fetchPopularAbilitySuggestion(
 	return fetchBySubjectKey(speciesName);
 }
 
-// #item-list(datalist、box/[id].astroにSSR描画済み、pokemon-edit-panel.tsのloadAutocomplete()が
-// 非同期に候補を流し込む)から全アイテム名を読む。pokemon-edit-panel.tsのgetItemOptionNames()と
-// 同じ「一度読めたら以降はキャッシュする」考え方だが、初回オープンの時点でまだ流し込みが
-// 終わっていない(=0件で読めてしまう)ケースがあるため、0件だったキャッシュは採用せず
-// 次回オープン時に読み直す(pokemon-edit-panel.ts側はページ初期化時にawait autocompleteReadyPromiseで
-// 読み込み完了を待てるが、autocompleteReadyPromiseは非exportのためこのファイルからは
-// 参照できず、この待機なしの遅延読み直し方式で妥当に対処する)。
-let itemDropdownNameCache: string[] | null = null;
-function getItemDropdownOptionNames(): string[] {
-	if (itemDropdownNameCache) return itemDropdownNameCache;
-	const datalist = document.getElementById("item-list") as HTMLDataListElement | null;
-	const names = datalist ? Array.from(datalist.options).map((o) => o.value) : [];
-	if (names.length > 0) itemDropdownNameCache = names;
-	return names;
-}
-
 interface ItemDropdownHandle {
-	/** ボタン+検索パネル一式のラッパー。makeDetailFieldの control としてそのまま渡す。 */
+	/** モーダルを開くボタン一式のラッパー。makeDetailFieldの control としてそのまま渡す。 */
 	wrap: HTMLElement;
 	/** 値の実体(hidden)。育成パネルと同じく、既存のflashAutofillHint(HTMLInputElementを要求する
 	 * shared-core.tsの共通関数、担当外ファイル)や、呼び出し元のrow.itemName書き込み・
@@ -629,8 +513,7 @@ interface ItemDropdownHandle {
 	refreshDisplay: () => void;
 	/** メガストーン固定中の選択操作無効化(旧itemInput.disabledの役割)。 */
 	setDisabled: (disabled: boolean) => void;
-	/** 使用率順の並べ替え・"(NN%)"付記(pokemon-edit-panel.tsのapplyItemSuggestionOrderingと同じロジック)。
-	 * データが無い/未取得なら元の順序のまま(no-op寄り)。 */
+	/** 使用率順の並べ替え・"(NN%)"表示に使う候補データを、共有モーダルへ渡す。 */
 	setPopularity: (payload: ItemSuggestionPayload | undefined) => void;
 	/** メガストーン自動設定時の強調表示(pokemon-edit-panel.tsのitemDropdownButton.classList.add
 	 * ("is-autofilled")と同じ、1.4秒だけボタンを強調する)。 */
@@ -652,8 +535,8 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	const button = document.createElement("button");
 	button.type = "button";
 	button.className = "damage-build-detail-item-dropdown-button";
-	button.setAttribute("aria-haspopup", "listbox");
-	button.setAttribute("aria-expanded", "false");
+	button.setAttribute("aria-haspopup", "dialog");
+	button.setAttribute("aria-controls", "opponent-item-select-dialog");
 
 	const image = document.createElement("img");
 	image.className = "damage-build-detail-item-dropdown-image";
@@ -663,38 +546,10 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 	image.hidden = true;
 	const placeholder = document.createElement("span");
 	placeholder.className = "damage-build-detail-item-dropdown-placeholder";
-	placeholder.textContent = "もちものなし";
 	button.append(image, placeholder);
+	wrap.append(input, button);
 
-	const panel = document.createElement("div");
-	panel.className = "damage-build-detail-item-dropdown-panel";
-	panel.hidden = true;
-
-	const search = document.createElement("input");
-	search.type = "text";
-	search.className = "damage-build-detail-item-dropdown-search";
-	search.placeholder = "もちもの名で絞り込み";
-	search.setAttribute("aria-label", "もちもの候補を絞り込み");
-	search.autocomplete = "off";
-
-	const list = document.createElement("ul");
-	list.className = "damage-build-detail-item-dropdown-list";
-	list.setAttribute("role", "listbox");
-	list.setAttribute("aria-label", "もちものを選択");
-
-	panel.append(search, list);
-	wrap.append(input, button, panel);
-
-	const emptyEl = document.createElement("li");
-	emptyEl.className = "damage-build-detail-item-dropdown-empty";
-	emptyEl.textContent = "条件に一致するもちものがありません";
-	emptyEl.setAttribute("aria-disabled", "true");
-	emptyEl.hidden = true;
-
-	const optionEls: { value: string; li: HTMLLIElement }[] = [];
-	let ratioMap: Map<string, number> | undefined;
-	let built = false;
-
+	let popularity: OpponentItemPopularity | undefined;
 	function updateButton(): void {
 		const value = input.value.trim();
 		const isUnselected = value === "";
@@ -710,160 +565,31 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 		void applyItemImage(image, value);
 	}
 
-	function closePanel(): void {
-		panel.hidden = true;
-		button.setAttribute("aria-expanded", "false");
-	}
-
-	function selectValue(value: string): void {
-		if (input.value !== value) {
-			input.value = value;
-			// row.itemNameの書き込みなど既存の値保存経路はinput/changeの両方をリッスンしている
-			// 前提のため(旧itemInput、育成パネルのselectItemと同じ)、両方発火させる。
-			input.dispatchEvent(new Event("input"));
-			input.dispatchEvent(new Event("change"));
-		}
-		closePanel();
-	}
-
-	function buildOptions(): void {
-		if (built) return;
-		built = true;
-		const fragment = document.createDocumentFragment();
-		{
-			// テラスの「テラスタルなし」と同じ扱いで、アイテムを外す選択肢を先頭に固定で置く。
-			const li = document.createElement("li");
-			li.className = "damage-build-detail-item-dropdown-option";
-			li.setAttribute("role", "option");
-			li.tabIndex = -1;
-			li.dataset.value = "";
-			li.setAttribute("aria-label", "もちものなし");
-			const textEl = document.createElement("span");
-			textEl.className = "damage-build-detail-item-dropdown-option-text";
-			textEl.textContent = "もちものなし";
-			li.appendChild(textEl);
-			li.addEventListener("click", () => selectValue(""));
-			fragment.appendChild(li);
-			optionEls.push({ value: "", li });
-		}
-		for (const value of getItemDropdownOptionNames()) {
-			const li = document.createElement("li");
-			li.className = "damage-build-detail-item-dropdown-option";
-			li.setAttribute("role", "option");
-			li.tabIndex = -1;
-			li.dataset.value = value;
-			li.setAttribute("aria-label", value);
-			const imgEl = document.createElement("img");
-			imgEl.className = "damage-build-detail-item-dropdown-option-image";
-			imgEl.alt = "";
-			void applyItemImage(imgEl, value);
-			li.appendChild(imgEl);
-			const textEl = document.createElement("span");
-			textEl.className = "damage-build-detail-item-dropdown-option-text";
-			textEl.textContent = value;
-			li.appendChild(textEl);
-			li.addEventListener("click", () => selectValue(value));
-			fragment.appendChild(li);
-			optionEls.push({ value, li });
-		}
-		list.appendChild(fragment);
-		list.appendChild(emptyEl);
-	}
-
-	// 「アイテムなし」は先頭固定のまま、残りを並べ替える。ポケモンが選択されて使用率データ
-	// (ratioMap)が取れている場合は、box/のもちもの選択モーダル(item-select-dialog.ts)と
-	// 同じsortItemsByUsage(使用率降順 → タイプ強化アイテム/きのみ/メガストーンのグルーピング)
-	// を使う。データが無い場合は元の順序(item-list datalistの並び)のまま。
-	function applyOrdering(): void {
-		if (!built) return; // 未構築(次回buildOptions/openPanelで改めて適用される)
-		const noneEntry = optionEls.find((o) => o.value === "");
-		const restEntries = optionEls.filter((o) => o.value !== "");
-		const rest = ratioMap
-			? sortItemsByUsage(restEntries.map((o) => o.value), (value) => ratioMap?.get(value))
-				.map((value) => restEntries.find((o) => o.value === value)!)
-			: restEntries;
-		for (const entry of rest) {
-			const textEl = entry.li.querySelector<HTMLElement>(".damage-build-detail-item-dropdown-option-text");
-			if (textEl) textEl.textContent = entry.value;
-		}
-		if (noneEntry) list.appendChild(noneEntry.li);
-		for (const entry of rest) list.appendChild(entry.li);
-		list.appendChild(emptyEl); // 「該当するアイテムがありません」は常に末尾
-	}
-
-	function filterOptions(): void {
-		const query = search.value.trim();
-		let anyVisible = false;
-		for (const opt of optionEls) {
-			// 表示値は変えず、比較だけかな・文字幅・英字大小を正規化する。
-			const match = query === "" || kanaIncludes(opt.value, query);
-			opt.li.hidden = !match;
-			if (match) anyVisible = true;
-		}
-		emptyEl.hidden = anyVisible;
-	}
-	search.addEventListener("input", filterOptions);
-
-	function openPanel(): void {
-		buildOptions();
-		applyOrdering();
-		search.value = "";
-		for (const opt of optionEls) {
-			opt.li.classList.toggle("is-active", opt.value === input.value.trim());
-			opt.li.hidden = false;
-		}
-		emptyEl.hidden = true;
-		panel.hidden = false;
-		button.setAttribute("aria-expanded", "true");
-		search.focus();
-	}
 	button.addEventListener("click", () => {
-		if (panel.hidden) openPanel();
-		else closePanel();
+		void openOpponentItemSelectDialog(button, input, popularity);
 	});
-	// リストの外側をクリックしたら閉じる(育成パネル・buildTeraDropdownと同じ一般的な挙動)。
-	document.addEventListener("click", (e) => {
-		if (panel.hidden) return;
-		const target = e.target as Node;
-		if (button.contains(target) || panel.contains(target)) return;
-		closePanel();
-	});
-	button.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") closePanel();
-	});
-	search.addEventListener("keydown", (e) => {
-		if (e.key === "Escape") {
-			closePanel();
-			button.focus();
-		}
-	});
-
 	input.addEventListener("input", updateButton);
 	updateButton();
 
-	function setDisabled(disabled: boolean): void {
-		button.disabled = disabled;
-		if (disabled) closePanel();
-	}
-
-	function setPopularity(payload: ItemSuggestionPayload | undefined): void {
-		ratioMap = payload && payload.options.length > 0
-			? new Map(payload.options.map((o) => [o.value, o.ratio] as const))
-			: undefined;
-		applyOrdering();
-	}
-
 	let flashTimer: ReturnType<typeof window.setTimeout> | undefined;
-	function flashAutofill(): void {
-		if (flashTimer !== undefined) window.clearTimeout(flashTimer);
-		button.classList.add("is-autofilled");
-		flashTimer = window.setTimeout(() => {
-			button.classList.remove("is-autofilled");
-			flashTimer = undefined;
-		}, 1400);
-	}
-
-	return { wrap, input, refreshDisplay: updateButton, setDisabled, setPopularity, flashAutofill };
+	return {
+		wrap,
+		input,
+		refreshDisplay: updateButton,
+		setDisabled: (disabled) => { button.disabled = disabled; },
+		setPopularity: (payload) => {
+			popularity = payload;
+			setOpponentItemSelectPopularity(input, popularity);
+		},
+		flashAutofill: () => {
+			if (flashTimer !== undefined) window.clearTimeout(flashTimer);
+			button.classList.add("is-autofilled");
+			flashTimer = window.setTimeout(() => {
+				button.classList.remove("is-autofilled");
+				flashTimer = undefined;
+			}, 1400);
+		},
+	};
 }
 
 let addAttackColumnForRow: ((row: DamageRowState) => void) | null = null;
@@ -2065,6 +1791,17 @@ if (opponentNotesSection) {
 		}
 		return trimmed;
 	}
+	// 種族名 -> その種族の技採用率。レギュレーション別の集計が無い種族(実測127種中27種、
+	// ボーマンダなど)では、もちもの・特性(fetchPopularItemSuggestion/fetchPopularAbilitySuggestion)
+	// と同じく全レギュレーション横断の"all"へフォールバックする。ここで諦めると採用率順の
+	// 並べ替え・技の自動設定が丸ごと効かなくなり、OP.GGのデータと乖離するため。
+	function moveAdoptionRatioMap(speciesName: string): Record<string, number> | undefined {
+		const bySpecies = moveAdoptionBySpecies[moveAdoptionSpeciesName(speciesName)];
+		if (!bySpecies) return undefined;
+		const regulationKey = currentIndividualRegulation();
+		return (regulationKey ? bySpecies[regulationKey] : undefined) ?? bySpecies["all"];
+	}
+
 	function ensureOpponentPopularityMoveDatalist(): HTMLDataListElement {
 		let list = document.getElementById(OPPONENT_POPULARITY_MOVE_DATALIST_ID) as HTMLDataListElement | null;
 		if (!list) {
@@ -2102,8 +1839,7 @@ if (opponentNotesSection) {
 		const baseOptions = withoutStatusMoves(baseList ? Array.from(baseList.options).map((o) => o.value) : []);
 		// 個体の#regulationセレクトの現在値が指定されていればそのレギュレーションキー、
 		// 未指定(プレースホルダー)なら全レギュレーション横断の"all"キーを使う。
-		const regulationKey = currentIndividualRegulation() ?? "all";
-		const ratioMap = moveAdoptionBySpecies[moveAdoptionSpeciesName(speciesName)]?.[regulationKey];
+		const ratioMap = moveAdoptionRatioMap(speciesName);
 		let ordered = baseOptions;
 		if (ratioMap && Object.keys(ratioMap).length > 0) {
 			// Array.prototype.sortは安定ソートなので、データの無い技(ratio未定義=-1扱い)・
@@ -2133,8 +1869,7 @@ if (opponentNotesSection) {
 	function highAdoptionOpponentMoveNames(speciesName: string): string[] | null {
 		const trimmed = speciesName.trim();
 		if (trimmed === "") return null;
-		const regulationKey = currentIndividualRegulation() ?? "all";
-		const ratioMap = moveAdoptionBySpecies[moveAdoptionSpeciesName(trimmed)]?.[regulationKey];
+		const ratioMap = moveAdoptionRatioMap(trimmed);
 		if (!ratioMap) return null;
 		const names = Object.entries(ratioMap)
 			.filter(([, ratio]) => ratio >= DEFENSE_MOVE_ADOPTION_MIN_RATIO)

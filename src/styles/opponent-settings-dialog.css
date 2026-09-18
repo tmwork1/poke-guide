@@ -1,0 +1,19 @@
+/* ダメージ詳細パネルの上で開く相手設定モーダル。下のパネルより一回り内側に収める。 */
+.opponent-settings-backdrop,
+#opponent-tera-select-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+}
+
+.opponent-settings-dialog,
+#opponent-tera-select-dialog {
+	top: calc(var(--modal-top-offset) + var(--space-5));
+	left: calc(var(--app-band-inset) + var(--space-7));
+	right: calc(var(--app-band-inset) + var(--space-7));
+	transform: none;
+	z-index: 71;
+	width: auto;
+	height: calc(var(--modal-height) - var(--space-8));
+	max-height: calc(var(--modal-height) - var(--space-8));
+}

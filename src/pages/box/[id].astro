@@ -18,6 +18,8 @@ import PokemonSettingsModalHost from '../../components/box-id/PokemonSettingsMod
 import DamageCalcSection from '../../components/box-id/DamageCalcSection.astro';
 import DamageDetailPanel from '../../components/box-id/DamageDetailPanel.astro';
 import OpponentSelectDialog from '../../components/box-id/OpponentSelectDialog.astro';
+import OpponentItemSelectDialog from '../../components/box-id/OpponentItemSelectDialog.astro';
+import TeraSelectDialog from '../../components/box-id/TeraSelectDialog.astro';
 import StatAdjustSheet from '../../components/box-id/StatAdjustSheet.astro';
 import BulkAdjustDialog from '../../components/box-id/BulkAdjustDialog.astro';
 import SpeedAdjustDialog from '../../components/box-id/SpeedAdjustDialog.astro';
@@ -205,6 +207,8 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    このコンポーネント自身が描画する)。 */}
 			{!isNewMode && <DamageDetailPanel />}
 			{!isNewMode && <OpponentSelectDialog />}
+			{!isNewMode && <OpponentItemSelectDialog />}
+			{!isNewMode && <TeraSelectDialog idPrefix="opponent-" />}
 			</div>
 
 			{/* 「耐久調整」機能のポップアップ本体。ダメージタブ下部のステータス調整シートから開く。マークアップ・スタイルは
