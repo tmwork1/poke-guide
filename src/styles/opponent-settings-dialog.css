@@ -23,3 +23,11 @@
 .opponent-settings-dialog {
 	height: calc(var(--modal-height) - var(--space-8));
 }
+
+/* 相手テラスタル選択は帯より一回り内側に置くぶん、育成タブの同モーダルより1セルが
+   狭い。既定の左右padding(--space-2)のままだと「フェアリー」だけ2行に折り返すため、
+   セルの左右paddingだけ詰めて文字の置ける幅を広げる(タップ域は
+   tera-select-dialog.css の min-height 64px と grid の 1fr が保つので狭めない)。 */
+#opponent-tera-select-dialog .tera-select-cell {
+	padding-inline: var(--space-1);
+}
