@@ -228,6 +228,6 @@ body.data-page {
 	box-sizing: border-box;
 }
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
-.species-select-dialog { width: 96vw; }
+.species-select-dialog { width: calc(var(--app-band-width) * .96); }
 .species-select-search-sort-row { padding-inline: var(--space-3); }
 .species-select-grid-wrap { padding-inline: var(--space-3); }

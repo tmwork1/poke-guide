@@ -94,7 +94,7 @@ body.data-page {
 	padding: var(--space-3) var(--space-5);
 }
 
-.stat-adjustment-dialog { width: 96vw; }
+.stat-adjustment-dialog { width: calc(var(--app-band-width) * .96); }
 
 .stat-adjustment-dialog-body { padding-inline: var(--space-3); }
 

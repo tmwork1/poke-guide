@@ -146,7 +146,7 @@
 	display: grid;
 	gap: var(--space-3);
 }
-.share-image-dialog { width: 98vw; }
+.share-image-dialog { width: calc(var(--app-band-width) * .98); }
 /* 圧縮カード(390px幅前提)をなるべく切らずに収めるため、狭幅では一覧側の横余白を最小にする。 */
 .share-image-dialog-body { padding-inline: var(--space-2); }
 .share-image-dialog-footer { padding-inline: var(--space-3); }

@@ -130,5 +130,5 @@ body.damage-calc-page {
 }
 
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
-.tera-select-dialog { width: 96vw; }
+.tera-select-dialog { width: calc(var(--app-band-width) * .96); }
 .tera-select-grid-wrap { padding-inline: var(--space-3); }

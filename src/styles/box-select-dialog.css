@@ -99,6 +99,6 @@
   outline-offset: 2px;
 }
 
-.box-select-dialog { width: 96vw; }
+.box-select-dialog { width: calc(var(--app-band-width) * .96); }
 
 .box-select-content { padding: var(--space-2); }

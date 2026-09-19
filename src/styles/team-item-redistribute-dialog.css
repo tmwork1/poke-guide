@@ -1,5 +1,5 @@
 body.team-edit-page {
-	--item-select-dialog-width: min(860px, 96vw);
+	--item-select-dialog-width: min(860px, calc(var(--app-band-width) * .96));
 	--item-select-dialog-height: min(820px, calc(100vh - var(--space-6)));
 	--item-select-dialog-background: var(--color-surface);
 	--item-select-dialog-border: var(--modal-border);
@@ -86,7 +86,7 @@ body.team-edit-page {
 	left: 0;
 	z-index: 1;
 	width: max-content;
-	max-width: min(380px, 90vw);
+	max-width: min(380px, calc(var(--app-band-width) * .9));
 	margin: 0;
 	padding: var(--space-3);
 	background: var(--color-surface);

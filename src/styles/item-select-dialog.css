@@ -198,7 +198,7 @@ body.data-page {
 .item-select-empty[hidden] { display: none; }
 
 /* @media は基本定義より後ろに置く。狭幅時の上書きが先の定義に負けないため。 */
-.item-select-dialog { width: 96vw; }
+.item-select-dialog { width: calc(var(--app-band-width) * .96); }
 .item-select-search-row { padding-inline: var(--space-3); }
 /* 4列グリッドは1列あたりの余白(グリッド周囲・セル間・セル内側)が積み重なると、
 	   主流のスマホ幅(390〜412px程度)で6文字のアイテム名(例: いのちのたま)すら

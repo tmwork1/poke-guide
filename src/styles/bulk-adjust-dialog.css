@@ -227,7 +227,7 @@ body.box-edit-page {
 
 	/* 狭幅端末ではダイアログを画面幅いっぱい近くまで広げる。
 		⚠️ @media は基本定義より後ろに書くこと(このリポジトリで2件実例のある罠)。 */
-	.bulk-adjust-dialog { width: 96vw; }
+	.bulk-adjust-dialog { width: calc(var(--app-band-width) * .96); }
 
 	/* 複製カード(buildCardPreview()、damage-calc.ts)は表示専用(内部のinput/select/
 		textarea/buttonは全てdisabled+tabindex=-1済み)だが、×(カード削除ボタン、

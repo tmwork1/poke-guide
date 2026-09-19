@@ -110,7 +110,7 @@
 }
 
 .team-select-dialog {
-    width: 96vw;
+    width: calc(var(--app-band-width) * .96);
   }
 
 .team-select-content {

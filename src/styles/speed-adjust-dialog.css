@@ -56,7 +56,7 @@ body.box-edit-page {
 }
 
 .speed-adjust-dialog {
-    width: 92vw;
+    width: calc(var(--app-band-width) * .92);
     height: var(--modal-height);
   }
 
