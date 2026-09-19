@@ -9,6 +9,7 @@ import {
 	expandMatchupTargetForms,
 	MATCHUP_TARGET_LIMIT,
 	MATCHUP_TOP_N,
+	opponentEvsFromOpgg,
 	type MatchupMegaForm,
 	type MatchupTargetForm,
 	type PopularMoveOption,
@@ -24,6 +25,10 @@ interface MatchupTarget {
 	speciesName: string;
 	dexNo: number | null;
 	moves: PopularMoveOption[];
+	/** 相手の想定個体。いずれも OP.GG の採用率1位で、データが無ければ null(呼び出し側が既定値へ退避)。 */
+	abilityName: string | null;
+	nature: string | null;
+	evs: number[] | null;
 	forms: MatchupTargetForm[];
 }
 
@@ -79,6 +84,10 @@ export async function GET({ url }: APIContext): Promise<Response> {
 			const baseForm = { speciesName: pokemon.name, dexNo };
 			return {
 				...baseForm,
+				// 採用率順に並んだ配列の先頭が1位(getOpggUsageList は並びを変えない)。
+				abilityName: pokemon.single.abilities?.[0]?.name ?? null,
+				nature: pokemon.single.natures?.[0]?.name ?? null,
+				evs: opponentEvsFromOpgg(pokemon.single.evs?.[0]?.values),
 				moves: (pokemon.single.moves ?? [])
 					.filter((move) => move.usageRate !== null)
 					.map((move) => ({ value: move.name, ratio: move.usageRate! })),

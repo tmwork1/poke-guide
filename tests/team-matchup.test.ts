@@ -1,7 +1,7 @@
 // 相性チェック(src/lib/team-matchup.ts、ユーザー要望 2026-08-02)の純粋ロジックのテスト。
 //
-// ダメージ計算そのもの(jpoke)ではなく、「相手の技構成をどう決めるか」「割合をどう平均するか」
-// 「平均値をどうアイコンの濃さに写すか」という、このアプリ側の判断だけを対象にする。
+// ダメージ計算そのもの(jpoke)ではなく、「相手の技構成をどう決めるか」「割合をどう集計するか」
+// 「スコアをどうアイコンの濃さに写すか」という、このアプリ側の判断だけを対象にする。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -11,8 +11,11 @@ import {
   MATCHUP_FORM_MIN_RATE,
   OPPONENT_EVS,
   OPPONENT_MIN_MOVE_RATIO,
-  averageRatio,
+  MEMBER_DAMAGE_THRESHOLD,
   damageRatio,
+  heavyDamageShare,
+  isHeavyDamage,
+  opponentEvsFromOpgg,
   expandMatchupTargetForms,
   extendMatchupScores,
   matchupOpacity,
@@ -35,7 +38,7 @@ describe('expandMatchupTargetForms', () => {
         { name: 'リザードナイトX', usageRate: 70 },
         { name: 'リザードナイトY', usageRate: 15 },
       ]),
-      [{ speciesName: 'メガリザードンX', dexNo: 6 }],
+      [{ speciesName: 'メガリザードンX', dexNo: 6, isMega: true }],
     );
   });
 
@@ -46,8 +49,8 @@ describe('expandMatchupTargetForms', () => {
         { name: 'リザードナイトY', usageRate: 40 },
       ]),
       [
-        { speciesName: 'メガリザードンX', dexNo: 6 },
-        { speciesName: 'メガリザードンY', dexNo: 6 },
+        { speciesName: 'メガリザードンX', dexNo: 6, isMega: true },
+        { speciesName: 'メガリザードンY', dexNo: 6, isMega: true },
       ],
     );
   });
@@ -55,7 +58,7 @@ describe('expandMatchupTargetForms', () => {
   it('X 30%なら通常の直後にXを返す', () => {
     assert.deepEqual(
       expandMatchupTargetForms(base, megas, [{ name: 'リザードナイトX', usageRate: 30 }]),
-      [base, { speciesName: 'メガリザードンX', dexNo: 6 }],
+      [base, { speciesName: 'メガリザードンX', dexNo: 6, isMega: true }],
     );
   });
 
@@ -198,17 +201,48 @@ describe('damageRatio', () => {
   });
 });
 
-describe('averageRatio', () => {
-  it('単純平均', () => {
-    assert.equal(averageRatio([0.2, 0.4, 0.6]), 0.4000000000000001);
+describe('isHeavyDamage', () => {
+  it('しきい値は0.5で、超えたときだけ真(ちょうど0.5は偽)', () => {
+    assert.equal(MEMBER_DAMAGE_THRESHOLD, 0.5);
+    assert.equal(isHeavyDamage(0.51), true);
+    assert.equal(isHeavyDamage(0.5), false);
+    assert.equal(isHeavyDamage(0), false);
+  });
+});
+
+describe('heavyDamageShare', () => {
+  it('しきい値を超えたメンバーの人数の割合', () => {
+    assert.equal(heavyDamageShare([0.9, 0.6, 0.4, 0.1]), 0.5);
+  });
+
+  it('平均と違い、1体の過剰火力では上がらない', () => {
+    assert.equal(heavyDamageShare([1, 0.1, 0.1, 0.1]), 0.25);
   });
 
   it('打点を持たないメンバーの0も母数に含める', () => {
-    assert.equal(averageRatio([1, 0]), 0.5);
+    assert.equal(heavyDamageShare([1, 0]), 0.5);
   });
 
   it('メンバーが0人なら null', () => {
-    assert.equal(averageRatio([]), null);
+    assert.equal(heavyDamageShare([]), null);
+  });
+});
+
+describe('opponentEvsFromOpgg', () => {
+  it('OP.GGのキー順を[H,A,B,C,D,S]へ並べ替える', () => {
+    assert.deepEqual(
+      opponentEvsFromOpgg({ hp: 1, attack: 32, defense: 1, specialAttack: 0, specialDefense: 0, speed: 32 }),
+      [1, 32, 1, 0, 0, 32],
+    );
+  });
+
+  it('欠けたキーは0、範囲外は0〜32に丸める', () => {
+    assert.deepEqual(opponentEvsFromOpgg({ attack: 40, speed: -3 }), [0, 32, 0, 0, 0, 0]);
+  });
+
+  it('努力値データが無ければ null(既定値へ退避させる)', () => {
+    assert.equal(opponentEvsFromOpgg(null), null);
+    assert.equal(opponentEvsFromOpgg({}), null);
   });
 });
 

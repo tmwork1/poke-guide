@@ -19,9 +19,10 @@ import {
 	MATCHUP_TARGET_LIMIT,
 	OPPONENT_EVS,
 	OPPONENT_NATURE,
-	averageRatio,
 	damageRatio,
 	extendMatchupScores,
+	heavyDamageShare,
+	isHeavyDamage,
 	matchupDisadvantageScore,
 	pickOpponentAttackMoves,
 	pickTeamAttackMoves,
@@ -49,6 +50,12 @@ export interface MatchupTarget {
 	speciesName: string;
 	dexNo: number | null;
 	moves: PopularMoveOption[];
+	/** OP.GG 採用率1位の特性。メガフォルムと未取得の種族は null。 */
+	abilityName?: string | null;
+	/** OP.GG 採用率1位の性格。未取得なら null で OPPONENT_NATURE に退避する。 */
+	nature?: string | null;
+	/** OP.GG 採用率1位の努力値[H,A,B,C,D,S]。未取得なら null で OPPONENT_EVS に退避する。 */
+	evs?: number[] | null;
 	/** API がメガストーン所持率に応じて展開した、表示・計算対象のフォーム。 */
 	forms?: MatchupTargetForm[];
 }
@@ -66,7 +73,13 @@ let imageIdMapPromise: Promise<Map<string, number>> | null = null;
 function expandMatchupTargets(targets: readonly MatchupTarget[]): MatchupTarget[] {
 	return targets.flatMap((target) => {
 		const forms = target.forms ?? [{ speciesName: target.speciesName, dexNo: target.dexNo }];
-		return forms.map((form) => ({ ...target, speciesName: form.speciesName, dexNo: form.dexNo }));
+		return forms.map((form) => ({
+			...target,
+			speciesName: form.speciesName,
+			dexNo: form.dexNo,
+			// OP.GG の特性はベースフォルムのもの。メガに持ち込むと別特性で計算してしまう。
+			abilityName: form.isMega ? null : target.abilityName,
+		}));
 	});
 }
 
@@ -102,14 +115,15 @@ export function matchupTeamSpec(member: MatchupPanelMember, moveNames: string[])
 	};
 }
 
-/** 相手ポケモンの基準個体(性格補正なし・H32振り)。 */
+/** 相手ポケモンの想定個体(OP.GG 採用率1位の特性・性格・努力値。無ければ無補正・H32振り)。 */
 export function matchupOpponentSpec(target: MatchupTarget, moveNames: string[]): PokemonSpec {
 	return {
 		name: target.speciesName,
 		level: 50,
-		nature: OPPONENT_NATURE,
+		nature: target.nature || OPPONENT_NATURE,
+		abilityName: target.abilityName ?? '',
 		moveNames,
-		evs: [...OPPONENT_EVS],
+		evs: target.evs ?? [...OPPONENT_EVS],
 		ivs: [31, 31, 31, 31, 31, 31],
 	};
 }
@@ -127,7 +141,7 @@ export async function computeMatchupScore(
 		const hp = result.defenderMaxHp[0];
 		if (hp == null) return null;
 		const memberRatios = teamAttackSpecs.map((_, i) => damageRatio(result.maxDamage[i]?.[0] ?? 0, hp));
-		const rawScore = averageRatio(memberRatios);
+		const rawScore = heavyDamageShare(memberRatios);
 		if (rawScore === null) return null;
 		return { score: matchupDisadvantageScore(rawScore, 'attack'), memberRatios };
 	}
@@ -142,7 +156,9 @@ export async function computeMatchupScore(
 		if (hp == null) return 0;
 		return damageRatio(result.maxDamage[0]?.[i] ?? 0, hp);
 	});
-	return { score: averageRatio(memberRatios), memberRatios };
+	const score = heavyDamageShare(memberRatios);
+	if (score === null) return null;
+	return { score, memberRatios };
 }
 
 async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, name: string): Promise<void> {
@@ -255,12 +271,13 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		clearSelection();
 		// 未計算・計算不可の相手は比べる材料が無いので、タップしても何も起きない。
 		const ratios = scoreCache.get(currentCacheKey)?.memberRatios?.[direction]?.[targetIndex];
-		const average = ratios ? averageRatio(ratios) : null;
-		if (average === null) return;
-		// しきい値はチーム内相対(平均より悪い側)。攻は与ダメ割合が低いほど、
-		// 守は被ダメ割合が高いほど不利なので、比較の向きだけを入れ替える。
-		const memberIds = currentMembers.flatMap((member, index) =>
-			(direction === 'attack' ? ratios[index] < average : ratios[index] > average) ? [member.id] : []);
+		if (!ratios) return;
+		// しきい値はスコアと同じ絶対基準(HP半分超を削れるか)。攻は削れないメンバーが、
+		// 守は削られるメンバーが不利なので、判定の向きだけを入れ替える。
+		const memberIds = currentMembers.flatMap((member, index) => {
+			const heavy = isHeavyDamage(ratios[index] ?? 0);
+			return (direction === 'attack' ? !heavy : heavy) ? [member.id] : [];
+		});
 		const card = cardElements[direction][targetIndex];
 		if (!card) return;
 		activeSelection = { direction, targetIndex };
