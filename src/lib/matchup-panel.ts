@@ -225,7 +225,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		if (!calculatingOverlayEl) {
 			calculatingOverlayEl = document.createElement('div');
 			calculatingOverlayEl.className = 'team-matchup-calculating';
-			calculatingOverlayEl.textContent = '計算中…';
+			// 文言は見えているカード領域の中央へ貼り付けたいので、単独の要素に分ける
+			// (オーバーレイ自体は一覧全体を覆うため、中央=画面外になりうる)。
+			const label = document.createElement('span');
+			label.className = 'team-matchup-calculating__label';
+			label.textContent = '計算中…';
+			calculatingOverlayEl.append(label);
 		}
 		if (!calculatingOverlayEl.isConnected) calculatingOverlayContainer.appendChild(calculatingOverlayEl);
 	}
