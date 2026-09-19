@@ -48,8 +48,8 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
 			<>
 				<span class="app-header__item" aria-disabled="true"><span>ダメージ</span></span>
 				{activeTab === 'battle-data' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>バトルデータ</span></button> : <span class="app-header__item" aria-disabled="true"><span>バトルデータ</span></span>}
-				{activeTab === 'ranked-teams' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>上位チーム</span></button> : <span class="app-header__item" aria-disabled="true"><span>上位チーム</span></span>}
 				{activeTab === 'matchup' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>相性</span></button> : <span class="app-header__item" aria-disabled="true"><span>相性</span></span>}
+				{activeTab === 'ranked-teams' ? <button type="button" class="app-header__item" data-active="true" aria-current="page"><span>上位チーム</span></button> : <span class="app-header__item" aria-disabled="true"><span>上位チーム</span></span>}
 			</>
 		) : !isNew && (
 			<>
@@ -63,11 +63,11 @@ const shouldRenderItemIcon = activeTab === 'training' || itemName !== '';
 				<a class="app-header__item" href={`/box/data?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'battle-data' ? 'true' : undefined} aria-current={activeTab === 'battle-data' ? 'page' : undefined}>
 					<span>バトルデータ</span>
 				</a>
-				<a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
-					<span>上位チーム</span>
-				</a>
 				<a class="app-header__item" href={`/box/matchup?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'matchup' ? 'true' : undefined} aria-current={activeTab === 'matchup' ? 'page' : undefined}>
 					<span>相性</span>
+				</a>
+				<a class="app-header__item" href={`/box/ranked?pokemon=${encodeURIComponent(previewPokemon.id)}`} data-active={activeTab === 'ranked-teams' ? 'true' : undefined} aria-current={activeTab === 'ranked-teams' ? 'page' : undefined}>
+					<span>上位チーム</span>
 				</a>
 			</>
 		)}
