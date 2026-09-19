@@ -18,7 +18,7 @@ body.team-edit-page {
 	--team-formation-mobile-suggest-height: calc(var(--team-pokemon-tab-suggest-icon-size) + var(--space-4)); /* 編成タブのおすすめ帯の最低高さ */
 	--team-matchup-suggest-icon-size: 24px; /* 相性タブのおすすめタイプアイコンの正方形サイズ。ポケモンアイコンより小さくする */
 	--team-matchup-suggest-gap: var(--space-3); /* 相性タブのおすすめ帯で、見出しとアイコン・アイコン同士を離す固定間隔 */
-	--team-matchup-suggest-height: calc(var(--team-matchup-suggest-icon-size) + var(--space-4)); /* 相性タブのおすすめ帯が占める高さ */
+	--team-matchup-suggest-height: calc(2 * var(--team-matchup-suggest-icon-size) + var(--space-3)); /* 相性タブのおすすめタイプ帯が占める高さ */
 }
 
 /* --------------------------------------------------------------------------
@@ -121,38 +121,35 @@ body.team-edit-page {
 	min-width: 0;
 	max-width: 324px;
 }
-/* 相性タブのおすすめタイプ帯。見出しとアイコン列は固定間隔で並べ、その塊を帯の中央に置く。
-   アイコンは計算完了後に差し込まれるため、枠(高さ・アイコン列の幅)は空のときから確定させ、
-   出入りで見出しの位置が動かないようにする。 */
+/* 相性タブのおすすめタイプ帯。ラベルの下に攻・守のアイコン列を並べる。
+   アイコンは計算完了後に差し込まれるため、枠の高さと列幅は空のときから確定させる。 */
 .team-matchup-suggest {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: var(--team-matchup-suggest-gap);
+	display: grid;
+	grid-template-rows: auto auto;
+	gap: var(--space-1);
 	min-height: var(--team-matchup-suggest-height);
-	/* 帯の外側の余白は上下とも8px。下側は results の scroll inset が同じ8pxを作るので、
-	   ここでは上だけをマージンで足し、アイコンの上下が均等に空くようにする
-	   (一覧側の上マージンは下の .team-matchup-list 上書きで0にする)。 */
-	margin-top: var(--space-2);
-	padding: var(--space-2) var(--space-3);
-	background: var(--color-bg);
-}
-/* .team-matchup-list の上マージンは /box/matchup 用。チームの相性タブでは
-   おすすめ帯との間隔を results の scroll inset だけで作る。 */
-.team-matchup-mobile__results .team-matchup-list {
-	margin-top: 0;
+	/* 帯の余白は共通のカードスクロール余白に合わせ、アイコンの位置を安定させる。 */
+	padding: var(--space-2);
+	background: var(--color-chrome);
+	border-top: 1px solid var(--color-border);
+	border-bottom: 1px solid var(--color-border);
 }
 .team-matchup-suggest__label {
-	flex: 0 0 auto;
 	color: var(--color-text-muted);
 	font-size: var(--font-size-sm2);
+}
+.team-matchup-suggest__columns {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--space-1);
 }
 .team-matchup-suggest__icons {
 	display: grid;
 	grid-template-columns: repeat(5, var(--team-matchup-suggest-icon-size));
-	gap: var(--team-matchup-suggest-gap);
-	flex: 0 0 auto;
-	width: calc(5 * var(--team-matchup-suggest-icon-size) + 4 * var(--team-matchup-suggest-gap));
+	gap: var(--space-2); /* 帯を左右2分割したぶんアイコン間隔を詰め、5個を各カラムに収める。 */
+	justify-content: center; /* 下のカード2カラムと同じく、各カラムの中央に寄せる。 */
+	min-width: 0;
+	min-height: var(--team-matchup-suggest-icon-size);
 }
 .team-matchup-suggest__icon {
 	width: var(--team-matchup-suggest-icon-size);
@@ -218,9 +215,6 @@ body.team-edit-page {
 .team-edit-shell[data-mobile-tab="formation"] .team-formation-mobile__sticky-header,
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-formation-mobile__mates {
 	position: static;
-	flex: 0 0 auto;
-}
-.team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .matchup-direction-tabs {
 	flex: 0 0 auto;
 }
 .team-edit-shell[data-mobile-tab="matchup"] #team-matchup-mobile > .team-matchup-suggest {

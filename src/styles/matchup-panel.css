@@ -24,73 +24,50 @@
 	text-align: center;
 }
 
-/* 攻/守の切り替えタブと相手カード一覧は、選択中の方向で強調色を変える。
-   攻(こちらから殴る側)は赤系、守(相手から殴られる側)は既定の主要色。
-   方向は JS が data-matchup-active-direction を付け替えて切り替える
-   (タブのbuttonが持つ data-matchup-direction は「その項目の方向」なので別名にする)。 */
-.matchup-direction-tabs,
+/* 攻・守の見出しと相性カード一覧は、それぞれの方向で強調色を変える。
+   攻は赤系、守は既定の主要色を各要素の静的な属性で適用する。 */
+.matchup-direction-headings > *,
 .team-matchup-list {
 	--matchup-accent: var(--color-primary);
 	--matchup-accent-strong: var(--color-primary-strong);
 	--matchup-accent-soft: var(--color-primary-soft);
 }
-.matchup-direction-tabs[data-matchup-active-direction="attack"],
+.matchup-direction-headings > [data-matchup-active-direction="attack"],
 .team-matchup-list[data-matchup-active-direction="attack"] {
 	--matchup-accent: var(--color-danger);
 	--matchup-accent-strong: var(--color-danger-strong);
 	--matchup-accent-soft: var(--color-danger-soft);
 }
-.matchup-direction-tabs {
-	display: flex;
-	align-items: stretch;
-	width: 100%;
-	min-height: var(--app-header-height);
-	background: var(--color-chrome);
-	border-top: 1px solid var(--color-border);
-	border-bottom: 1px solid var(--color-border);
-	flex: 0 0 auto;
+.matchup-direction-headings,
+.matchup-results-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	/* 攻と守の境目は、カード同士の隙間(--space-1)より広く取って2カラムだと分かるようにする。 */
+	gap: var(--space-2);
 }
-.matchup-direction-tab {
-	flex: 1 1 0;
-	min-width: 0;
-	min-height: var(--app-header-height);
-	padding: 0;
-	border: 0;
-	border-bottom: 2px solid transparent;
-	border-radius: var(--radius-zero);
-	appearance: none;
-	-webkit-appearance: none;
-	background: var(--color-chrome);
-	color: var(--color-text-muted);
-	font: inherit;
+.matchup-direction-headings {
+	margin-top: var(--space-2);
+	border-bottom: 1px solid var(--color-border);
+}
+.matchup-direction-headings > * {
+	padding: var(--space-1) 0;
+	border-bottom: var(--space-1) solid var(--matchup-accent);
+	color: var(--matchup-accent-strong);
 	font-size: var(--font-size-sm2);
 	line-height: var(--line-height-tight);
 	text-align: center;
-	cursor: pointer;
-}
-.matchup-direction-tab[aria-selected="true"] {
-	border-bottom: 2px solid var(--matchup-accent);
-	color: var(--matchup-accent-strong);
-	background: var(--matchup-accent-soft);
-}
-.matchup-direction-tab:focus-visible {
-	outline: 2px solid var(--matchup-accent);
-	outline-offset: -2px;
 }
 
 /* 相性チェックの相手カード一覧。 */
 .team-matchup-list {
 	list-style: none;
-	margin: var(--space-3) 0 0;
+	margin: var(--space-2) 0 0;
 	padding: 0;
 	display: grid;
-	/* 相性一覧は常に5列。狭幅ではカード幅を縮め、実効幅の変化で4列へ落ちないようにする。
-	   カード同士の隙間は4pxまで詰め、基準幅396pxでは76pxずつになる。立ち絵は
-	   --matchup-sprite-size で据え置き、広がったぶんは背景(相性の強調色)に使う。
-	   68pxは、隙間を詰める前(カード72px・枠線2pxずつ)の中身の幅と同じ。 */
-	--matchup-sprite-size: 68px;
-	grid-template-columns: repeat(5, minmax(0, 76px));
-	justify-content: center;
+	/* 攻・守の各カラムは常に3列。アプリ幅上限でも横スクロールを出さず、
+	   立ち絵はカード内に収まる --matchup-sprite-size に抑える。 */
+	--matchup-sprite-size: calc(var(--space-7) + var(--space-6));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--space-1);
 }
 /* カード一覧の続きを出すボタン。意匠は .btn-ghost のまま、一覧の幅に合わせるだけ。 */

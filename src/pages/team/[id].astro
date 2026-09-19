@@ -105,8 +105,8 @@ if (!isGuestNewMode) {
 			<div class="app-header__list">
 				<button type="button" class="app-header__item" data-mobile-tab="pokemon" data-active={initialMobileTab === 'pokemon' ? 'true' : undefined} aria-current={initialMobileTab === 'pokemon' ? 'page' : undefined}><span>ポケモン</span></button>
 				<button type="button" class="app-header__item" data-mobile-tab="formation" data-active={initialMobileTab === 'formation' ? 'true' : undefined} aria-current={initialMobileTab === 'formation' ? 'page' : undefined}><span>編成</span></button>
-				<button type="button" class="app-header__item" data-mobile-tab="data" data-active={initialMobileTab === 'data' ? 'true' : undefined} aria-current={initialMobileTab === 'data' ? 'page' : undefined}><span>類似チーム</span></button>
 				<button type="button" class="app-header__item" data-mobile-tab="matchup" data-active={initialMobileTab === 'matchup' ? 'true' : undefined} aria-current={initialMobileTab === 'matchup' ? 'page' : undefined}><span>相性</span></button>
+				<button type="button" class="app-header__item" data-mobile-tab="data" data-active={initialMobileTab === 'data' ? 'true' : undefined} aria-current={initialMobileTab === 'data' ? 'page' : undefined}><span>類似チーム</span></button>
 			</div>
 		</AppHeader>
 	)}
@@ -289,17 +289,23 @@ if (!isGuestNewMode) {
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
-					<div id="team-matchup-direction-tabs" class="matchup-direction-tabs" role="tablist" aria-label="相性の方向" data-matchup-active-direction="attack">
-						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
-						<button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
-					</div>
 					<div id="team-matchup-suggest" class="team-matchup-suggest" aria-label="おすすめタイプ">
-						<span class="team-matchup-suggest__label">おすすめ</span>
-						<div id="team-matchup-suggest-icons" class="team-matchup-suggest__icons"></div>
+						<span class="team-matchup-suggest__label">おすすめタイプ</span>
+						<div class="team-matchup-suggest__columns">
+							<div id="team-matchup-suggest-icons-attack" class="team-matchup-suggest__icons" data-matchup-active-direction="attack"></div>
+							<div id="team-matchup-suggest-icons-defense" class="team-matchup-suggest__icons" data-matchup-active-direction="defense"></div>
+						</div>
 					</div>
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
-						<ul id="team-matchup-mobile-list" class="team-matchup-list"></ul>
+						<div class="matchup-direction-headings" aria-label="相性の方向">
+							<span data-matchup-active-direction="attack">攻</span>
+							<span data-matchup-active-direction="defense">守</span>
+						</div>
+						<div class="matchup-results-grid">
+							<ul id="team-matchup-mobile-list-attack" class="team-matchup-list" data-matchup-active-direction="attack" aria-label="攻撃相性"></ul>
+							<ul id="team-matchup-mobile-list-defense" class="team-matchup-list" data-matchup-active-direction="defense" aria-label="防御相性"></ul>
+						</div>
 						<button id="team-matchup-mobile-more" type="button" class="btn-ghost matchup-more-button" hidden>さらに表示</button>
 					</div>
 				</section>
@@ -1369,9 +1375,10 @@ if (!isGuestNewMode) {
 
 			const matchupMobileSlotsRoot = el<HTMLElement>("team-matchup-mobile-slots");
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
-			const matchupMobileListEl = el<HTMLElement>("team-matchup-mobile-list");
-			const matchupDirectionTabsEl = el<HTMLElement>("team-matchup-direction-tabs");
-			const matchupSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons");
+			const matchupMobileAttackListEl = el<HTMLElement>("team-matchup-mobile-list-attack");
+			const matchupMobileDefenseListEl = el<HTMLElement>("team-matchup-mobile-list-defense");
+			const matchupAttackSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons-attack");
+			const matchupDefenseSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons-defense");
 			function matchupTeamMembers(): OwnedPokemonRecord[] {
 				const members: OwnedPokemonRecord[] = [];
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -1382,11 +1389,12 @@ if (!isGuestNewMode) {
 			}
 
 			const matchupPanel = createMatchupPanel({
-				listElement: matchupMobileListEl,
+				attackListElement: matchupMobileAttackListEl,
+				defenseListElement: matchupMobileDefenseListEl,
 				statusElement: matchupMobileStatusEl,
 				moreButtonElement: document.querySelector<HTMLButtonElement>("#team-matchup-mobile-more") ?? undefined,
-				directionTabsElement: matchupDirectionTabsEl,
-				suggestTypesElement: matchupSuggestTypesEl,
+				attackSuggestTypesElement: matchupAttackSuggestTypesEl,
+				defenseSuggestTypesElement: matchupDefenseSuggestTypesEl,
 				getMembers: matchupTeamMembers,
 			});
 

@@ -178,12 +178,13 @@ async function applySprite(imgEl: HTMLImageElement, fallbackEl: HTMLElement, nam
 }
 
 export interface MatchupPanelOptions {
-	listElement: HTMLElement;
+	attackListElement: HTMLElement;
+	defenseListElement: HTMLElement;
 	statusElement: HTMLElement;
 	moreButtonElement?: HTMLButtonElement;
-	directionTabsElement?: HTMLElement;
-	/** チーム画面だけが渡すおすすめタイプの表示先。未指定なら既存の相性パネルだけを描画する。 */
-	suggestTypesElement?: HTMLElement;
+	/** チーム画面のみが渡す、攻・守それぞれのおすすめタイプ表示先。 */
+	attackSuggestTypesElement?: HTMLElement;
+	defenseSuggestTypesElement?: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
 	emptyMembersMessage?: string;
 }
@@ -191,25 +192,39 @@ export interface MatchupPanelOptions {
 export interface MatchupPanel {
 	run(): Promise<void>;
 	schedule(delay?: number): void;
-	setDirection(direction: MatchupDirection): void;
 }
 
 /** 相性結果の取得、計算、進捗表示、カード描画をまとめたクライアント用パネル。 */
 export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
-	const { listElement, statusElement, moreButtonElement, directionTabsElement, suggestTypesElement, getMembers } = options;
+	const {
+		attackListElement,
+		defenseListElement,
+		statusElement,
+		moreButtonElement,
+		attackSuggestTypesElement,
+		defenseSuggestTypesElement,
+		getMembers,
+	} = options;
+	const listElements: Record<MatchupDirection, HTMLElement> = {
+		attack: attackListElement,
+		defense: defenseListElement,
+	};
+	const suggestTypesElements: Partial<Record<MatchupDirection, HTMLElement>> = {
+		attack: attackSuggestTypesElement,
+		defense: defenseSuggestTypesElement,
+	};
 	let requestId = 0;
 	let timer: number | undefined;
-	let activeDirection: MatchupDirection = 'attack';
 	let visibleTargetCount = MATCHUP_TOP_N;
 	let loadedTargetCount = 0;
 	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
-	let cardElements: HTMLLIElement[] = [];
+	const cardElements: Record<MatchupDirection, HTMLLIElement[]> = { attack: [], defense: [] };
 	let activeMovePopover: HTMLElement | null = null;
 	let activeMovePopoverCard: HTMLElement | null = null;
 
-	// カード一覧の領域(listElement の親要素)に「計算中…」を重ねる。1匹目の
+	// 攻・守のカードグリッドに「計算中…」を重ねる。1匹目の
 	// 相性結果が実際に描画されるまでの間だけ表示し、以後はDOMから外して再利用する。
-	const calculatingOverlayContainer = listElement.parentElement ?? listElement;
+	const calculatingOverlayContainer = attackListElement.parentElement ?? attackListElement;
 	calculatingOverlayContainer.classList.add('team-matchup-list-container');
 	let calculatingOverlayEl: HTMLDivElement | null = null;
 
@@ -305,13 +320,15 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 
 	function clearLists(): void {
 		closeMovePopover();
-		listElement.innerHTML = '';
-		listElement.removeAttribute('aria-busy');
-		cardElements = [];
+		for (const direction of ['attack', 'defense'] as const) {
+			listElements[direction].innerHTML = '';
+			listElements[direction].removeAttribute('aria-busy');
+			cardElements[direction] = [];
+		}
 	}
 
 	function clearSuggestedTypes(): void {
-		suggestTypesElement?.replaceChildren();
+		for (const element of Object.values(suggestTypesElements)) element?.replaceChildren();
 	}
 
 	function updateMoreButton(totalTargetCount: number, isCalculating: boolean): void {
@@ -321,6 +338,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	}
 
 	function renderSuggestedTypes(
+		direction: MatchupDirection,
 		targets: MatchupTarget[],
 		scores: (number | null)[],
 		typesMap: Map<string, string[]>,
@@ -328,6 +346,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		getMoveType: (moveName: string) => string | null,
 		typeChart: Record<string, Record<string, number>>,
 	): void {
+		const suggestTypesElement = suggestTypesElements[direction];
 		if (!suggestTypesElement) return;
 		const opponentAttackMoveTypes = targets.map((target) => [...new Set(
 			pickOpponentAttackMoves(target.moves, isAttackMove)
@@ -335,7 +354,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				.filter((type): type is string => type !== null),
 		)]);
 		const suggestedTypes = suggestMatchupTypes({
-			direction: activeDirection,
+			direction,
 			targets,
 			targetTypes: typesMap,
 			directionScores: scores,
@@ -355,6 +374,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	}
 
 	function appendMatchupCards(
+		direction: MatchupDirection,
 		targets: MatchupTarget[],
 		typesMap: Map<string, string[]>,
 		isAttackMove: (moveName: string) => boolean,
@@ -369,7 +389,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			card.setAttribute('role', 'button');
 			card.setAttribute('aria-haspopup', 'dialog');
 			card.setAttribute('aria-expanded', 'false');
-			const moveAriaLabel = (): string => activeDirection === 'attack'
+			const moveAriaLabel = (): string => direction === 'attack'
 				? `${target.speciesName}への攻撃で考慮した技を表示`
 				: `${target.speciesName}の攻撃で考慮した技を表示`;
 			card.setAttribute('aria-label', moveAriaLabel());
@@ -384,7 +404,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
 			card.addEventListener('click', (event) => {
 				event.stopPropagation();
-				const moveNames = activeDirection === 'attack'
+				const moveNames = direction === 'attack'
 					? teamAttackMoveNames
 					: pickOpponentAttackMoves(target.moves, isAttackMove);
 				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
@@ -392,13 +412,13 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			card.addEventListener('keydown', (event) => {
 				if (event.key !== 'Enter' && event.key !== ' ') return;
 				event.preventDefault();
-				const moveNames = activeDirection === 'attack'
+				const moveNames = direction === 'attack'
 					? teamAttackMoveNames
 					: pickOpponentAttackMoves(target.moves, isAttackMove);
 				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
 			});
-			cardElements.push(card);
-			listElement.appendChild(card);
+			cardElements[direction].push(card);
+			listElements[direction].appendChild(card);
 		}
 	}
 
@@ -409,8 +429,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	const MATCHUP_HIGHLIGHT_THRESHOLD = 0.7;
 	const MATCHUP_HIGHLIGHT_MAX_MIX = 60;
 
-	function applyMatchupCardResult(targetIndex: number, opacity: number | null): void {
-		const card = cardElements[targetIndex];
+	function applyMatchupCardResult(direction: MatchupDirection, targetIndex: number, opacity: number | null): void {
+		const card = cardElements[direction][targetIndex];
 		if (!card) return;
 		const mix =
 			opacity !== null && opacity >= MATCHUP_HIGHLIGHT_THRESHOLD
@@ -424,10 +444,26 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		}
 	}
 
-	/** 選択中の方向だけをカードへ描画し、もう一方の計算結果とは混ぜない。 */
-	function renderMatchupList(
+	/** 各方向の結果を独立してカードへ描画し、攻・守の計算結果を混ぜない。 */
+	function applyMatchupCardResults(
+		direction: MatchupDirection,
 		targets: MatchupTarget[],
-		scores: (number | null)[] | null,
+		scores: (number | null | undefined)[],
+	): void {
+		const scored = scoreToOpacities(
+			targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
+			direction,
+		);
+		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
+			if (scores[targetIndex] === undefined) continue;
+			applyMatchupCardResult(direction, targetIndex, scored[targetIndex]?.opacity ?? null);
+		}
+	}
+
+	function renderMatchupLists(
+		targets: MatchupTarget[],
+		attackScores: (number | null | undefined)[] | null,
+		defenseScores: (number | null | undefined)[] | null,
 		typesMap: Map<string, string[]>,
 		isAttackMove: (moveName: string) => boolean,
 		getMoveType: (moveName: string) => string | null,
@@ -437,15 +473,10 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			pickTeamAttackMoves(member.move_names ?? [], isAttackMove),
 		))];
 		clearLists();
-		appendMatchupCards(targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
-		if (!scores) return;
-		const scored = scoreToOpacities(
-			targets.map((target, i) => ({ item: target, score: scores[i] ?? null })),
-			activeDirection,
-		);
-		for (let targetIndex = 0; targetIndex < targets.length; targetIndex += 1) {
-			applyMatchupCardResult(targetIndex, scored[targetIndex]?.opacity ?? null);
-		}
+		appendMatchupCards('attack', targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+		appendMatchupCards('defense', targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+		if (attackScores) applyMatchupCardResults('attack', targets, attackScores);
+		if (defenseScores) applyMatchupCardResults('defense', targets, defenseScores);
 	}
 
 	document.addEventListener('click', closeMovePopover);
@@ -453,32 +484,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		if (event.key === 'Escape') closeMovePopover();
 	});
 
-	// 強調色(攻=赤系 / 守=主要色)はCSS側が data-matchup-active-direction で切り替えるため、
-	// タブ帯とカード一覧の両方へ現在の方向を書き込む。
-	function updateDirectionTabs(): void {
-		for (const tab of directionTabsElement?.querySelectorAll<HTMLButtonElement>('.matchup-direction-tab') ?? []) {
-			tab.setAttribute('aria-selected', String(tab.dataset.matchupDirection === activeDirection));
-		}
-		if (directionTabsElement) directionTabsElement.dataset.matchupActiveDirection = activeDirection;
-		listElement.dataset.matchupActiveDirection = activeDirection;
-	}
-
-	function setDirection(direction: MatchupDirection): void {
-		if (direction === activeDirection) return;
-		activeDirection = direction;
-		closeMovePopover();
-		clearSuggestedTypes();
-		updateDirectionTabs();
-		void run();
-	}
-
-	directionTabsElement?.addEventListener('click', (event) => {
-		const tab = (event.target as HTMLElement).closest<HTMLButtonElement>('.matchup-direction-tab');
-		const direction = tab?.dataset.matchupDirection;
-		if (direction === 'attack' || direction === 'defense') setDirection(direction);
-	});
-	updateDirectionTabs();
-
+	// 強調色(攻=赤系 / 守=主要色)は、各見出しとカード一覧の
+	// data-matchup-active-direction を静的に使い分ける。
 	async function run(appendFrom?: number): Promise<void> {
 		const currentRequestId = (requestId += 1);
 		// 「さらに表示」による追加読み込みは既存カードが見えているので対象外。
@@ -526,10 +533,11 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			: expandMatchupTargets(targets.slice(appendFrom, visibleTargetCount));
 		const members = getMembers().filter((member) => member.species_name?.trim() !== '');
 		if (members.length === 0) {
-			if (appendFrom !== undefined && cardElements.length > 0) {
-				appendMatchupCards(appendedFormTargets, typesMap, isAttackMove, getMoveType, []);
+			if (appendFrom !== undefined && cardElements.attack.length > 0 && cardElements.defense.length > 0) {
+				appendMatchupCards('attack', appendedFormTargets, typesMap, isAttackMove, getMoveType, []);
+				appendMatchupCards('defense', appendedFormTargets, typesMap, isAttackMove, getMoveType, []);
 			} else {
-				renderMatchupList(visibleFormTargets, null, typesMap, isAttackMove, getMoveType, members);
+				renderMatchupLists(visibleFormTargets, null, null, typesMap, isAttackMove, getMoveType, members);
 			}
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			updateMoreButton(targets.length, false);
@@ -538,30 +546,30 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const cacheKey = members.map((member) => member.id).sort().join(',');
 		const cached = scoreCache.get(cacheKey);
 		const scores = cached ?? {};
-		const directionScores = extendMatchupScores(scores[activeDirection], visibleFormTargets.length);
-		scores[activeDirection] = directionScores;
+		const attackDirectionScores = extendMatchupScores(scores.attack, visibleFormTargets.length);
+		const defenseDirectionScores = extendMatchupScores(scores.defense, visibleFormTargets.length);
+		scores.attack = attackDirectionScores;
+		scores.defense = defenseDirectionScores;
 		scoreCache.set(cacheKey, scores);
-		const resolvedScores = directionScores.map((score) => score ?? null);
-		if (appendFrom !== undefined && cardElements.length > 0) {
+		const resolvedAttackScores = attackDirectionScores.map((score) => score ?? null);
+		const resolvedDefenseScores = defenseDirectionScores.map((score) => score ?? null);
+		if (appendFrom !== undefined && cardElements.attack.length > 0 && cardElements.defense.length > 0) {
 			const teamAttackMoveNames = [...new Set(members.flatMap((member) =>
 				pickTeamAttackMoves(member.move_names ?? [], isAttackMove),
 			))];
-			appendMatchupCards(appendedFormTargets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
-			const scored = scoreToOpacities(
-				visibleFormTargets.map((target, index) => ({ item: target, score: resolvedScores[index] ?? null })),
-				activeDirection,
-			);
-			for (let targetIndex = 0; targetIndex < visibleFormTargets.length; targetIndex += 1) {
-				applyMatchupCardResult(targetIndex, scored[targetIndex]?.opacity ?? null);
-			}
+			appendMatchupCards('attack', appendedFormTargets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+			appendMatchupCards('defense', appendedFormTargets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+			applyMatchupCardResults('attack', visibleFormTargets, attackDirectionScores);
+			applyMatchupCardResults('defense', visibleFormTargets, defenseDirectionScores);
 		} else {
-			renderMatchupList(visibleFormTargets, resolvedScores, typesMap, isAttackMove, getMoveType, members);
+			renderMatchupLists(visibleFormTargets, attackDirectionScores, defenseDirectionScores, typesMap, isAttackMove, getMoveType, members);
 		}
-		if (directionScores.every((score) => score !== undefined)) {
-			// 全対象がキャッシュ済み。上のrenderMatchupList/appendMatchupCardsで
+		if (attackDirectionScores.every((score) => score !== undefined) && defenseDirectionScores.every((score) => score !== undefined)) {
+			// 全対象がキャッシュ済み。上のrenderMatchupLists/appendMatchupCardsで
 			// 既に実際の結果を描画し終えているので、ここで確実に隠す。
 			hideCalculatingOverlay();
-			renderSuggestedTypes(visibleFormTargets, resolvedScores, typesMap, isAttackMove, getMoveType, typeChart);
+			renderSuggestedTypes('attack', visibleFormTargets, resolvedAttackScores, typesMap, isAttackMove, getMoveType, typeChart);
+			renderSuggestedTypes('defense', visibleFormTargets, resolvedDefenseScores, typesMap, isAttackMove, getMoveType, typeChart);
 			updateMoreButton(targets.length, false);
 			return;
 		}
@@ -585,7 +593,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const teamDefenseSpecs = members.map((member) => matchupTeamSpec(member, []));
 		let engineRestarted = false;
 		for (let i = 0; i < visibleFormTargets.length; i += 1) {
-			if (directionScores[i] !== undefined) continue;
+			if (attackDirectionScores[i] !== undefined && defenseDirectionScores[i] !== undefined) continue;
 			await new Promise((resolve) => window.setTimeout(resolve, 0));
 			if (currentRequestId !== requestId) return;
 			try {
@@ -600,8 +608,15 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 						return null;
 					}
 				};
-				const directionResult = await calculateDirection(activeDirection);
-				directionScores[i] = directionResult?.score ?? null;
+				// 1体ごとに攻・守をそろえてから次へ進め、左右の進捗行を一致させる。
+				if (attackDirectionScores[i] === undefined) {
+					const attackResult = await calculateDirection('attack');
+					attackDirectionScores[i] = attackResult?.score ?? null;
+				}
+				if (defenseDirectionScores[i] === undefined) {
+					const defenseResult = await calculateDirection('defense');
+					defenseDirectionScores[i] = defenseResult?.score ?? null;
+				}
 			} catch (err) {
 				console.error(err);
 				if (currentRequestId !== requestId) return;
@@ -618,31 +633,24 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 						return;
 					}
 				}
-				directionScores[i] = null;
+				attackDirectionScores[i] = null;
+				defenseDirectionScores[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
-			const scoredSoFar = scoreToOpacities(
-				visibleFormTargets.map((target, targetIndex) => ({
-					item: target,
-					score: directionScores[targetIndex] ?? null,
-				})),
-				activeDirection,
-			);
-			for (let targetIndex = 0; targetIndex < visibleFormTargets.length; targetIndex += 1) {
-				// 未計算(undefined)の枠は触らない。nullを渡すと「計算できなかった」表示に
-				// なってしまい、計算待ちと区別がつかなくなる。
-				if (directionScores[targetIndex] === undefined) continue;
-				applyMatchupCardResult(targetIndex, scoredSoFar[targetIndex]?.opacity ?? null);
-			}
+			// 未計算(undefined)の枠は applyMatchupCardResults が飛ばす。nullを渡すと
+			// 「計算できなかった」表示になり、計算待ちと区別がつかなくなるため。
+			applyMatchupCardResults('attack', visibleFormTargets, attackDirectionScores);
+			applyMatchupCardResults('defense', visibleFormTargets, defenseDirectionScores);
 			// このループの最初の1周で1匹目の実際の結果が描画されている
 			// (以降は既に隠れているため呼んでも何もしない)。
 			hideCalculatingOverlay();
 		}
 		if (currentRequestId !== requestId) return;
-		scores[activeDirection] = directionScores;
+		scores.attack = attackDirectionScores;
+		scores.defense = defenseDirectionScores;
 		scoreCache.set(cacheKey, scores);
-		const completedScores = directionScores.map((score) => score ?? null);
-		renderSuggestedTypes(visibleFormTargets, completedScores, typesMap, isAttackMove, getMoveType, typeChart);
+		renderSuggestedTypes('attack', visibleFormTargets, attackDirectionScores.map((score) => score ?? null), typesMap, isAttackMove, getMoveType, typeChart);
+		renderSuggestedTypes('defense', visibleFormTargets, defenseDirectionScores.map((score) => score ?? null), typesMap, isAttackMove, getMoveType, typeChart);
 		updateMoreButton(targets.length, false);
 	}
 
@@ -663,6 +671,5 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			updateMoreButton(loadedTargetCount, true);
 			timer = window.setTimeout(() => void run(), delay);
 		},
-		setDirection,
 	};
 }

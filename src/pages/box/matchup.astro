@@ -22,12 +22,6 @@ const pokemon = result?.ok ? result.data : null;
 <AppLayout title="相性" description="使用率上位との攻守の相性" current="box" bodyClass="data-page">
   <div class="page box-data-page box-matchup-page">
     <MobilePokemonPreview pokemon={pokemon} activeTab="matchup" />
-    {pokemon && (
-      <div class="matchup-direction-tabs" role="tablist" aria-label="相性の方向" data-matchup-active-direction="attack">
-        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="true" data-matchup-direction="attack" aria-label="攻撃">攻</button>
-        <button type="button" class="matchup-direction-tab" role="tab" aria-selected="false" data-matchup-direction="defense" aria-label="防御">守</button>
-      </div>
-    )}
     {pokemon ? <PokemonSettingsModalHost pokemon={pokemon} /> : (
       <section class="pokemon-data-preview" aria-labelledby="matchup-preview-title">
         <p class="data-kicker">相性チェック</p>
@@ -57,10 +51,19 @@ const pokemon = result?.ok ? result.data : null;
         <section class="box-matchup-panel" aria-label="相性チェック">
           <div class="box-matchup-page__results">
             <p id="box-matchup-status" class="team-matchup-status" hidden></p>
-            <ul id="box-matchup-list" class="team-matchup-list" aria-busy="true">
-              {Array.from({ length: MATCHUP_TOP_N }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
-            </ul>
-			<button id="box-matchup-more" type="button" class="btn-ghost matchup-more-button" hidden>さらに表示</button>
+            <div class="matchup-direction-headings" aria-label="相性の方向">
+              <span data-matchup-active-direction="attack">攻</span>
+              <span data-matchup-active-direction="defense">守</span>
+            </div>
+            <div class="matchup-results-grid">
+              <ul id="box-matchup-list-attack" class="team-matchup-list" data-matchup-active-direction="attack" aria-label="攻撃相性" aria-busy="true">
+                {Array.from({ length: MATCHUP_TOP_N }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
+              </ul>
+              <ul id="box-matchup-list-defense" class="team-matchup-list" data-matchup-active-direction="defense" aria-label="防御相性" aria-busy="true">
+                {Array.from({ length: MATCHUP_TOP_N }, () => <li class="team-matchup-card" data-state="pending" aria-hidden="true"></li>)}
+              </ul>
+            </div>
+            <button id="box-matchup-more" type="button" class="btn-ghost matchup-more-button" hidden>さらに表示</button>
           </div>
         </section>
       </main>
@@ -72,33 +75,37 @@ const pokemon = result?.ok ? result.data : null;
   import { createMatchupPanel, type MatchupPanelMember } from '../../lib/matchup-panel';
 
   const main = document.querySelector<HTMLElement>('#box-matchup-main');
-  const listElement = document.querySelector<HTMLElement>('#box-matchup-list');
+  const attackListElement = document.querySelector<HTMLElement>('#box-matchup-list-attack');
+  const defenseListElement = document.querySelector<HTMLElement>('#box-matchup-list-defense');
   const statusElement = document.querySelector<HTMLElement>('#box-matchup-status');
   const moreButtonElement = document.querySelector<HTMLButtonElement>('#box-matchup-more');
-  const directionTabsElement = document.querySelector<HTMLElement>('.matchup-direction-tabs');
   const pokemonJson = main?.dataset.pokemon;
 
-  if (listElement && statusElement && pokemonJson) {
+  if (attackListElement && defenseListElement && statusElement && pokemonJson) {
     const pokemon = JSON.parse(pokemonJson) as MatchupPanelMember;
     const matchupPanel = createMatchupPanel({
-      listElement,
+      attackListElement,
+      defenseListElement,
       statusElement,
 		moreButtonElement: moreButtonElement ?? undefined,
-      directionTabsElement,
       getMembers: () => [pokemon],
     });
     const loadingTimeout = window.setTimeout(() => {
-      if (!listElement.hasAttribute('aria-busy')) return;
-      listElement.replaceChildren();
-      listElement.removeAttribute('aria-busy');
+      if (!attackListElement.hasAttribute('aria-busy') && !defenseListElement.hasAttribute('aria-busy')) return;
+      attackListElement.replaceChildren();
+      defenseListElement.replaceChildren();
+      attackListElement.removeAttribute('aria-busy');
+      defenseListElement.removeAttribute('aria-busy');
       statusElement.textContent = '相性チェック用のデータを読み込めませんでした。';
       statusElement.hidden = false;
     }, 8_000);
     void matchupPanel.run()
       .catch((error) => {
         console.error(error);
-        listElement.replaceChildren();
-        listElement.removeAttribute('aria-busy');
+        attackListElement.replaceChildren();
+        defenseListElement.replaceChildren();
+        attackListElement.removeAttribute('aria-busy');
+        defenseListElement.removeAttribute('aria-busy');
         statusElement.textContent = '相性を計算できませんでした。ページを再読み込みしてください。';
         statusElement.hidden = false;
       })
