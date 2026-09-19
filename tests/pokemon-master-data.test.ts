@@ -12,28 +12,33 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  championSpriteUrl,
+  championSpriteIconUrl,
+  championSpriteMediumUrl,
   officialArtworkUrl,
   loadMultiHitMoveMap,
   loadMegaStoneMap,
 } from '../src/lib/pokemon-master-data.ts';
 
-describe('championSpriteUrl', () => {
+describe('championSpriteIconUrl / championSpriteMediumUrl', () => {
   // Pokémon Champions公式のメニュー用アイコンを public/pokemon-champion-sprites/ から
-  // 同一オリジンで配信する(生成: scripts/pokemon-champion-sprites/generate_pokemon_champion_sprites.py)。
-  it('imageIdからローカルのアイコンURLを組み立てる(通常種)', () => {
-    assert.equal(championSpriteUrl(1), '/pokemon-champion-sprites/1.png');
+  // 同一オリジンで配信する(poke-sprites から npm run sync-sprites で同期)。
+  // 表示サイズ帯ごとに icon(96px)/ medium(192px)の派生2種を持ち、原寸は置かない。
+  it('imageIdからローカルの派生画像URLを組み立てる(通常種)', () => {
+    assert.equal(championSpriteIconUrl(1), '/pokemon-champion-sprites/icon/1.webp');
+    assert.equal(championSpriteMediumUrl(1), '/pokemon-champion-sprites/medium/1.webp');
   });
 
   it('10000番台のimageId(メガシンカ等の特殊フォルム専用ID)も同じ規則でURLを組み立てる', () => {
-    assert.equal(championSpriteUrl(10034), '/pokemon-champion-sprites/10034.png');
+    assert.equal(championSpriteIconUrl(10034), '/pokemon-champion-sprites/icon/10034.webp');
+    assert.equal(championSpriteMediumUrl(10034), '/pokemon-champion-sprites/medium/10034.webp');
   });
 
   it('外部ホストを参照しない(ローカル化の回帰テスト)', () => {
     assert.ok(
-      championSpriteUrl(25).startsWith('/'),
+      championSpriteIconUrl(25).startsWith('/'),
       'アイコンは同一オリジンのルート相対パスで配信する',
     );
+    assert.ok(championSpriteMediumUrl(25).startsWith('/'));
   });
 });
 
@@ -49,9 +54,9 @@ describe('officialArtworkUrl', () => {
     assert.equal(officialArtworkUrl(10034), '/pokemon-artwork/10034.webp');
   });
 
-  it('championSpriteUrlとは拡張子が異なる(.webp / .png の取り違え防止)', () => {
-    assert.ok(officialArtworkUrl(25).endsWith('.webp'));
-    assert.ok(championSpriteUrl(25).endsWith('.png'));
+  it('champion sprite とは配信ディレクトリが異なる(退避先の取り違え防止)', () => {
+    assert.ok(officialArtworkUrl(25).startsWith('/pokemon-artwork/'));
+    assert.ok(championSpriteMediumUrl(25).startsWith('/pokemon-champion-sprites/'));
   });
 });
 
