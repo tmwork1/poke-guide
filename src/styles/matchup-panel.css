@@ -27,13 +27,15 @@
 /* 攻・守の見出しと相性カード一覧は、それぞれの方向で強調色を変える。
    攻は赤系、守は既定の主要色を各要素の静的な属性で適用する。 */
 .matchup-direction-headings > *,
-.team-matchup-list {
+.team-matchup-list,
+#team-matchup-mobile-slots {
 	--matchup-accent: var(--color-primary);
 	--matchup-accent-strong: var(--color-primary-strong);
 	--matchup-accent-soft: var(--color-primary-soft);
 }
 .matchup-direction-headings > [data-matchup-active-direction="attack"],
-.team-matchup-list[data-matchup-active-direction="attack"] {
+.team-matchup-list[data-matchup-active-direction="attack"],
+#team-matchup-mobile-slots[data-matchup-active-direction="attack"] {
 	--matchup-accent: var(--color-danger);
 	--matchup-accent-strong: var(--color-danger-strong);
 	--matchup-accent-soft: var(--color-danger-soft);
@@ -98,36 +100,8 @@
 	outline: 2px solid var(--matchup-accent);
 	outline-offset: 2px;
 }
-.team-matchup-card[aria-expanded="true"] {
+.team-matchup-card[data-selected="true"] {
 	border-color: var(--matchup-accent-strong);
-}
-.team-matchup-move-popover {
-	position: fixed;
-	z-index: 102;
-	max-width: min(14rem, calc(var(--app-band-width) - 16px));
-	padding: var(--space-2) var(--space-3);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius-sm);
-	background: var(--color-surface);
-	box-shadow: var(--shadow-md);
-	color: var(--color-text);
-	font-size: var(--font-size-sm3);
-	line-height: var(--line-height-snug);
-}
-.team-matchup-move-popover__list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-.team-matchup-move-popover__list li {
-	display: flex;
-	align-items: center;
-	gap: var(--space-1);
-}
-.team-matchup-move-popover__type-bar {
-	width: 4px;
-	height: 1em;
-	flex: 0 0 4px;
 }
 .team-matchup-sprite-img {
 	/* カード背景だけを広げ、立ち絵は5列化前の大きさのままにする。 */

@@ -289,13 +289,6 @@ if (!isGuestNewMode) {
 					<div class="team-formation-mobile__mates" aria-label="チームメイト">
 						<div id="team-matchup-mobile-slots" class="team-formation-mobile__slot-grid team-mate-grid"></div>
 					</div>
-					<div id="team-matchup-suggest" class="team-matchup-suggest" aria-label="おすすめタイプ">
-						<span class="team-matchup-suggest__label">おすすめタイプ</span>
-						<div class="team-matchup-suggest__columns">
-							<div id="team-matchup-suggest-icons-attack" class="team-matchup-suggest__icons" data-matchup-active-direction="attack"></div>
-							<div id="team-matchup-suggest-icons-defense" class="team-matchup-suggest__icons" data-matchup-active-direction="defense"></div>
-						</div>
-					</div>
 					<div class="team-matchup-mobile__results">
 						<p id="team-matchup-mobile-status" class="team-matchup-status" hidden></p>
 						<div class="matchup-direction-headings" aria-label="相性の方向">
@@ -1377,8 +1370,6 @@ if (!isGuestNewMode) {
 			const matchupMobileStatusEl = el<HTMLElement>("team-matchup-mobile-status");
 			const matchupMobileAttackListEl = el<HTMLElement>("team-matchup-mobile-list-attack");
 			const matchupMobileDefenseListEl = el<HTMLElement>("team-matchup-mobile-list-defense");
-			const matchupAttackSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons-attack");
-			const matchupDefenseSuggestTypesEl = el<HTMLElement>("team-matchup-suggest-icons-defense");
 			function matchupTeamMembers(): OwnedPokemonRecord[] {
 				const members: OwnedPokemonRecord[] = [];
 				for (let slot = 1; slot <= 6; slot += 1) {
@@ -1388,14 +1379,35 @@ if (!isGuestNewMode) {
 				return members;
 			}
 
+			let matchupDisadvantagedSelection: { direction: "attack" | "defense"; memberIds: string[] } | null = null;
+			function renderMatchupDisadvantagedMembers(): void {
+				for (const card of matchupMobileSlotsRoot.querySelectorAll<HTMLElement>(".team-mate-card")) {
+					card.classList.remove("is-matchup-disadvantaged");
+				}
+				if (!matchupDisadvantagedSelection) {
+					matchupMobileSlotsRoot.removeAttribute("data-matchup-active-direction");
+					return;
+				}
+				matchupMobileSlotsRoot.dataset.matchupActiveDirection = matchupDisadvantagedSelection.direction;
+				const disadvantagedIds = new Set(matchupDisadvantagedSelection.memberIds);
+				for (const [slot, member] of membersBySlot) {
+					if (disadvantagedIds.has(member.id)) {
+						matchupMobileSlotsRoot.querySelector<HTMLElement>(`.team-mate-card[data-slot="${slot}"]`)
+							?.classList.add("is-matchup-disadvantaged");
+					}
+				}
+			}
+
 			const matchupPanel = createMatchupPanel({
 				attackListElement: matchupMobileAttackListEl,
 				defenseListElement: matchupMobileDefenseListEl,
 				statusElement: matchupMobileStatusEl,
 				moreButtonElement: document.querySelector<HTMLButtonElement>("#team-matchup-mobile-more") ?? undefined,
-				attackSuggestTypesElement: matchupAttackSuggestTypesEl,
-				defenseSuggestTypesElement: matchupDefenseSuggestTypesEl,
 				getMembers: matchupTeamMembers,
+				onDisadvantagedMembersChange: (selection) => {
+					matchupDisadvantagedSelection = selection;
+					renderMatchupDisadvantagedMembers();
+				},
 			});
 
 			function runMatchup(): Promise<void> {
@@ -1716,6 +1728,9 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotLongPress: onFormationSlotLongPress,
 				});
+				// renderTeamMateSlots は共有コンポーネントとして毎回DOMを作り直すため、
+				// パネルの選択状態を保持し、再描画直後に同じハイライトを貼り直す。
+				renderMatchupDisadvantagedMembers();
 				renderTeamMateSlots({
 					root: teamDataMobileSlotsRoot,
 					membersBySlot: effectiveMembersBySlot(),

@@ -3,7 +3,6 @@ import {
 	loadImageIdMap,
 	loadMoveDetailMap,
 	loadMultiHitMoveMap,
-	loadTypeChart,
 	loadTypesMap,
 	officialArtworkUrl,
 } from './pokemon-master-data';
@@ -27,14 +26,10 @@ import {
 	pickOpponentAttackMoves,
 	pickTeamAttackMoves,
 	scoreToOpacities,
-	suggestMatchupTypes,
 	type MatchupDirection,
 	type MatchupTargetForm,
 	type PopularMoveOption,
 } from './team-matchup';
-import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from './type-colors';
-import { typeIconUrl } from './sprite-urls';
-import { clampToAppBand } from './app-band';
 
 /** 相性計算に必要な、所有ポケモンの最小限の情報。 */
 export interface MatchupPanelMember {
@@ -61,6 +56,7 @@ export interface MatchupTarget {
 interface MatchupScoreCacheEntry {
 	attack?: (number | null | undefined)[];
 	defense?: (number | null | undefined)[];
+	memberRatios?: Partial<Record<MatchupDirection, (number[] | null | undefined)[]>>;
 }
 
 let matchupTargetsPromise: Promise<MatchupTarget[]> | null = null;
@@ -182,11 +178,12 @@ export interface MatchupPanelOptions {
 	defenseListElement: HTMLElement;
 	statusElement: HTMLElement;
 	moreButtonElement?: HTMLButtonElement;
-	/** チーム画面のみが渡す、攻・守それぞれのおすすめタイプ表示先。 */
-	attackSuggestTypesElement?: HTMLElement;
-	defenseSuggestTypesElement?: HTMLElement;
 	getMembers: () => MatchupPanelMember[];
 	emptyMembersMessage?: string;
+	/** カード選択時に、不利を取っているメンバーの id を通知する。選択解除時は null。 */
+	onDisadvantagedMembersChange?: (
+		selection: { direction: MatchupDirection; memberIds: string[] } | null,
+	) => void;
 }
 
 export interface MatchupPanel {
@@ -201,17 +198,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		defenseListElement,
 		statusElement,
 		moreButtonElement,
-		attackSuggestTypesElement,
-		defenseSuggestTypesElement,
 		getMembers,
+		onDisadvantagedMembersChange,
 	} = options;
 	const listElements: Record<MatchupDirection, HTMLElement> = {
 		attack: attackListElement,
 		defense: defenseListElement,
-	};
-	const suggestTypesElements: Partial<Record<MatchupDirection, HTMLElement>> = {
-		attack: attackSuggestTypesElement,
-		defense: defenseSuggestTypesElement,
 	};
 	let requestId = 0;
 	let timer: number | undefined;
@@ -219,8 +211,9 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	let loadedTargetCount = 0;
 	const scoreCache = new Map<string, MatchupScoreCacheEntry>();
 	const cardElements: Record<MatchupDirection, HTMLLIElement[]> = { attack: [], defense: [] };
-	let activeMovePopover: HTMLElement | null = null;
-	let activeMovePopoverCard: HTMLElement | null = null;
+	let activeSelection: { direction: MatchupDirection; targetIndex: number } | null = null;
+	let currentCacheKey = '';
+	let currentMembers: MatchupPanelMember[] = [];
 
 	// 攻・守のカードグリッドに「計算中…」を重ねる。1匹目の
 	// 相性結果が実際に描画されるまでの間だけ表示し、以後はDOMから外して再利用する。
@@ -241,69 +234,33 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		calculatingOverlayEl?.remove();
 	}
 
-	function closeMovePopover(): void {
-		activeMovePopover?.remove();
-		activeMovePopoverCard?.setAttribute('aria-expanded', 'false');
-		activeMovePopover = null;
-		activeMovePopoverCard = null;
+	function clearSelection(): void {
+		if (!activeSelection) return;
+		cardElements[activeSelection.direction][activeSelection.targetIndex]?.removeAttribute('data-selected');
+		activeSelection = null;
+		onDisadvantagedMembersChange?.(null);
 	}
 
-	function openMovePopover(
-		card: HTMLLIElement,
-		target: MatchupTarget,
-		moveNames: readonly string[],
-		getMoveType: (moveName: string) => string | null,
-		ariaLabel: string,
-	): void {
-		if (activeMovePopoverCard === card) {
-			closeMovePopover();
+	function selectCard(direction: MatchupDirection, targetIndex: number): void {
+		if (!onDisadvantagedMembersChange) return;
+		if (activeSelection?.direction === direction && activeSelection.targetIndex === targetIndex) {
+			clearSelection();
 			return;
 		}
-		closeMovePopover();
-
-		const popover = document.createElement('div');
-		popover.className = 'team-matchup-move-popover';
-		popover.setAttribute('role', 'dialog');
-		popover.setAttribute('aria-label', ariaLabel);
-		const moves = document.createElement('ul');
-		moves.className = 'team-matchup-move-popover__list';
-		if (moveNames.length === 0) {
-			const empty = document.createElement('li');
-			empty.textContent = '考慮できる攻撃技なし';
-			moves.append(empty);
-		} else {
-			for (const moveName of moveNames) {
-				const item = document.createElement('li');
-				const typeBar = document.createElement('span');
-				typeBar.className = 'team-matchup-move-popover__type-bar';
-				const moveType = getMoveType(moveName);
-				typeBar.style.backgroundColor = TYPE_COLORS[moveType ?? ''] ?? DEFAULT_TYPE_COLOR;
-				if (moveType) typeBar.title = moveType;
-				const name = document.createElement('span');
-				name.textContent = moveName;
-				item.append(typeBar, name);
-				moves.append(item);
-			}
-		}
-		popover.append(moves);
-		document.body.append(popover);
-
-		const cardRect = card.getBoundingClientRect();
-		const popoverRect = popover.getBoundingClientRect();
-		const viewportGutter = 8;
-		const showAbove = cardRect.top >= popoverRect.height + viewportGutter;
-		const top = showAbove ? cardRect.top - popoverRect.height - 8 : cardRect.bottom + 8;
-		const left = clampToAppBand(
-			cardRect.left + cardRect.width / 2 - popoverRect.width / 2,
-			popoverRect.width,
-			viewportGutter,
-		);
-		popover.style.top = `${top}px`;
-		popover.style.left = `${left}px`;
-		popover.dataset.placement = showAbove ? 'above' : 'below';
-		card.setAttribute('aria-expanded', 'true');
-		activeMovePopover = popover;
-		activeMovePopoverCard = card;
+		clearSelection();
+		// 未計算・計算不可の相手は比べる材料が無いので、タップしても何も起きない。
+		const ratios = scoreCache.get(currentCacheKey)?.memberRatios?.[direction]?.[targetIndex];
+		const average = ratios ? averageRatio(ratios) : null;
+		if (average === null) return;
+		// しきい値はチーム内相対(平均より悪い側)。攻は与ダメ割合が低いほど、
+		// 守は被ダメ割合が高いほど不利なので、比較の向きだけを入れ替える。
+		const memberIds = currentMembers.flatMap((member, index) =>
+			(direction === 'attack' ? ratios[index] < average : ratios[index] > average) ? [member.id] : []);
+		const card = cardElements[direction][targetIndex];
+		if (!card) return;
+		activeSelection = { direction, targetIndex };
+		card.dataset.selected = 'true';
+		onDisadvantagedMembersChange({ direction, memberIds });
 	}
 
 	function setStatus(message: string | null): void {
@@ -319,16 +276,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 	}
 
 	function clearLists(): void {
-		closeMovePopover();
+		clearSelection();
 		for (const direction of ['attack', 'defense'] as const) {
 			listElements[direction].innerHTML = '';
 			listElements[direction].removeAttribute('aria-busy');
 			cardElements[direction] = [];
 		}
-	}
-
-	function clearSuggestedTypes(): void {
-		for (const element of Object.values(suggestTypesElements)) element?.replaceChildren();
 	}
 
 	function updateMoreButton(totalTargetCount: number, isCalculating: boolean): void {
@@ -337,62 +290,21 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		moreButtonElement.disabled = isCalculating;
 	}
 
-	function renderSuggestedTypes(
-		direction: MatchupDirection,
-		targets: MatchupTarget[],
-		scores: (number | null)[],
-		typesMap: Map<string, string[]>,
-		isAttackMove: (moveName: string) => boolean,
-		getMoveType: (moveName: string) => string | null,
-		typeChart: Record<string, Record<string, number>>,
-	): void {
-		const suggestTypesElement = suggestTypesElements[direction];
-		if (!suggestTypesElement) return;
-		const opponentAttackMoveTypes = targets.map((target) => [...new Set(
-			pickOpponentAttackMoves(target.moves, isAttackMove)
-				.map(getMoveType)
-				.filter((type): type is string => type !== null),
-		)]);
-		const suggestedTypes = suggestMatchupTypes({
-			direction,
-			targets,
-			targetTypes: typesMap,
-			directionScores: scores,
-			typeChart,
-			opponentAttackMoveTypes,
-		});
-		const icons = suggestedTypes.flatMap((type) => {
-			const url = typeIconUrl(type);
-			if (!url) return [];
-			const icon = document.createElement('img');
-			icon.className = 'team-matchup-suggest__icon';
-			icon.src = url;
-			icon.alt = type;
-			return [icon];
-		});
-		suggestTypesElement.replaceChildren(...icons);
-	}
-
 	function appendMatchupCards(
 		direction: MatchupDirection,
 		targets: MatchupTarget[],
 		typesMap: Map<string, string[]>,
-		isAttackMove: (moveName: string) => boolean,
-		getMoveType: (moveName: string) => string | null,
-		teamAttackMoveNames: readonly string[],
 	): void {
 		for (const target of targets) {
 			const card = document.createElement('li');
+			const cardIndex = cardElements[direction].length;
 			card.className = 'team-matchup-card';
 			card.dataset.state = 'pending';
-			card.tabIndex = 0;
-			card.setAttribute('role', 'button');
-			card.setAttribute('aria-haspopup', 'dialog');
-			card.setAttribute('aria-expanded', 'false');
-			const moveAriaLabel = (): string => direction === 'attack'
-				? `${target.speciesName}への攻撃で考慮した技を表示`
-				: `${target.speciesName}の攻撃で考慮した技を表示`;
-			card.setAttribute('aria-label', moveAriaLabel());
+			if (onDisadvantagedMembersChange) {
+				card.tabIndex = 0;
+				card.setAttribute('role', 'button');
+				card.setAttribute('aria-label', `${target.speciesName}に不利なメンバーを表示`);
+			}
 			const img = document.createElement('img');
 			img.className = 'team-matchup-sprite-img';
 			img.alt = '';
@@ -402,21 +314,17 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			void applySprite(img, fallback, target.speciesName);
 			const typeNames = (typesMap.get(target.speciesName) ?? []).join('/');
 			card.title = typeNames ? `${target.speciesName}\n${typeNames}` : target.speciesName;
-			card.addEventListener('click', (event) => {
-				event.stopPropagation();
-				const moveNames = direction === 'attack'
-					? teamAttackMoveNames
-					: pickOpponentAttackMoves(target.moves, isAttackMove);
-				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
-			});
-			card.addEventListener('keydown', (event) => {
-				if (event.key !== 'Enter' && event.key !== ' ') return;
-				event.preventDefault();
-				const moveNames = direction === 'attack'
-					? teamAttackMoveNames
-					: pickOpponentAttackMoves(target.moves, isAttackMove);
-				openMovePopover(card, target, moveNames, getMoveType, moveAriaLabel());
-			});
+			if (onDisadvantagedMembersChange) {
+				card.addEventListener('click', (event) => {
+					event.stopPropagation();
+					selectCard(direction, cardIndex);
+				});
+				card.addEventListener('keydown', (event) => {
+					if (event.key !== 'Enter' && event.key !== ' ') return;
+					event.preventDefault();
+					selectCard(direction, cardIndex);
+				});
+			}
 			cardElements[direction].push(card);
 			listElements[direction].appendChild(card);
 		}
@@ -465,24 +373,20 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		attackScores: (number | null | undefined)[] | null,
 		defenseScores: (number | null | undefined)[] | null,
 		typesMap: Map<string, string[]>,
-		isAttackMove: (moveName: string) => boolean,
-		getMoveType: (moveName: string) => string | null,
-		members: MatchupPanelMember[],
 	): void {
-		const teamAttackMoveNames = [...new Set(members.flatMap((member) =>
-			pickTeamAttackMoves(member.move_names ?? [], isAttackMove),
-		))];
 		clearLists();
-		appendMatchupCards('attack', targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
-		appendMatchupCards('defense', targets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+		appendMatchupCards('attack', targets, typesMap);
+		appendMatchupCards('defense', targets, typesMap);
 		if (attackScores) applyMatchupCardResults('attack', targets, attackScores);
 		if (defenseScores) applyMatchupCardResults('defense', targets, defenseScores);
 	}
 
-	document.addEventListener('click', closeMovePopover);
-	document.addEventListener('keydown', (event) => {
-		if (event.key === 'Escape') closeMovePopover();
-	});
+	if (onDisadvantagedMembersChange) {
+		document.addEventListener('click', clearSelection);
+		document.addEventListener('keydown', (event) => {
+			if (event.key === 'Escape') clearSelection();
+		});
+	}
 
 	// 強調色(攻=赤系 / 守=主要色)は、各見出しとカード一覧の
 	// data-matchup-active-direction を静的に使い分ける。
@@ -492,7 +396,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		// 新規/再計算のときだけ、1匹目の結果が出るまで「計算中…」を重ねる。
 		if (appendFrom === undefined) showCalculatingOverlay();
 		updateMoreButton(loadedTargetCount, true);
-		clearSuggestedTypes();
+		clearSelection();
 		// 対象カードを先に描画し、Pyodide の準備・計算結果は後追いで反映する。
 		// 進捗文が出入りすると一覧の開始位置が動くため、通常の処理中は表示しない。
 		setStatus(null);
@@ -519,13 +423,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		// 続きがあることは相手一覧が取れた時点で分かる。計算が終わるまで隠しておくと
 		// 数十秒ボタンが現れないので、ここで出して計算中はdisabledにとどめる。
 		updateMoreButton(loadedTargetCount, true);
-		const [typesMap, moveDetails, typeChart] = await Promise.all([loadTypesMap(), loadMoveDetailMap(), loadTypeChart()]);
+		const [typesMap, moveDetails] = await Promise.all([loadTypesMap(), loadMoveDetailMap()]);
 		if (currentRequestId !== requestId) return;
 		const isAttackMove = (moveName: string): boolean => {
 			const detail = moveDetails.get(moveName);
 			return !!detail && detail.category !== 'status';
 		};
-		const getMoveType = (moveName: string): string | null => moveDetails.get(moveName)?.type ?? null;
 		const visibleTargets = targets.slice(0, visibleTargetCount);
 		const visibleFormTargets = expandMatchupTargets(visibleTargets);
 		const appendedFormTargets = appendFrom === undefined
@@ -534,42 +437,43 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		const members = getMembers().filter((member) => member.species_name?.trim() !== '');
 		if (members.length === 0) {
 			if (appendFrom !== undefined && cardElements.attack.length > 0 && cardElements.defense.length > 0) {
-				appendMatchupCards('attack', appendedFormTargets, typesMap, isAttackMove, getMoveType, []);
-				appendMatchupCards('defense', appendedFormTargets, typesMap, isAttackMove, getMoveType, []);
+				appendMatchupCards('attack', appendedFormTargets, typesMap);
+				appendMatchupCards('defense', appendedFormTargets, typesMap);
 			} else {
-				renderMatchupLists(visibleFormTargets, null, null, typesMap, isAttackMove, getMoveType, members);
+				renderMatchupLists(visibleFormTargets, null, null, typesMap);
 			}
 			setStatus(options.emptyMembersMessage ?? 'チームにポケモンを入れると相性を計算します。');
 			updateMoreButton(targets.length, false);
 			return;
 		}
-		const cacheKey = members.map((member) => member.id).sort().join(',');
+		// memberRatios は getMembers() の並び順の添字なので、並びが違えばキャッシュも別物。
+		// スコア自体は平均なので順不同でよかったが、ここでソートすると並べ替え後に
+		// 別メンバーのダメージ割合をハイライトしてしまう。
+		const cacheKey = members.map((member) => member.id).join(',');
+		currentCacheKey = cacheKey;
+		currentMembers = members;
 		const cached = scoreCache.get(cacheKey);
 		const scores = cached ?? {};
 		const attackDirectionScores = extendMatchupScores(scores.attack, visibleFormTargets.length);
 		const defenseDirectionScores = extendMatchupScores(scores.defense, visibleFormTargets.length);
 		scores.attack = attackDirectionScores;
 		scores.defense = defenseDirectionScores;
+		const memberRatios = (scores.memberRatios ??= {});
+		const attackMemberRatios = (memberRatios.attack = extendMatchupScores(memberRatios.attack, visibleFormTargets.length));
+		const defenseMemberRatios = (memberRatios.defense = extendMatchupScores(memberRatios.defense, visibleFormTargets.length));
 		scoreCache.set(cacheKey, scores);
-		const resolvedAttackScores = attackDirectionScores.map((score) => score ?? null);
-		const resolvedDefenseScores = defenseDirectionScores.map((score) => score ?? null);
 		if (appendFrom !== undefined && cardElements.attack.length > 0 && cardElements.defense.length > 0) {
-			const teamAttackMoveNames = [...new Set(members.flatMap((member) =>
-				pickTeamAttackMoves(member.move_names ?? [], isAttackMove),
-			))];
-			appendMatchupCards('attack', appendedFormTargets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
-			appendMatchupCards('defense', appendedFormTargets, typesMap, isAttackMove, getMoveType, teamAttackMoveNames);
+			appendMatchupCards('attack', appendedFormTargets, typesMap);
+			appendMatchupCards('defense', appendedFormTargets, typesMap);
 			applyMatchupCardResults('attack', visibleFormTargets, attackDirectionScores);
 			applyMatchupCardResults('defense', visibleFormTargets, defenseDirectionScores);
 		} else {
-			renderMatchupLists(visibleFormTargets, attackDirectionScores, defenseDirectionScores, typesMap, isAttackMove, getMoveType, members);
+			renderMatchupLists(visibleFormTargets, attackDirectionScores, defenseDirectionScores, typesMap);
 		}
 		if (attackDirectionScores.every((score) => score !== undefined) && defenseDirectionScores.every((score) => score !== undefined)) {
 			// 全対象がキャッシュ済み。上のrenderMatchupLists/appendMatchupCardsで
 			// 既に実際の結果を描画し終えているので、ここで確実に隠す。
 			hideCalculatingOverlay();
-			renderSuggestedTypes('attack', visibleFormTargets, resolvedAttackScores, typesMap, isAttackMove, getMoveType, typeChart);
-			renderSuggestedTypes('defense', visibleFormTargets, resolvedDefenseScores, typesMap, isAttackMove, getMoveType, typeChart);
 			updateMoreButton(targets.length, false);
 			return;
 		}
@@ -612,10 +516,12 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				if (attackDirectionScores[i] === undefined) {
 					const attackResult = await calculateDirection('attack');
 					attackDirectionScores[i] = attackResult?.score ?? null;
+					attackMemberRatios[i] = attackResult?.memberRatios ?? null;
 				}
 				if (defenseDirectionScores[i] === undefined) {
 					const defenseResult = await calculateDirection('defense');
 					defenseDirectionScores[i] = defenseResult?.score ?? null;
+					defenseMemberRatios[i] = defenseResult?.memberRatios ?? null;
 				}
 			} catch (err) {
 				console.error(err);
@@ -635,6 +541,8 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 				}
 				attackDirectionScores[i] = null;
 				defenseDirectionScores[i] = null;
+				attackMemberRatios[i] = null;
+				defenseMemberRatios[i] = null;
 			}
 			if (currentRequestId !== requestId) return;
 			// 未計算(undefined)の枠は applyMatchupCardResults が飛ばす。nullを渡すと
@@ -649,8 +557,6 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 		scores.attack = attackDirectionScores;
 		scores.defense = defenseDirectionScores;
 		scoreCache.set(cacheKey, scores);
-		renderSuggestedTypes('attack', visibleFormTargets, attackDirectionScores.map((score) => score ?? null), typesMap, isAttackMove, getMoveType, typeChart);
-		renderSuggestedTypes('defense', visibleFormTargets, defenseDirectionScores.map((score) => score ?? null), typesMap, isAttackMove, getMoveType, typeChart);
 		updateMoreButton(targets.length, false);
 	}
 
@@ -667,7 +573,7 @@ export function createMatchupPanel(options: MatchupPanelOptions): MatchupPanel {
 			window.clearTimeout(timer);
 			requestId += 1;
 			scoreCache.clear();
-			clearSuggestedTypes();
+			clearSelection();
 			updateMoreButton(loadedTargetCount, true);
 			timer = window.setTimeout(() => void run(), delay);
 		},

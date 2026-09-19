@@ -1914,9 +1914,8 @@ if (opponentNotesSection) {
 
 	// 技名の集合を「タイプ相性×威力×(タイプ一致なら1.5倍のSTAB)」の降順に並べ替える。
 	// 変化技・威力なし・技詳細が引けない技は候補から除外する(=戻り値に含まれない)。
-	// タイプ相性倍率の掛け合わせ方はsrc/lib/team-matchup.tsのtypeEffectiveness()と同じ式
-	// (未exportのため計算式のみ踏襲し、この関数内に閉じて持つ)。同スコアはArray#sortの
-	// 安定ソート特性により候補プールの元の並びを保つ。
+	// タイプ相性倍率は防御側のタイプぶん倍率を掛け合わせる(相性表の素直な積)。
+	// 同スコアはArray#sortの安定ソート特性により候補プールの元の並びを保つ。
 	function rankMovesByTypeScore(
 		candidateNames: readonly string[],
 		attackerTypes: readonly string[],
