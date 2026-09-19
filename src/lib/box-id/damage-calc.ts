@@ -360,8 +360,33 @@ function loadOpponentBuildPreset(speciesName: string, direction: "attack" | "def
 
 type MoveAdoptionBySpecies = Record<string, Record<string, Record<string, number>>>;
 
-// 相手技候補の採用率は全ユーザー共通なので、SSRペイロードに埋め込まず共有キャッシュされる
-// APIからダメージタブを開く時に1回だけ読む。失敗時は空のままとして既存の技順へフォールバックする。
+type OpponentMoveOption = { name: string; ratio: number };
+type OpponentMoveUsageResponse = { options?: { name: string; usageRate: number | null }[] };
+
+// OP.GG の技使用率は種族ごとに共有し、同じ種族への並行リクエストをまとめる。
+const opponentMoveOptionsCache = new Map<string, Promise<OpponentMoveOption[]>>();
+
+async function fetchOpponentMoveOptions(speciesName: string): Promise<OpponentMoveOption[]> {
+	let cached = opponentMoveOptionsCache.get(speciesName);
+	if (!cached) {
+		cached = fetch(`/api/opgg-usage?species=${encodeURIComponent(speciesName)}&category=moves`)
+			.then(async (response) => {
+				if (!response.ok) throw new Error(`Failed to fetch OP.GG move usage data: ${response.status}`);
+				const body = await response.json() as OpponentMoveUsageResponse;
+				return (body.options ?? [])
+					.filter((option) => option.usageRate != null)
+					.map((option) => ({ name: option.name, ratio: (option.usageRate ?? 0) / 100 }));
+			})
+			.catch((error: unknown) => {
+				opponentMoveOptionsCache.delete(speciesName);
+				throw error;
+			});
+		opponentMoveOptionsCache.set(speciesName, cached);
+	}
+	return cached;
+}
+
+// move-adoption は OP.GG に種族データがない場合だけ使うフォールバック用の独自集計。
 let moveAdoptionBySpecies: MoveAdoptionBySpecies = {};
 let moveAdoptionPromise: Promise<void> | null = null;
 
@@ -443,8 +468,8 @@ type ItemSuggestionPayload = { options: ItemSuggestionOption[] };
 type ItemSuggestionApiRow = { payload?: { options?: ItemSuggestionOption[] } };
 type ItemSuggestionApiResponse = { data?: ItemSuggestionApiRow[] };
 
-// 相手の持ち物ドロップダウンの使用率順(kind="popular_item")。技の使用率(moveAdoptionBySpecies、
-// box/[id].astroがSSRで埋め込み済み)と違いアイテムには埋め込みデータが無いため、種族名が
+// 相手の持ち物ドロップダウンの使用率順(kind="popular_item")。技の使用率はOP.GGから取得するが、
+// アイテムには埋め込みデータが無いため、種族名が
 // 確定するたびlive fetchする。pokemon-edit-panel.tsのfetchSuggestionPayload("popular_item", ...)と
 // 同じAPI・同じkind文字列・同じ「レギュレーション別が空なら横断集計へフォールバック」ロジックだが、
 // 育成パネル側の実装は非exportかつ編集禁止(pokemon-edit-panel.ts)のため、このファイル側に複製する。
@@ -1753,53 +1778,28 @@ if (opponentNotesSection) {
 
 	// 上のSELF_FIRST_MOVE_DATALIST_ID(攻撃側=自分の技1〜4を最上位にする)と
 	// 対になる、防御側(row.direction === "defense"、相手が攻撃してくる技を入力する列)専用の
-	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、共有APIから取得した
-	// moveAdoptionBySpeciesの使用率で安定ソートし直す。
+	// datalist。#move-list(覚え技優先の並び)のoptionsをベースに、OP.GGの使用率で安定ソートし直す。
 	const OPPONENT_POPULARITY_MOVE_DATALIST_ID = "move-list-opponent-popularity";
 	let opponentPopularityMoveDatalistSpeciesName: string | null = null;
-	// メガ種族の採用率データだけは、同じdexNoを持つ基本フォルムの技採用率へフォールバックする。
-	// もちもの・特性の採用率には使わないこと。メガ種族はメガストーン固定・特性単一のため、
-	// それらはメガ種族自身のデータをそのまま扱う。
-	let opponentMoveAdoptionPokemonMaster: Awaited<ReturnType<typeof loadPokemonMasterList>> | null = null;
-	let opponentMoveAdoptionPokemonMasterPromise: Promise<void> | null = null;
-	function moveAdoptionSpeciesName(speciesName: string): string {
-		const trimmed = speciesName.trim();
-		// 将来メガ種族自身のキーが追加された場合は、そちらを優先する。
-		if (trimmed === "" || moveAdoptionBySpecies[trimmed]) return trimmed;
-		if (opponentMoveAdoptionPokemonMaster) {
-			const current = opponentMoveAdoptionPokemonMaster.find((entry) => entry.name === trimmed);
-			if (!current || !isMegaForm(current)) return trimmed;
-			return opponentMoveAdoptionPokemonMaster.find(
-				(entry) => entry.dexNo === current.dexNo && !isMegaForm(entry),
-			)?.name ?? trimmed;
-		}
-		// マスターの到着前は従来どおり種族自身のキーで試し、到着後に自動入力列だけ選び直す。
-		if (!opponentMoveAdoptionPokemonMasterPromise) {
-			opponentMoveAdoptionPokemonMasterPromise = loadPokemonMasterList().then((master) => {
-				opponentMoveAdoptionPokemonMaster = master;
-				for (const row of rows) {
-					const current = master.find((entry) => entry.name === row.name.trim());
-					const base = current && isMegaForm(current)
-						? master.find((entry) => entry.dexNo === current.dexNo && !isMegaForm(entry))
-						: undefined;
-					if (row.direction === "defense" && base && !moveAdoptionBySpecies[row.name.trim()]) {
-						refreshOpponentPopularityMoveDatalist(row.name);
-						refreshOpponentAutomaticMoves(row);
-					}
-				}
-			});
-		}
-		return trimmed;
-	}
-	// 種族名 -> その種族の技採用率。レギュレーション別の集計が無い種族(実測127種中27種、
-	// ボーマンダなど)では、もちもの・特性(fetchPopularItemSuggestion/fetchPopularAbilitySuggestion)
-	// と同じく全レギュレーション横断の"all"へフォールバックする。ここで諦めると採用率順の
-	// 並べ替え・技の自動設定が丸ごと効かなくなり、OP.GGのデータと乖離するため。
+	// 取得済みのOP.GG技使用率。空配列は「OP.GGに種族データがない」ことを表し、その場合だけ
+	// move-adoption の独自集計をフォールバックとして使う。
+	const opponentMoveOptionsBySpecies = new Map<string, OpponentMoveOption[]>();
+	const opponentMoveOptionsPendingSpecies = new Set<string>();
+
+	// move-adoption の種族名 -> 技採用率。OP.GGに種族データがない場合のフォールバック専用で、
+	// レギュレーション別の集計がなければ全レギュレーション横断の"all"を使う。
 	function moveAdoptionRatioMap(speciesName: string): Record<string, number> | undefined {
-		const bySpecies = moveAdoptionBySpecies[moveAdoptionSpeciesName(speciesName)];
+		const bySpecies = moveAdoptionBySpecies[speciesName.trim()];
 		if (!bySpecies) return undefined;
 		const regulationKey = currentIndividualRegulation();
 		return (regulationKey ? bySpecies[regulationKey] : undefined) ?? bySpecies["all"];
+	}
+
+	function opponentMoveRatioMap(speciesName: string): Record<string, number> | undefined {
+		const options = opponentMoveOptionsBySpecies.get(speciesName.trim());
+		if (!options) return undefined;
+		if (options.length === 0) return moveAdoptionRatioMap(speciesName);
+		return Object.fromEntries(options.map((option) => [option.name, option.ratio]));
 	}
 
 	function ensureOpponentPopularityMoveDatalist(): HTMLDataListElement {
@@ -1815,23 +1815,33 @@ if (opponentNotesSection) {
 	// currentIndividualRegulation()参照)から最新の候補順を作り直す(技名inputに
 	// フォーカスするたび=編集を始める直前に呼べば十分新しい)。
 	function refreshOpponentPopularityMoveDatalist(speciesName: string): void {
-		opponentPopularityMoveDatalistSpeciesName = speciesName;
-		// 採用率は初回だけAPIから取りに行く。到着前は覚え技優先の順で先に出し、
-		// 到着後にこの関数を呼び直して並べ替える(=候補が出るまで待たせない)。
-		if (!moveAdoptionPromise) {
-			void loadMoveAdoption().then(() => {
-				if (opponentPopularityMoveDatalistSpeciesName !== null) {
-					refreshOpponentPopularityMoveDatalist(opponentPopularityMoveDatalistSpeciesName);
-					// 到着前の覚え技順・使用率順で自動選択した行だけ、採用率20%以上の候補セットから
-					// 選び直す。rows は非同期コールバック実行時には初期化済みで、手入力済み列は
-					// refreshOpponentAutomaticMoves() 内の判定でそのまま保たれる。
+		const requestedSpeciesName = speciesName.trim();
+		opponentPopularityMoveDatalistSpeciesName = requestedSpeciesName;
+		// OP.GGの取得中は覚え技優先の順で先に出す。到着後は、要求した種族名と現在の
+		// 行の種族名が一致する場合だけ候補と自動入力列を更新するため、種族変更後に古い
+		// 応答で上書きしない。
+		if (requestedSpeciesName !== "" && !opponentMoveOptionsBySpecies.has(requestedSpeciesName) && !opponentMoveOptionsPendingSpecies.has(requestedSpeciesName)) {
+			opponentMoveOptionsPendingSpecies.add(requestedSpeciesName);
+			void fetchOpponentMoveOptions(requestedSpeciesName)
+				.then((options) => {
+					opponentMoveOptionsBySpecies.set(requestedSpeciesName, options);
+					if (options.length === 0) return loadMoveAdoption();
+				})
+				.then(() => {
+					if (opponentPopularityMoveDatalistSpeciesName === requestedSpeciesName) {
+						refreshOpponentPopularityMoveDatalist(requestedSpeciesName);
+					}
 					for (const row of rows) {
-						if (row.direction === "defense" && row.name === opponentPopularityMoveDatalistSpeciesName) {
+						if (row.direction === "defense" && row.name.trim() === requestedSpeciesName) {
 							refreshOpponentAutomaticMoves(row);
 						}
 					}
-				}
-			});
+				})
+				.catch((error: unknown) => {
+					// eslint-disable-next-line no-console
+					console.error("[damage-calc] failed to load OP.GG move usage data", error);
+				})
+				.finally(() => opponentMoveOptionsPendingSpecies.delete(requestedSpeciesName));
 		}
 		const list = ensureOpponentPopularityMoveDatalist();
 		const baseList = document.getElementById("move-list") as HTMLDataListElement | null;
@@ -1839,7 +1849,7 @@ if (opponentNotesSection) {
 		const baseOptions = withoutStatusMoves(baseList ? Array.from(baseList.options).map((o) => o.value) : []);
 		// 個体の#regulationセレクトの現在値が指定されていればそのレギュレーションキー、
 		// 未指定(プレースホルダー)なら全レギュレーション横断の"all"キーを使う。
-		const ratioMap = moveAdoptionRatioMap(speciesName);
+		const ratioMap = opponentMoveRatioMap(requestedSpeciesName);
 		let ordered = baseOptions;
 		if (ratioMap && Object.keys(ratioMap).length > 0) {
 			// Array.prototype.sortは安定ソートなので、データの無い技(ratio未定義=-1扱い)・
@@ -1857,19 +1867,17 @@ if (opponentNotesSection) {
 
 	const automaticOpponentMoveNames = new WeakMap<DamageColumnState, string>();
 
-	// 相手の採用率(moveAdoptionBySpecies)の単位は0〜1(小数)。migrations/020_damage_calc_suggestions.sql
-	// の集計が round(cnt/sample_size, 3) で書き込むため(実データでも0.881等の小数で届く。
-	// /api/move-adoption参照)。team-matchup.tsのOPPONENT_MIN_MOVE_RATIO(=20、OP.GGのusageRateが
-	// 0〜100%で届く別データ源)とは単位もデータ源も異なるので混同しないこと。
+	// 相手技の採用率はOP.GGのusageRate(0〜100%)を0〜1へ正規化して扱う。
+	// move-adoptionへフォールバックした場合も0〜1単位なので、閾値の意味は共通である。
 	const DEFENSE_MOVE_ADOPTION_MIN_RATIO = 0.2;
 
-	// 守: moveAdoptionBySpeciesから採用率20%以上の技名を採用率降順で返す。データ未到着・
-	// 該当技0件はnull(呼び出し側は使用率順(OPPONENT_POPULARITY_MOVE_DATALIST_ID)の
-	// 先頭候補へフォールバックする)。
+	// 守: OP.GG優先(種族データなしの場合のみmove-adoption)で、採用率20%以上の技名を
+	// 採用率降順で返す。データ未到着・該当技0件はnull(呼び出し側は使用率順の
+	// OPPONENT_POPULARITY_MOVE_DATALIST_ID先頭候補へフォールバックする)。
 	function highAdoptionOpponentMoveNames(speciesName: string): string[] | null {
 		const trimmed = speciesName.trim();
 		if (trimmed === "") return null;
-		const ratioMap = moveAdoptionRatioMap(trimmed);
+		const ratioMap = opponentMoveRatioMap(trimmed);
 		if (!ratioMap) return null;
 		const names = Object.entries(ratioMap)
 			.filter(([, ratio]) => ratio >= DEFENSE_MOVE_ADOPTION_MIN_RATIO)
