@@ -77,6 +77,9 @@ body.team-edit-page {
 	position: sticky;
 	top: calc(var(--header-height) + var(--app-header-height));
 	z-index: 3;
+	/* 直下のカード一覧が自前の上パディングを持つため、ここは下余白を持たない
+	   (両方あるとメンバーと攻・守の見出しの間が空きすぎる)。 */
+	padding-bottom: 0;
 }
 .team-formation-mobile__sticky-header {
 	position: sticky;

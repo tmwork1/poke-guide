@@ -57,9 +57,8 @@
 	position: sticky;
 	top: 0;
 	z-index: 2;
-	/* 上の余白はmarginでなくpaddingで持つ。marginだと固定位置が余白のぶん上にずれ、
-	   最初のスクロールで見出しが飛んで見える。 */
-	padding-top: var(--space-2);
+	/* 上に余白を持たせない。スクロール領域が既に上パディングを持っており、marginを足すと
+	   固定位置がそのぶん上にずれて最初のスクロールで見出しが飛んで見えるため。 */
 	background: var(--color-bg);
 	border-bottom: 1px solid var(--color-border);
 }
