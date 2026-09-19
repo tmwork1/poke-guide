@@ -1,7 +1,7 @@
 ---
 import '../../styles/tera-select-dialog.css';
-interface Props { idPrefix?: string; }
-const { idPrefix = '' } = Astro.props;
+interface Props { idPrefix?: string; title?: string; }
+const { idPrefix = '', title = 'テラスタル選択' } = Astro.props;
 const id = (name: string) => `${idPrefix}${name}`;
 ---
 
@@ -16,7 +16,7 @@ const id = (name: string) => `${idPrefix}${name}`;
 	hidden
 >
 	<div class="tera-select-header">
-		<h2 id={id('tera-select-dialog-title')} class="tera-select-title">テラスタル選択</h2>
+		<h2 id={id('tera-select-dialog-title')} class="tera-select-title">{title}</h2>
 		<button type="button" id={id('tera-select-close-button')} class="btn-ghost tera-select-close" aria-label="閉じる">×</button>
 	</div>
 	<div id={id('tera-select-grid-wrap')} class="tera-select-grid-wrap">

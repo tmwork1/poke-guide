@@ -14,6 +14,12 @@
 	transform: none;
 	z-index: 71;
 	width: auto;
-	height: calc(var(--modal-height) - var(--space-8));
 	max-height: calc(var(--modal-height) - var(--space-8));
+}
+
+/* もちもの選択は候補が多く常にスクロールするため、高さを固定して開閉で揺れないようにする。
+   テラスタルは20項目程度で収まるので、tera-select-dialog.css と同じく内容に合わせた高さの
+   まま(height: auto を上書きせず、上の max-height だけを効かせる)。 */
+.opponent-settings-dialog {
+	height: calc(var(--modal-height) - var(--space-8));
 }
