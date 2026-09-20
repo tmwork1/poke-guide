@@ -452,6 +452,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 			let currentTeams: RankedTeam[] = [];
 			let hasMore = false;
 			let isLoadingMore = false;
+			let isLoadingSearchResults = false;
 
 			function filteredTeams(): RankedTeam[] {
 				return currentTeams.filter((team) => matchesTopBuildSearch(team.members, header.getSearchValue()));
@@ -466,7 +467,10 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 
 			const header = setupRankedTeamsSearchHeader({
 				idPrefix: 'top-builds',
-				onSearchChange: render,
+				onSearchChange: () => {
+					render();
+					void loadRemainingSearchResults();
+				},
 				onDensityChange: () => {
 					cardRenderer.resetTapExpandedTeams();
 					render();
@@ -478,8 +482,8 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 				onCardExpand: render,
 			});
 
-			async function loadPage(season: string, reset = false): Promise<void> {
-				if (isLoadingMore) return;
+			async function loadPage(season: string, reset = false): Promise<boolean> {
+				if (isLoadingMore) return false;
 				isLoadingMore = true;
 				if (reset) {
 					currentTeams = [];
@@ -498,6 +502,25 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 				} finally {
 					isLoadingMore = false;
 					loadMore.disabled = false;
+					if (hasMore && header.getSearchValue().trim()) void loadRemainingSearchResults();
+				}
+				return true;
+			}
+
+			async function loadRemainingSearchResults(): Promise<void> {
+				if (isLoadingSearchResults || !header.getSearchValue().trim()) return;
+				isLoadingSearchResults = true;
+				try {
+					while (hasMore && header.getSearchValue().trim()) {
+						const loaded = await loadPage(header.getSeason());
+						if (!loaded) return;
+						render();
+					}
+				} catch (cause) {
+					error.textContent = cause instanceof Error ? cause.message : '上位チームを取得できませんでした';
+					error.hidden = false;
+				} finally {
+					isLoadingSearchResults = false;
 				}
 			}
 
@@ -516,6 +539,7 @@ const BATTLE_DATA_SSR_CARD_COUNT = 8;
 						await loadPage(season, true);
 					}
 					render();
+					void loadRemainingSearchResults();
 				} catch (cause) {
 					currentTeams = [];
 					error.textContent = cause instanceof Error ? cause.message : '上位チームを取得できませんでした';
