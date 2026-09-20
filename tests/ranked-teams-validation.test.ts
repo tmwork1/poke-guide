@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   matchesSpeciesSearch,
+  matchesTopBuildSearch,
   matchesTopBuildMemberSearch,
   normalizeSeasonParam,
   resolveDefaultSeason,
@@ -76,6 +77,21 @@ describe('matchesTopBuildMemberSearch', () => {
   it('ポケモン名は検索対象にしない', () => {
     assert.equal(matchesTopBuildMemberSearch(member, 'カイリュー'), false);
   });
+});
+
+describe('matchesTopBuildSearch', () => {
+  const members = [
+    {
+      speciesKey: 'ピカチュウ',
+      speciesName: 'ピカチュウ',
+      ability: 'せいでんき',
+      itemName: 'でんきだま',
+      moveNames: ['10まんボルト'],
+    },
+  ];
+
+  it('特性でも検索できる', () => assert.equal(matchesTopBuildSearch(members, 'せいでんき'), true));
+  it('特性を含む複数語をAND検索できる', () => assert.equal(matchesTopBuildSearch(members, 'ピカチュウ せいでんき'), true));
 });
 
 it('1ページの表示件数は24件', () => assert.equal(RANKED_TEAMS_PAGE_SIZE, 24));

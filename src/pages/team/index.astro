@@ -49,7 +49,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ポケモン・もちもの・わざ"
+									placeholder="ポケモン・特性・もちもの・わざ"
 									aria-label="検索"
 									autocomplete="off"
 								/>
@@ -185,11 +185,12 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				updateDensityToggleButton(densityToggle, displayMode);
 			}
 
-			// メンバーの種族名・アイテム・わざを対象にするAND部分一致検索。
+			// メンバーの種族名・特性・アイテム・わざを対象にするAND部分一致検索。
 			function matchesSearch(t: Team, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
 					...t.members.map((m) => m.owned_pokemon.species_name ?? ""),
+					...t.members.map((m) => m.owned_pokemon.ability_name ?? ""),
 					...t.members.map((m) => m.owned_pokemon.item_name ?? ""),
 					...t.members.flatMap((m) => m.owned_pokemon.move_names ?? []),
 				].join(" ");

@@ -37,6 +37,7 @@ export function matchesTopBuildSearch(
   members: ReadonlyArray<{
     speciesKey: string | null;
     speciesName: string;
+    ability: string | null;
     itemName: string | null;
     moveNames: readonly string[];
   }>,
@@ -49,6 +50,7 @@ export function matchesTopBuildSearch(
     members.some((member) =>
       kanaIncludes(member.speciesKey ?? '', word)
       || kanaIncludes(member.speciesName, word)
+      || kanaIncludes(member.ability ?? '', word)
       || kanaIncludes(member.itemName ?? '', word)
       || member.moveNames.some((moveName) => kanaIncludes(moveName, word)),
     ),
