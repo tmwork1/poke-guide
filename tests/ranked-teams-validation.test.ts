@@ -58,12 +58,14 @@ describe('matchesSpeciesSearch', () => {
 
 describe('matchesTopBuildMemberSearch', () => {
   const member = {
+    ability: 'マルチスケイル',
     itemName: 'こだわりスカーフ',
     moveNames: ['りゅうせいぐん', 'だいもんじ'],
   };
 
   it('空の検索語では一致する', () => assert.equal(matchesTopBuildMemberSearch(member, '  '), true));
-  it('持ち物または技に一致する', () => {
+  it('特性・持ち物または技に一致する', () => {
+    assert.equal(matchesTopBuildMemberSearch(member, 'マルチ'), true);
     assert.equal(matchesTopBuildMemberSearch(member, 'スカーフ'), true);
     assert.equal(matchesTopBuildMemberSearch(member, 'りゅうせい'), true);
   });
