@@ -131,6 +131,7 @@ export async function initSpeedChartPage(): Promise<void> {
   let currentRegulation = initialRegulation;
   let currentHighlightValue: number | null = null;
   let applyingSpeedOptionPointer = false;
+  let applyPointerFallbackTimer: number | undefined;
   let pendingOwnedRecordUpdate: { record: Partial<OwnedPokemonRecord>; visible?: boolean } | null = null;
   let lastKnownOwnedValue: number | null = null;
   let hasScrolledInitially = false;
@@ -495,18 +496,35 @@ export async function initSpeedChartPage(): Promise<void> {
     window.postMessage({ type: 'speed-chart:owned-record-updated', ...update }, window.location.origin);
   };
 
+  const finishApplyingSpeedOptionPointer = (): void => {
+    applyingSpeedOptionPointer = false;
+    if (applyPointerFallbackTimer !== undefined) {
+      window.clearTimeout(applyPointerFallbackTimer);
+      applyPointerFallbackTimer = undefined;
+    }
+    flushPendingOwnedRecordUpdate();
+  };
+
   document.addEventListener('pointerdown', (event) => {
     if (!(event.target instanceof Element) || !event.target.closest('.speed-chart-apply-button')) return;
     applyingSpeedOptionPointer = true;
+    if (applyPointerFallbackTimer !== undefined) window.clearTimeout(applyPointerFallbackTimer);
   }, true);
   window.addEventListener('pointerup', () => {
     if (!applyingSpeedOptionPointer) return;
-    applyingSpeedOptionPointer = false;
-    window.setTimeout(flushPendingOwnedRecordUpdate, 0);
+    // タッチ操作では pointerup の後に click が非同期で届くことがある。ここで表を再描画すると
+    // 押下中のボタンが click 前に置き換わり、最初のタップが消えてしまう。click の伝播が完了して
+    // owned-panel.ts の更新処理が走った後に保留更新を反映する。
+    applyPointerFallbackTimer = window.setTimeout(finishApplyingSpeedOptionPointer, 750);
   }, true);
   window.addEventListener('pointercancel', () => {
-    applyingSpeedOptionPointer = false;
-    flushPendingOwnedRecordUpdate();
+    finishApplyingSpeedOptionPointer();
+  }, true);
+  document.addEventListener('click', () => {
+    if (!applyingSpeedOptionPointer) return;
+    // このリスナーが owned-panel.ts より先に登録されていても、microtaskなら click のバブリング
+    // 完了後に実行されるため、委譲された更新ハンドラを中断しない。
+    queueMicrotask(finishApplyingSpeedOptionPointer);
   }, true);
 
   function requestInitialScroll(value: number): void {
