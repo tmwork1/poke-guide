@@ -55,6 +55,25 @@ export function matchesTopBuildSearch(
   );
 }
 
+/**
+ * /box/ranked の上位チーム検索用。選択中のポケモン本人の持ち物・技だけを対象にする。
+ * ポケモン名や、同じチーム内の別ポケモンの情報では絞り込まない。
+ */
+export function matchesTopBuildMemberSearch(
+  member: Readonly<{
+    itemName: string | null;
+    moveNames: readonly string[];
+  }>,
+  term: string,
+): boolean {
+  const words = splitSearchTokens(term);
+  if (words.length === 0) return true;
+  return words.every((word) =>
+    kanaIncludes(member.itemName ?? '', word)
+    || member.moveNames.some((moveName) => kanaIncludes(moveName, word)),
+  );
+}
+
 export function matchesBuildSearch(
   members: ReadonlyArray<{
     ability: string | null;

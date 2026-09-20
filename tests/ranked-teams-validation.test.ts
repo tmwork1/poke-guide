@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   matchesSpeciesSearch,
+  matchesTopBuildMemberSearch,
   normalizeSeasonParam,
   resolveDefaultSeason,
   RANKED_TEAMS_PAGE_SIZE,
@@ -52,6 +53,26 @@ describe('matchesSpeciesSearch', () => {
   });
   it('speciesKeyがnullでもspeciesNameへフォールバックする', () => {
     assert.equal(matchesSpeciesSearch(members, 'はらばりー'), true);
+  });
+});
+
+describe('matchesTopBuildMemberSearch', () => {
+  const member = {
+    itemName: 'こだわりスカーフ',
+    moveNames: ['りゅうせいぐん', 'だいもんじ'],
+  };
+
+  it('空の検索語では一致する', () => assert.equal(matchesTopBuildMemberSearch(member, '  '), true));
+  it('持ち物または技に一致する', () => {
+    assert.equal(matchesTopBuildMemberSearch(member, 'スカーフ'), true);
+    assert.equal(matchesTopBuildMemberSearch(member, 'りゅうせい'), true);
+  });
+  it('複数語は同じ個体の持ち物・技に対してAND検索する', () => {
+    assert.equal(matchesTopBuildMemberSearch(member, 'スカーフ だいもんじ'), true);
+    assert.equal(matchesTopBuildMemberSearch(member, 'スカーフ じしん'), false);
+  });
+  it('ポケモン名は検索対象にしない', () => {
+    assert.equal(matchesTopBuildMemberSearch(member, 'カイリュー'), false);
   });
 });
 

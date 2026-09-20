@@ -43,6 +43,8 @@ if (pokemon) {
         idPrefix="box-ranked"
         seasons={rankedSeasons}
         defaultSeason={rankedSeason}
+        searchPlaceholder="もちもの・わざ"
+        ariaLabel="持ち物・技で上位チームを検索"
         class="box-ranked-second-header"
       />
     )}
@@ -91,7 +93,7 @@ if (pokemon) {
 <script>
   import { calculateBuildSimilarity } from '../../lib/build-similarity';
   import type { RankedTeam } from '../../lib/ranked-teams';
-  import { matchesTopBuildSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
+  import { matchesTopBuildMemberSearch, RANKED_TEAMS_PAGE_SIZE } from '../../lib/ranked-teams-validation';
   import { createRankedTeamCardRenderer, setupRankedTeamsSearchHeader } from '../../lib/ranked-teams/search-header';
   import { reloadOnBfcacheRestore } from '../../lib/shared/reload-on-bfcache-restore';
 
@@ -155,7 +157,7 @@ if (pokemon) {
 
   function renderRankedBuilds(): void {
     if (!panel) return;
-    const filtered = scoredRankedTeams.filter((entry) => matchesTopBuildSearch(entry.team.members, header.getSearchValue()));
+    const filtered = scoredRankedTeams.filter((entry) => matchesTopBuildMemberSearch(entry.matched, header.getSearchValue()));
     if (filtered.length === 0) {
       if (hasMoreRankedTeams) {
         setRankedStatus('上位チームを計算中…', 'loading');
