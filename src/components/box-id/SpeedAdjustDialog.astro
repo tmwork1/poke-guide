@@ -47,6 +47,7 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		backdrop.hidden = false;
 		dialog.hidden = false;
 		dialog.focus();
+		if (frameLoaded) frame.contentWindow?.postMessage({ type: "speed-chart:reset-controls" }, window.location.origin);
 		// 表示されて初めてiframe内でスクロールが効くようになる。保留されている初回スクロール
 		// (現在値への移動)をiframeに実行させる。
 		notifyShownAfterLayout();

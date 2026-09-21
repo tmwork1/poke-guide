@@ -80,6 +80,8 @@ export interface OwnedPanelContext {
 export interface OwnedPanelController {
   /** 現在把握している個体のS実数値(panel所有の状態。R-12)。 */
   getCurrentValue(): number;
+  /** モーダルを開き直す際、表示専用の調整条件を初期値へ戻す。 */
+  resetControls(): void;
   /** chart-table.ts が1行ぶん組み立てるときに呼ぶ。「この個体」セルのDOM要素を返す。 */
   renderCell(rowValue: number): HTMLElement;
 }
@@ -515,6 +517,17 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
 
   return {
     getCurrentValue: () => currentValue,
+    resetControls(): void {
+      rankStages = 0;
+      considerAbility = false;
+      considerItem = itemHasSpeedContribution;
+      if (rankInput) rankInput.value = "0";
+      if (abilityToggle) abilityToggle.checked = false;
+      if (itemToggle) itemToggle.checked = itemHasSpeedContribution;
+      closeRankPicker();
+      updateRankControls(0);
+      recalculate();
+    },
     renderCell(rowValue: number): HTMLElement {
       const el = document.createElement('div');
       renderedCells.set(rowValue, el);

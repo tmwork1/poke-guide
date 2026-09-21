@@ -496,6 +496,13 @@ export async function initSpeedChartPage(): Promise<void> {
     window.postMessage({ type: 'speed-chart:owned-record-updated', ...update }, window.location.origin);
   };
 
+  const resetOwnedControls = (): void => {
+    ownedController?.resetControls();
+    // 開き直した直後の現在値へ移動できるよう、初回スクロールも仕切り直す。
+    hasScrolledInitially = false;
+    requestInitialScroll(ownedController?.getCurrentValue() ?? lastKnownOwnedValue ?? 0);
+  };
+
   const finishApplyingSpeedOptionPointer = (): void => {
     applyingSpeedOptionPointer = false;
     if (applyPointerFallbackTimer !== undefined) {
@@ -557,6 +564,10 @@ export async function initSpeedChartPage(): Promise<void> {
     // ここで初めて実行できる。表示直後のレイアウト確定を待ってから測るためrAFを1回挟む。
     if (data?.type === 'speed-chart:shown') {
       window.requestAnimationFrame(flushInitialScroll);
+      return;
+    }
+    if (data?.type === 'speed-chart:reset-controls') {
+      resetOwnedControls();
       return;
     }
     if (data?.type !== 'speed-chart:owned-record-updated' || !data.record || !ownedRecord) return;
