@@ -2422,6 +2422,8 @@ body.box-edit-page {
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-footer,
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-result,
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-hitcount-row,
+/* 圧縮中は技名と累計結果だけに絞るため、ヒット数と同じく技名右の威力も出さない。 */
+:is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-column-power-text,
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-footer,
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-row-icon-button,
 :is(body:has(#stat-adjust-sheet.is-expanded) #opponent-notes-section, .damage-card-scope.is-compact) .card-damage .damage-detail-panel.is-mobile-inline {
