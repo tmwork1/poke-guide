@@ -1016,6 +1016,10 @@ body.box-edit-page {
 	}
 	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-icon-btn,
 	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-icon-btn,
+	/* 「そうだいしょう ×N」(攻撃側)・「まきびし ×N」「いのちのたま ×N」(防御側)の個数select。
+		攻撃側の状態グリッドには .damage-detail-defender-state-grid が付かないため、
+		両方に当たる .damage-detail-state-grid 側の並びにも同じselectを足す。 */
+	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-spikes-select,
 	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select {
 		width: 100%;
 		min-width: 0;
@@ -1029,6 +1033,7 @@ body.box-edit-page {
 		padding: var(--damage-detail-space-xs) var(--damage-detail-space-xs);
 		white-space: nowrap;
 	}
+	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-spikes-select,
 	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select {
 		font-size: var(--damage-detail-font-size-xs);
 		font-weight: var(--damage-detail-font-weight-semibold);
@@ -1039,11 +1044,19 @@ body.box-edit-page {
 		   (--color-text)が出て同じ行のトグルより明るく見えていた。未選択=muted、選択=primary で揃える。 */
 		color: var(--color-text-muted);
 	}
+	#damage-detail-panel-body .damage-detail-state-grid > .damage-detail-spikes-select:not(.is-spikes-unselected),
 	#damage-detail-panel-body .damage-detail-defender-state-grid > .damage-detail-spikes-select:not(.is-spikes-unselected) {
 		border-color: var(--color-primary);
 		background: var(--color-primary-soft);
 		color: var(--color-primary-strong);
 		font-weight: var(--font-weight-bold);
+	}
+	/* 「そうだいしょう ×N」は攻撃側の特性がそうだいしょうのときだけ選べる。無効であることが
+		色と操作感の両方で分かるよう、他のdisabledな操作部品(.damage-detail-type-reset:disabled)と
+		同じ不透明度を使い、ポインタも変えない。 */
+	#damage-detail-panel-body .damage-detail-spikes-select:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 	#damage-detail-panel-body .damage-detail-defender-state-empty {
 		min-width: 0;
@@ -1154,6 +1167,19 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-detail-ailment-group .damage-detail-icon-btn[aria-pressed="true"] {
 		outline: 1px solid var(--color-primary);
 		outline-offset: -1px;
+	}
+	/* 上のoutlineは要素自身のborder-radiusに沿って描かれる。4分割ボタン
+		(.damage-detail-icon-group.is-row4)の各ボタンは box-damage-card.css で
+		border-radius: 0 にされているため、左端・右端のセグメントを選ぶと、丸い外形
+		(グループのborder-radius + overflow: hidden)に対して直角のハイライトが出て
+		角がずれて見えていた。状態異常グループ(.damage-detail-ailment-group)で既に
+		使っている方法と同じく、両端のボタンにだけ外形と同じ角丸を与えて沿わせる。
+		グループのborderぶん1px内側から始まるので、半径も1px小さくする。 */
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:first-child {
+		border-radius: calc(var(--damage-detail-icon-button-radius) - 1px) 0 0 calc(var(--damage-detail-icon-button-radius) - 1px);
+	}
+	#damage-detail-panel-body .damage-detail-icon-group.is-row4 .damage-detail-icon-btn:last-child {
+		border-radius: 0 calc(var(--damage-detail-icon-button-radius) - 1px) calc(var(--damage-detail-icon-button-radius) - 1px) 0;
 	}
 	/* 30pxのボタンは行ごとの既定line-height差を使わず、文字を縦中央に揃える。 */
 	#damage-detail-panel-body .damage-detail-toggle-row.damage-detail-chip-row > .damage-detail-icon-btn,

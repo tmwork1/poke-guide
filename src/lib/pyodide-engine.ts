@@ -216,6 +216,14 @@ export interface SequenceAttack {
   defenderDisguiseBroken?: boolean;
   /** 防御側が踏むまきびしの層数。省略時は0 */
   spikes?: number;
+  /** 防御側が「いのちのたま」の反動を受けた回数(0〜9)。1回ぶん最大HPの1/10(切り捨て)を
+   * 初期HPから減らす。stealthRock/spikes/defenderDisguiseBrokenと併用でき、減少量は加算される。
+   * 省略時は0 */
+  defenderLifeOrbCount?: number;
+  /** 攻撃側の特性「そうだいしょう」で数える、瀕死になった味方の数(0〜5)。jpokeの
+   * ability.countへ設定し、威力を×(10+N)/10する。攻撃側の特性がそうだいしょうでなければ
+   * 何も起きない。省略時は0 */
+  attackerFaintedAllyCount?: number;
   /**
    * この攻撃時点での攻撃側ランク補正。省略時は attackerSpec.boosts にフォールバックする。
    * 形式は PokemonSpec.boosts と同じ([HP(無視), 攻撃, 防御, 特攻, 特防, 素早さ])。
@@ -292,6 +300,16 @@ export interface CalcLethalSequenceResult {
    * 確率が100%に達した時点で打ち切る(以降のkは含まれない)。
    */
   perAttackLethal: LethalResult[][];
+  /**
+   * 各攻撃(attacks[i])の「技固有の基礎威力」(`Battle.calc_move_base_power()`)。
+   * けたぐり・アクロバット・しおふき等、状況で威力が変わる技はその攻撃の
+   * 攻守・場の状態を反映した値になる。特性・持ち物・天候・テラスタル時の
+   * 威力60底上げといった補正は**含まない**(それらを含む最終威力は
+   * jpokeの`calc_move_power()`側で、本フィールドでは扱わない)。
+   * 威力を持たない技(変化技・固定ダメージ技等)は 0。
+   * `perAttackDamages`と同じく attacks と1:1で並ぶ。
+   */
+  perAttackBasePower: number[];
   /**
    * 攻撃列を先頭から実際に合成した(`lethal`と同じ範囲の)累計ダメージの
    * 厳密な最小値・最大値。各攻撃の最小同士・最大同士を単純加算した近似値ではなく、
@@ -601,6 +619,38 @@ def _apply_disguise_break(battle, defender, enabled):
         battle.modify_hp(defender, r=-1 / 8)
 
 
+def _ignore_defender_disguise(battle, defender):
+    """防御側の「ばけのかわ」によるダメージ無効化を、このBattleでは起こらないことにする。
+
+    jpokeの「ばけのかわ」は被弾時のダメージを常に0へ上書きする
+    (vendor/jpoke/src/jpoke/handlers/ability.py の ばけのかわ_block_damage と、
+    致死率計算側の handlers/lethal.py の同名ハンドラ)。そのままだとミミッキュを
+    防御側に置いたダメージカードが常に「0ダメージ」になり、数値として役に立たない。
+
+    vendor/jpoke は上流との同期対象なので編集せず、Battle構築後に poke-guide 側で
+    防御側の特性を無効化することで対処する。無効化理由 "consumed" は「ばけのかわを
+    既に消費済み」を表すjpoke本来の理由キーで、ばけのかわ自身がハンドラ内で立てる
+    フラグと同じもの。これを先に立てておくと、
+
+      - 通常のダメージ計算(Event.ON_MODIFY_MOVE_DAMAGE): EventManagerが
+        'subject.ability.enabled_ignoring(...)' でハンドラ実行前に弾く
+        (vendor/jpoke/src/jpoke/core/event_manager.py:223)。
+      - 致死率計算(calc_lethal): 初期hp_distが 'ability_enabled=defender.ability.enabled'
+        で作られる(vendor/jpoke/src/jpoke/core/lethal.py:247)ため全状態がFalseになり、
+        ばけのかわのLethalHandlerが冒頭で素通りする(handlers/lethal.py:910)。
+      - こんらん自傷のブロック(ON_MODIFY_NON_MOVE_DAMAGE)も同じく無効になる
+        (「ばけのかわを考慮しない」という要件に沿った挙動)。
+
+    の3経路がまとめて止まる。無効化するのは防御側がばけのかわを持つ場合だけで、
+    ミミッキュは他に特性を持たないため、この個体の他の計算に副作用は出ない
+    (いちげきのみだれづき等の連続技も、ヒットごとの通常ダメージ計算に戻るだけ)。
+    ダメージ計算モーダルの「ばけのかわ」トグル(_apply_disguise_break、最大HPの1/8を
+    直接減らす)は特性機構と無関係なので、こちらの処理とは干渉しない。
+    """
+    if defender.ability.base_name == "ばけのかわ":
+        battle.add_ability_disabled_reason(defender, "consumed")
+
+
 def _apply_spikes(battle, defender_player, defender, layers):
     """交代イベント全体を発火せず、指定層数のまきびしハンドラだけを適用する。"""
     if layers <= 0:
@@ -608,6 +658,52 @@ def _apply_spikes(battle, defender_player, defender, layers):
     layers = min(int(layers), 3)
     battle.activate_side_field(defender_player, "まきびし", layers)
     まきびし_damage(battle, EventContext(source=defender), None)
+
+
+def _apply_life_orb(battle, defender, count):
+    """防御側が「いのちのたま」の反動をcount回ぶん受けた状態から計算する。
+
+    1回ぶんのダメージは「最大HP÷10の切り捨て」で、jpokeのいのちのたまハンドラ
+    (handlers/item.py)と同じ割合。ここでは防御側が自分で持っている必要はない
+    (「反動でこれだけ削れている想定」を作るためのUI都合の初期HP調整)ため、
+    アイテム機構は使わず_apply_disguise_break/_apply_spikesと同じ直接HP減少にする。
+    count回ぶんを一度に引くのではなく1回ずつ引くのは、HPが0未満へ落ちないよう
+    jpoke側のクランプを毎回通すため(結果はステルスロック・まきびし・ばけのかわ等
+    他の初期HP減少と単純加算になる)。
+    """
+    try:
+        count = int(count)
+    except (TypeError, ValueError):
+        return
+    if count <= 0:
+        return
+    count = min(count, 9)
+    damage = defender.max_hp // 10
+    if damage <= 0:
+        return
+    for _ in range(count):
+        battle.modify_hp(defender, v=-damage)
+
+
+def _apply_grand_leader(attacker, count):
+    """攻撃側の特性「そうだいしょう」の「瀕死になった味方の数」を直接指定する。
+
+    jpokeのそうだいしょうは場に出た時点の延べ瀕死数を 'ability.count' に確定させ、
+    威力を×(10+count)/10する(handlers/ability.py の そうだいしょう_announce_on_entry /
+    そうだいしょう_modify_power)。ダメージ計算モーダルには「味方が瀕死になる」経過が
+    無いため、Battle.start()の登場処理で0に確定した 'ability.count' を後から上書きする。
+    特性がそうだいしょう以外のときは 'ability.count' を読むハンドラが無いので何もしない
+    (UI側でも選択できないようにしているが、保存データ経由で値が来ても安全なようにここでも弾く)。
+    """
+    try:
+        count = int(count)
+    except (TypeError, ValueError):
+        return
+    if count <= 0:
+        return
+    if attacker.ability.base_name != "そうだいしょう":
+        return
+    attacker.ability.count = min(count, 5)
 
 
 def _resolve_move(pokemon, move_name):
@@ -688,6 +784,7 @@ def calc_damages_json(
         active_attacker, active_defender = battle.actives
         _apply_battle_only_state(battle, active_attacker, attacker_spec)
         _apply_battle_only_state(battle, active_defender, defender_spec)
+        _ignore_defender_disguise(battle, active_defender)
 
         move = _resolve_move(active_attacker, move_name)
         damages = battle.calc_damages(active_attacker, active_defender, move, critical=critical)
@@ -928,14 +1025,31 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             active_att, active_dfd = attack_battle.actives
             _apply_battle_only_state(attack_battle, active_att, attacker_spec_for_attack)
             _apply_battle_only_state(attack_battle, active_dfd, defender_spec_for_attack)
+            _ignore_defender_disguise(attack_battle, active_dfd)
             _apply_stealth_rock(attack_battle, active_dfd, attack.get("stealthRock", False))
             _apply_disguise_break(attack_battle, active_dfd, attack.get("defenderDisguiseBroken", False))
             _apply_spikes(attack_battle, p2, active_dfd, attack.get("spikes", 0))
+            _apply_life_orb(attack_battle, active_dfd, attack.get("defenderLifeOrbCount", 0))
+            _apply_grand_leader(active_att, attack.get("attackerFaintedAllyCount", 0))
             initial_defender_hp = active_dfd.hp
     
             move = _resolve_move(active_att, move_name)
             move_arg = move if n_hits <= 1 else (move, n_hits)
-    
+
+            # 技名の右に出す威力(技固有の変動のみを反映した基礎威力)。
+            # 既に組み立て済みのこのBattle上で問い合わせるだけなので、
+            # JS↔Pyodideの往復も追加のBattle構築も増えない。
+            # calc_move_power(特性・持ち物・天候・テラス補正込みの最終威力)ではなく
+            # calc_move_base_powerを使う(けたぐり・アクロバット・しおふき等の
+            # 「技そのものの威力」を表示するのが要件のため)。威力を持たない技
+            # (変化技・固定ダメージ技)は0が返り、呼び出し側で非表示になる。
+            try:
+                base_power = attack_battle.calc_move_base_power(active_att, active_dfd, move)
+            except Exception:
+                # 威力はあくまで補助表示。万一jpoke側で解決できない技があっても
+                # ダメージ計算本体を巻き込んで落とさない(0=非表示にフォールバック)。
+                base_power = 0
+
             def fold_damage_dist(hit_results):
                 # 'LethalHitResult.damage_dist'は「そのヒット1発分」の打点分布であり
                 # 累積ではないため('_lethal_loop'参照)、n_hits全ヒット分を
@@ -995,6 +1109,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
                 "sequential_result": None,
                 "sequential_damage_dist": None,
                 "initial_defender_hp": initial_defender_hp,
+                "base_power": base_power,
             }
     
             if need_sequential:
@@ -1013,6 +1128,10 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
     
         per_attack_damages = []
         per_attack_lethal = []
+        # per_attack_base_power[i]: attacks[i]の技固有の基礎威力(技名の右に出す威力表示用)。
+        # perAttackDamages/perAttackLethalと同じく、lethalの打ち切りとは独立に
+        # 常にattacksと同じ件数ぶん並ぶ。
+        per_attack_base_power = []
         lethal = []
         cumulative_damage_dist = None
         first_defender_hp = None
@@ -1028,9 +1147,11 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             if computed is None:
                 per_attack_damages.append([])
                 per_attack_lethal.append([])
+                per_attack_base_power.append(0)
                 continue
             if first_defender_hp is None:
                 first_defender_hp = computed["initial_defender_hp"]
+            per_attack_base_power.append(computed["base_power"])
     
             isolated_result = computed["isolated_result"]
             if isolated_result is None:
@@ -1075,6 +1196,7 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
             "lethal": lethal,
             "perAttackDamages": per_attack_damages,
             "perAttackLethal": per_attack_lethal,
+            "perAttackBasePower": per_attack_base_power,
             "cumulativeDamage": cumulative_damage,
         })
     finally:
@@ -1137,6 +1259,7 @@ def calc_max_damage_matrix_json(attacker_specs, defender_specs, move_hit_counts,
                     active_attacker, active_defender = battle.actives
                     _apply_battle_only_state(battle, active_attacker, attacker_spec)
                     _apply_battle_only_state(battle, active_defender, defender_spec)
+                    _ignore_defender_disguise(battle, active_defender)
 
                     best = 0
                     for name in move_names:

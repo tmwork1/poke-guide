@@ -793,6 +793,8 @@ if (opponentNotesSection) {
 			stealthRock: false,
 			defenderDisguiseBroken: false,
 			spikes: 0,
+			defenderLifeOrbCount: 0,
+			attackerFaintedAllyCount: 0,
 			defenderSideFields: [],
 			attackerRank: 0,
 			defenderRank: 0,
@@ -827,6 +829,8 @@ if (opponentNotesSection) {
 			stealthRock: previous.stealthRock,
 			defenderDisguiseBroken: previous.defenderDisguiseBroken,
 			spikes: clampInt(previous.spikes, 0, 3),
+			defenderLifeOrbCount: clampInt(previous.defenderLifeOrbCount, 0, 9),
+			attackerFaintedAllyCount: clampInt(previous.attackerFaintedAllyCount, 0, 5),
 			defenderSideFields: [...previous.defenderSideFields],
 			attackerRank: previous.attackerRank,
 			defenderRank: previous.defenderRank,
@@ -891,6 +895,7 @@ if (opponentNotesSection) {
 			columnsEl: null,
 			addColumnSlotEl: null,
 			columnResultEls: [],
+			columnPowerEls: [],
 			columnChipEls: [],
 			totalResultEl: null,
 			totalBlockEl: null,
@@ -1031,6 +1036,8 @@ if (opponentNotesSection) {
 			if (attack.stealthRock !== undefined) column.stealthRock = attack.stealthRock;
 			if (attack.defenderDisguiseBroken !== undefined) column.defenderDisguiseBroken = attack.defenderDisguiseBroken;
 			if (attack.spikes !== undefined) column.spikes = clampInt(attack.spikes, 0, 3);
+			if (attack.defenderLifeOrbCount !== undefined) column.defenderLifeOrbCount = clampInt(attack.defenderLifeOrbCount, 0, 9);
+			if (attack.attackerFaintedAllyCount !== undefined) column.attackerFaintedAllyCount = clampInt(attack.attackerFaintedAllyCount, 0, 5);
 			if (attack.defenderSideFields !== undefined) column.defenderSideFields = attack.defenderSideFields;
 			if (attack.attackerBoosts !== undefined) column.attackerBoosts = attack.attackerBoosts;
 			if (attack.attackerAilment !== undefined) column.attackerAilment = attack.attackerAilment;
@@ -1084,6 +1091,8 @@ if (opponentNotesSection) {
 				stealthRock: a.stealthRock,
 				defenderDisguiseBroken: a.defenderDisguiseBroken,
 				spikes: clampInt(a.spikes, 0, 3),
+				defenderLifeOrbCount: clampInt(a.defenderLifeOrbCount, 0, 9),
+				attackerFaintedAllyCount: clampInt(a.attackerFaintedAllyCount, 0, 5),
 				defenderSideFields: a.defenderSideFields,
 				attackerBoosts: a.attackerBoosts,
 				attackerAilment: a.attackerAilment,
@@ -1144,11 +1153,39 @@ if (opponentNotesSection) {
 	//  - 育成パネルの最下段 = 「加算後のダメ・致死率」(全ての技列を順に当てた合計)
 	// row.clientResultのperAttackDamagesは「有効な攻撃列(validAttacksOf)」の順に並んで
 	// いるため、技名が空の列を飛ばしながら1始まりの位置を数えて対応させる。
+	// 技名の右に出す威力(技固有の基礎威力)。エンジンの再計算(recalcRow)が
+	// calcLethalSequence()の戻り値 perAttackBasePower から技列ごとに詰め、
+	// renderColumnDisplays()が対応する.damage-column-power-textへ流し込む。
+	//
+	// 保存対象(row.clientResult)には載せない。clientResultはサーバ(opponent_notes.
+	// client_result)へそのまま保存されるスナップショットで、形を変えると
+	// src/lib/opponent-notes-validation.ts の受け入れ形まで波及するため、
+	// 表示専用でページ再読み込みまでの寿命しか要らない威力はここに持つ
+	// (エンジン初期化前のスナップショット表示中は威力が出ず、初期化後の
+	// 再計算で出る。ダメージ値と違い威力は補助情報なのでこの挙動で許容する)。
+	//
+	// 技名を書き換えた直後〜再計算完了までの間に古い威力を出さないよう、
+	// 計算時の技名も一緒に控えて突き合わせる。
+	const columnBasePowers = new WeakMap<DamageColumnState, { moveName: string; power: number }>();
+
+	// 技列1つぶんの威力表示を現在値へ揃える。技未設定・威力0(変化技・固定ダメージ技)・
+	// 技名を変えた直後で再計算がまだ終わっていない場合は、いずれも非表示にする。
+	function renderColumnPower(row: DamageRowState, index: number, attack: DamageColumnState): void {
+		const powerEl = row.columnPowerEls[index];
+		if (!powerEl) return;
+		const moveName = attack.moveName.trim();
+		const cached = columnBasePowers.get(attack);
+		const power = moveName !== "" && cached?.moveName === moveName ? cached.power : 0;
+		powerEl.textContent = power > 0 ? String(power) : "";
+		powerEl.hidden = power <= 0;
+	}
+
 	function renderColumnDisplays(row: DamageRowState): void {
 		const result = row.clientResult;
 		const confirmedKillAt = computeConfirmedKillAttackCount(result);
 		let validPos = 0;
 		row.attacks.forEach((attack, index) => {
+			renderColumnPower(row, index, attack);
 			const target = row.columnResultEls[index];
 			if (!target) return;
 			const colEl = target.closest<HTMLElement>(".damage-column");
@@ -1536,6 +1573,19 @@ if (opponentNotesSection) {
 			chargedRepeatResults.forEach((repeatResult, resultIndex) => {
 				const attackIndex = chargedAttackIndexes[resultIndex];
 				if (repeatResult && attackIndex !== undefined) perAttackLethal[attackIndex] = repeatResult.lethal;
+			});
+			// 威力表示用の値を技列ごとに控える(保存対象のclientResultには載せない。
+			// columnBasePowersのコメント参照)。validAttacksOf()は技名を持つ列だけを
+			// 同じ順で新しいオブジェクトに詰め替えて返すため、WeakMapのキーには
+			// 使えない(row.attacksの実体と別物になる)。同じ絞り込み条件で
+			// row.attacks側の実体を並べ直し、perAttackBasePowerと位置で対応させる。
+			const validColumns = row.attacks.filter((a) => a.moveName.trim() !== "");
+			validColumns.forEach((attack, index) => {
+				const power = seqResult.perAttackBasePower?.[index];
+				columnBasePowers.set(attack, {
+					moveName: attack.moveName.trim(),
+					power: typeof power === "number" && Number.isFinite(power) ? power : 0,
+				});
 			});
 			row.clientResult = {
 				// 累計致死率は先頭の有効技列から始まるため、カード単位の表示分母も
@@ -2094,6 +2144,7 @@ if (opponentNotesSection) {
 		opponentStatVisibilityRefreshers.get(row)?.();
 		row.columnsEl.innerHTML = "";
 		row.columnResultEls = [];
+		row.columnPowerEls = [];
 		row.columnChipEls = [];
 		row.attacks.forEach((attack, index) => {
 			const col = document.createElement("div");
@@ -2122,14 +2173,26 @@ if (opponentNotesSection) {
 			moveIdentity.append(moveTypeBar, moveText);
 			moveRow.appendChild(moveIdentity);
 			moveAndChips.appendChild(moveRow);
-			// ヒット数(「5ヒット」等)は技名の右・条件チップの左に置く(moveRowの子として
-			// moveIdentityの直後に追加するため、DOM上の並び順がそのまま見た目の並び順になる)。
+			// 威力(技固有の基礎威力。けたぐり・アクロバット等はその時点の攻守・場を反映した値)は
+			// 技名のすぐ右に置く。並び順は 技名 → 威力 → ヒット数 → 条件チップ。
+			// 値はエンジンの再計算結果(renderColumnDisplays)が入れるため、ここでは器だけ作る。
+			const powerText = document.createElement("span");
+			powerText.className = "damage-column-power-text tnum";
+			powerText.hidden = true;
+			moveRow.appendChild(powerText);
+			row.columnPowerEls.push(powerText);
+			// ヒット数(「5ヒット」等)は威力の右・条件チップの左に置く(moveRowの子として
+			// 順に追加するため、DOM上の並び順がそのまま見た目の並び順になる)。
 			const hitText = document.createElement("span");
 			hitText.className = "damage-column-hitcount-text";
 			hitText.hidden = true;
 			moveRow.appendChild(hitText);
 			const refreshDisplay = (): void => {
 				const name = attack.moveName.trim();
+				// 技名を書き換えた直後は再計算がまだ終わっていないため、ここでも威力を
+				// 引き直す(古い技の威力が残らないよう、renderColumnPower側で技名を
+				// 突き合わせて不一致なら非表示にする)。
+				renderColumnPower(row, Math.max(0, row.attacks.indexOf(attack)), attack);
 				moveText.textContent = name || "技未設定";
 				moveText.classList.toggle("is-placeholder", name === "");
 				const type = moveDetailMapCache?.get(name)?.type ?? null;

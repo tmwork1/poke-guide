@@ -1265,6 +1265,21 @@ body.box-edit-page {
   font-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
 }
 
+/* 技名のすぐ右に出す威力(技固有の基礎威力。数値のみ)。ヒット数(.damage-column-hitcount-text)
+   と同じ小さめの字送りで、色は控えめにして技名の読み取りを邪魔しない
+   (ヒット数のようなピル背景は付けない。威力は常設の補助情報で、強調すると技名と競合するため)。 */
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: var(--damage-card-column-order-font-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+:is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text[hidden] {
+  display: none;
+}
+
 /* 攻守バッジ(.damage-suggest-direction等)と同じピル形状で、複数回ヒットする技だと
    ひと目で分かるよう強調する(単発技はhidden。ダメージが変わる重要情報のため色で明示)。 */
 :is(#opponent-notes-section, .damage-card-scope) .damage-column-hitcount-text {

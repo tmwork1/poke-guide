@@ -41,6 +41,11 @@ export interface OpponentAttackInput {
   stealthRock?: boolean;
   defenderDisguiseBroken?: boolean;
   spikes?: number;
+  // 防御側が「いのちのたま」の反動を受けた回数(0〜9)。1回ぶん最大HPの1/10(切り捨て)を
+  // 初期HPから減らす(src/lib/pyodide-engine.ts の SequenceAttack.defenderLifeOrbCount)。
+  defenderLifeOrbCount?: number;
+  // 攻撃側の特性「そうだいしょう」で数える、瀕死になった味方の数(0〜5)。
+  attackerFaintedAllyCount?: number;
   attackerBoosts?: number[];
   attackerAilment?: string;
   attackerTerastallized?: boolean;
@@ -262,6 +267,14 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
       if (typeof v.spikes !== 'number' || !Number.isInteger(v.spikes)) return false;
       if (v.spikes < 0 || v.spikes > 3) return false;
     }
+    if (v.defenderLifeOrbCount !== undefined) {
+      if (typeof v.defenderLifeOrbCount !== 'number' || !Number.isInteger(v.defenderLifeOrbCount)) return false;
+      if (v.defenderLifeOrbCount < 0 || v.defenderLifeOrbCount > 9) return false;
+    }
+    if (v.attackerFaintedAllyCount !== undefined) {
+      if (typeof v.attackerFaintedAllyCount !== 'number' || !Number.isInteger(v.attackerFaintedAllyCount)) return false;
+      if (v.attackerFaintedAllyCount < 0 || v.attackerFaintedAllyCount > 5) return false;
+    }
     if (v.attackerBoosts !== undefined && !isBoostArray(v.attackerBoosts)) return false;
     if (v.attackerAilment !== undefined && typeof v.attackerAilment !== 'string') return false;
     if (v.attackerTerastallized !== undefined && typeof v.attackerTerastallized !== 'boolean') return false;
@@ -453,6 +466,8 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
       if (attack.stealthRock !== undefined) normalized.stealthRock = attack.stealthRock;
       if (attack.defenderDisguiseBroken !== undefined) normalized.defenderDisguiseBroken = attack.defenderDisguiseBroken;
       if (attack.spikes !== undefined) normalized.spikes = attack.spikes;
+      if (attack.defenderLifeOrbCount !== undefined) normalized.defenderLifeOrbCount = attack.defenderLifeOrbCount;
+      if (attack.attackerFaintedAllyCount !== undefined) normalized.attackerFaintedAllyCount = attack.attackerFaintedAllyCount;
       if (attack.attackerBoosts !== undefined) normalized.attackerBoosts = attack.attackerBoosts;
       if (attack.attackerAilment !== undefined) normalized.attackerAilment = attack.attackerAilment;
       if (attack.attackerTerastallized !== undefined) normalized.attackerTerastallized = attack.attackerTerastallized;

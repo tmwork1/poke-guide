@@ -82,6 +82,14 @@ export interface DamageColumnState {
 	// 1/8減らした状態で計算するか。jpokeのアビリティ機構とは独立実装(pyodide-engine.ts参照)。
 	defenderDisguiseBroken: boolean;
 	spikes: number;
+	// 防御側が「いのちのたま」の反動を何回ぶん受けた状態から計算するか(0〜9)。
+	// 1回ぶん = 最大HPの1/10(切り捨て)。ばけのかわ/さめはだ・ステルスロック・まきびしとは
+	// 併用でき、初期HPの減少量は単純加算する(pyodide-engine.tsの_apply_life_orb参照)。
+	defenderLifeOrbCount: number;
+	// 攻撃側の特性「そうだいしょう」で、瀕死になった味方の数(0〜5)。jpokeのability.countへ
+	// 渡し、威力を×(10+N)/10する(pyodide-engine.tsの_apply_grand_leader参照)。
+	// 攻撃側の特性が「そうだいしょう」でないときは計算に影響しない。
+	attackerFaintedAllyCount: number;
 	defenderSideFields: string[];
 	attackerRank: number;
 	defenderRank: number;
@@ -122,6 +130,9 @@ export interface DamageRowState {
 	columnsEl: HTMLElement | null;
 	addColumnSlotEl: HTMLElement | null;
 	columnResultEls: HTMLElement[];
+	// 技名の右に出す威力(技固有の基礎威力)の器。columnResultEls/columnChipElsと同じく
+	// row.attacksの並びと1:1で対応する(renderColumnsが作り直すたびに詰め直す)。
+	columnPowerEls: HTMLElement[];
 	columnChipEls: HTMLElement[];
 	totalResultEl: HTMLElement | null;
 	totalBlockEl: HTMLElement | null;

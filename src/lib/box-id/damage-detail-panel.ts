@@ -88,6 +88,12 @@ const previewItemIconEls = new WeakMap<DamageRowState, { self: PreviewItemIcon; 
 type InitialHpDamageSource = "disguise" | "roughSkin" | null;
 const initialHpDamageSources = new WeakMap<DamageColumnState, Exclude<InitialHpDamageSource, null>>();
 let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null;
+// わざタブの「そうだいしょう ×N」selectは、攻撃側の特性が「そうだいしょう」のときだけ有効にする。
+// 特性の入力欄はこのパネルの外(相手タブの特性欄・育成タブの特性select)にあるため、
+// notifyDetailAbilityChanged()から、いま開いている技カードのselectへ有効/無効を伝える。
+// パネルを開き直すたびに作り直されるDOMを指すので、renderColumnLevelDetailPanel()の
+// 冒頭で毎回nullへ戻し、古いDOMへの参照を残さない。
+let attackerGrandLeaderSync: { row: DamageRowState; sync: (abilityName: string) => void } | null = null;
 let detailHintSlotEl: HTMLElement | null = null;
 let detailHintTimer: number | null = null;
 let detailHintSeq = 0;
@@ -177,6 +183,9 @@ async function applyAutomaticAttackerTypes(row: DamageRowState, abilityName: str
 export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: string, isAttacker = false): void {
 	for (const column of row.attacks) applyAutomaticField(row, column, abilityName);
 	void applyAutomaticAttackerTypes(row, abilityName, isAttacker);
+	// isAttacker=trueのときだけ、渡されたabilityNameが「攻撃側の特性」を表す
+	// (呼び出し側がrow.directionを見て判定済み。上のimport元 damage-calc.ts 参照)。
+	if (isAttacker && attackerGrandLeaderSync?.row === row) attackerGrandLeaderSync.sync(abilityName);
 }
 
 // 詳細パネルは常にオーバーレイとして開閉する。aria-modalも開閉に連動させ、
@@ -1640,6 +1649,7 @@ export function renderBuildDetailPanel(row: DamageRowState): void {
 export function renderColumnLevelDetailPanel(row: DamageRowState, column: DamageColumnState): void {
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
 	clearDetailHint();
+	attackerGrandLeaderSync = null;
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
@@ -1999,6 +2009,97 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	// 揮発状態・設置物の説明は、防御側セクションの状態異常直下に常設した欄へ出す
 	// (buildSideSectionが作る .damage-detail-hint-slot)。
 	const defenderHintSlot = defenderSide.querySelector<HTMLElement>(".damage-detail-hint-slot");
+	const attackerHintSlot = attackerSide.querySelector<HTMLElement>(".damage-detail-hint-slot");
+
+	// 「まきびし ×N」selectと同じ規格(×0がプレースホルダで未選択扱い・選択中だけ枠と文字を
+	// primaryで強調)の個数selectを作る共通ヘルパー。見た目はクラス
+	// .damage-detail-spikes-select をそのまま共有し、CSS側に同じ値を書き足さない。
+	function buildCountSelect(
+		extraClass: string,
+		label: string,
+		max: number,
+		current: number,
+		ariaLabel: string,
+		onChange: (value: number) => void,
+		hintOf: (value: number) => string,
+		hintSlot: HTMLElement | null,
+	): HTMLSelectElement {
+		const select = document.createElement("select");
+		select.className = `damage-detail-spikes-select ${extraClass}`;
+		select.setAttribute("aria-label", ariaLabel);
+		const value = clampInt(current, 0, max);
+		const placeholderOpt = document.createElement("option");
+		placeholderOpt.value = "0";
+		placeholderOpt.textContent = `${label} ×0`;
+		placeholderOpt.hidden = true;
+		placeholderOpt.selected = value === 0;
+		select.appendChild(placeholderOpt);
+		for (let i = 0; i <= max; i++) {
+			const opt = document.createElement("option");
+			opt.value = String(i);
+			opt.textContent = `${label} ×${i}`;
+			if (value === i && i !== 0) opt.selected = true;
+			select.appendChild(opt);
+		}
+		const syncPlaceholderState = (): void => {
+			select.classList.toggle("is-spikes-unselected", select.value === "0");
+		};
+		syncPlaceholderState();
+		select.addEventListener("change", () => {
+			const clamped = clampInt(Number(select.value), 0, max);
+			if (clamped === 0) select.selectedIndex = 0;
+			syncPlaceholderState();
+			applyToColumnField(() => { onChange(clamped); });
+			if (clamped === 0) clearDetailHint();
+			else showDetailHint(hintSlot, hintOf(clamped));
+		});
+		return select;
+	}
+
+	// 攻撃側の特性「そうだいしょう」: 瀕死になった味方の数(0〜5)。jpokeは発動時点の
+	// 延べ瀕死数をability.countに確定させ、威力を×(10+N)/10する
+	// (vendor/jpoke/src/jpoke/handlers/ability.py のそうだいしょう_modify_power)。
+	// ダメージ計算モーダルには味方が瀕死になる経過が無いため、この数だけを直接指定する。
+	const attackerAbilityName = selfIsAttackerForDialog
+		? el<HTMLSelectElement>("ability").value.trim()
+		: row.abilityName.trim();
+	const grandLeaderSelect = buildCountSelect(
+		"damage-detail-grand-leader-select",
+		"そうだいしょう",
+		5,
+		column.attackerFaintedAllyCount,
+		"そうだいしょうで数える、瀕死になった味方の数",
+		(value) => { column.attackerFaintedAllyCount = value; },
+		(value) => `技の威力×${((10 + value) / 10).toFixed(1)}`,
+		attackerHintSlot,
+	);
+	const syncGrandLeaderAvailability = (abilityName: string): void => {
+		const available = abilityName.trim() === "そうだいしょう";
+		grandLeaderSelect.disabled = !available;
+		grandLeaderSelect.title = available
+			? "そうだいしょうで数える、瀕死になった味方の数(技の威力が×(10+N)/10になる)"
+			: "攻撃側の特性が「そうだいしょう」のときだけ設定できます";
+	};
+	syncGrandLeaderAvailability(attackerAbilityName);
+	// 特性は別タブで変わるため、開いている間はnotifyDetailAbilityChanged()から追従させる。
+	attackerGrandLeaderSync = { row, sync: syncGrandLeaderAvailability };
+	const attackerVolatileGroup = attackerSide.querySelector<HTMLElement>(".damage-detail-volatile-group");
+	// 「じゅうでん」の右隣(3列グリッドの2列目)に置く。
+	attackerVolatileGroup?.appendChild(grandLeaderSelect);
+
+	// 防御側の「いのちのたま ×N」: 1回ぶん最大HPの1/10(切り捨て)を初期HPから減らす。
+	// ばけのかわ/さめはだ・ステルスロック・まきびしと併用でき、減少量は単純に加算される
+	// (pyodide-engine.ts の _apply_life_orb 参照)。
+	const lifeOrbSelect = buildCountSelect(
+		"damage-detail-life-orb-select",
+		"いのちのたま",
+		9,
+		column.defenderLifeOrbCount,
+		"防御側が受けたいのちのたまの反動回数",
+		(value) => { column.defenderLifeOrbCount = value; },
+		(value) => `初期状態で最大HPの1/10×${value}ダメージ`,
+		defenderHintSlot,
+	);
 
 	const wallText = "かべ";
 	const wallButton = buildToggleButton(
@@ -2140,7 +2241,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	const volatileButton = (label: string): HTMLButtonElement | HTMLSpanElement =>
 		volatileButtonByLabel.get(label) ?? emptyDefenderStateCell();
 	defenderStateGrid.replaceChildren(
-		stealthRockButton, spikesSelect, emptyDefenderStateCell(),
+		stealthRockButton, spikesSelect, lifeOrbSelect,
 		roughSkinButton, disguiseBrokenButton, emptyDefenderStateCell(),
 		wallButton, volatileButton("ちいさくなる"), emptyDefenderStateCell(),
 		volatileButton("アクアリング"), volatileButton("しおづけ"), volatileButton("ねをはる"),
