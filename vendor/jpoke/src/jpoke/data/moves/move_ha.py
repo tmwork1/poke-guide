@@ -97,15 +97,13 @@ MOVES_HA: dict[MoveName, MoveData] = {
     ),
     "はきだす": MoveData(
         handlers={
-            Event.ON_TRY_MOVE_1: [
-                h.MoveHandler(
-                    ha.はきだす_check_can_use,
-                    priority=30,
-                ),
-                h.MoveHandler(
-                    ha.はきだす_set_power,
-                ),
-            ],
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
+                ha.はきだす_calc_power,
+            ),
+            Event.ON_TRY_MOVE_1: h.MoveHandler(
+                ha.はきだす_check_can_use,
+                priority=30,
+            ),
             Event.ON_END_MOVE: h.MoveHandler(
                 ha.はきだす_apply_after,
             ),
@@ -337,7 +335,7 @@ MOVES_HA: dict[MoveName, MoveData] = {
         power=1,
         flags={"contact"},
         handlers={
-            Event.ON_CALC_POWER_MODIFIER: h.MoveHandler(
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
                 ha.ハードプレス_calc_power,
             ),
         }
@@ -571,7 +569,7 @@ MOVES_HA: dict[MoveName, MoveData] = {
         power=1,
         flags={"minimize", "contact"},
         handlers={
-            Event.ON_CALC_POWER_MODIFIER: h.MoveHandler(
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
                 ha.ヒートスタンプ_calc_power,
             ),
         }
@@ -694,7 +692,7 @@ MOVES_HA: dict[MoveName, MoveData] = {
                 ha.ふくろだたき_hit_count,
                 subject_spec="attacker:self",
             ),
-            Event.ON_CALC_POWER_MODIFIER: h.MoveHandler(
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
                 ha.ふくろだたき_calc_power,
                 subject_spec="attacker:self",
             ),
@@ -864,7 +862,7 @@ MOVES_HA: dict[MoveName, MoveData] = {
     "ふんか": MoveData(
         flags={"spread"},
         handlers={
-            Event.ON_CALC_POWER_MODIFIER: h.MoveHandler(
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
                 ha.ふんか_calc_power,
             ),
             Event.ON_CALC_DAMAGE_MODIFIER: h.MoveHandler(
@@ -1043,7 +1041,7 @@ MOVES_HA: dict[MoveName, MoveData] = {
         power=1,
         flags={"minimize", "contact"},
         handlers={
-            Event.ON_CALC_POWER_MODIFIER: h.MoveHandler(
+            Event.ON_MODIFY_BASE_POWER: h.MoveHandler(
                 ha.ヘビーボンバー_calc_power,
             ),
         }

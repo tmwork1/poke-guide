@@ -142,16 +142,17 @@ class MoveExecutor:
 
         return self._events.emit(Event.ON_MODIFY_HIT_COUNT, ctx, base_hit_count)
 
-    def _resolve_hit_power(self, move: Move, hit_index: int) -> int | None:
+    def _resolve_hit_power(self, ctx: AttackContext, hit_index: int) -> int | None:
         """現在ヒットの威力を取得する。
 
         Args:
-            move: 使用する技
+            ctx: 攻防・技の情報を持つバトルコンテキスト
             hit_index: 1 始まりのヒット番号
 
         Returns:
             ヒットごとの威力。指定がなければ基礎威力を返す。
         """
+        move = ctx.move
         if move.data.multi_hit is None:
             return move.base_power
 
@@ -159,7 +160,15 @@ class MoveExecutor:
         if power_sequence:
             idx = min(hit_index - 1, len(power_sequence) - 1)
             return power_sequence[idx]
-        return move.base_power
+
+        # ふくろだたきのようにヒットごとに状況から基礎威力が
+        # 決まる連続技のため、静的な威力を起点に再解決する。
+        current_power = move.base_power
+        move.base_power = move.data.power
+        try:
+            return self.resolve_base_power(ctx)
+        finally:
+            move.base_power = current_power
 
     def _check_hit(self, ctx: AttackContext) -> bool:
         """技の命中判定。
@@ -313,6 +322,9 @@ class MoveExecutor:
             # 技カテゴリを評価する（可変技対応）
             ctx.move.category = self.resolve_move_category(ctx.attacker, ctx.move)
             self.move_category = ctx.move.category
+
+            # 技固有の状況で決まる基礎威力を解決する（はきだす・なげつける等）
+            ctx.move.base_power = self.resolve_base_power(ctx)
 
             # 行動成功判定
             self.action_success = self._events.emit(Event.ON_TRY_ACTION, ctx, True)
@@ -569,7 +581,7 @@ class MoveExecutor:
                 ctx.hit_index = hit_index
 
                 # ヒットごとの技の威力を設定
-                ctx.move.base_power = self._resolve_hit_power(ctx.move, hit_index)
+                ctx.move.base_power = self._resolve_hit_power(ctx, hit_index)
                 self.move_power = ctx.move.base_power
 
                 # 命中判定: 通常技は初回ヒットのみ、ヒットごと判定技は毎ヒットで判定
@@ -761,6 +773,21 @@ class MoveExecutor:
             Event.ON_MODIFY_MOVE_CATEGORY,
             AttackContext(attacker=attacker, defender=self.battle.foe(attacker), move=move),
             value=move.category
+        )
+
+    def resolve_base_power(self, ctx: AttackContext) -> int | None:
+        """技固有の状況で決まる基礎威力を解決する（ON_MODIFY_BASE_POWER）。
+
+        Args:
+            ctx: 攻撃側・防御側・技を設定済みのコンテキスト
+
+        Returns:
+            解決後の基礎威力（威力を持たない技は None）
+        """
+        return self._events.emit(
+            Event.ON_MODIFY_BASE_POWER,
+            ctx,
+            value=ctx.move.base_power,
         )
 
     def _consume_pp(self, ctx: AttackContext):
