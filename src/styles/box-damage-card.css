@@ -23,6 +23,7 @@ body.box-edit-page {
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
   --damage-card-move-power-font-size: 14px; /* 技名の右に出す威力の文字サイズ(技名15.2pxよりわずかに小さく) */
+  --damage-card-move-power-scale-x: 0.85; /* 威力の横方向の圧縮率(1で圧縮なし)。小さくすると横幅だけ詰まる */
   --damage-card-save-font-size: var(--font-size-sm3); /* 保存状態の文字サイズ */
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
@@ -1272,12 +1273,18 @@ body.box-edit-page {
 :is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text {
   flex: none;
   color: var(--color-text-muted);
-  /* 技名のすぐ右に置くため、行のgap(--space-4)を負のマージンで詰めて
-     威力の前だけ狭くする(他の補助情報との間隔は行のgapのまま)。 */
-  margin-left: calc(var(--space-1) - var(--space-4));
+  /* 技名の右に置くため、行のgap(--space-4)を負のマージンで詰めて威力の前だけ狭くする
+     (他の補助情報との間隔は行のgapのまま)。 */
+  margin-left: calc(var(--space-2) - var(--space-4));
   font-size: var(--damage-card-move-power-font-size);
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height-tight);
+  /* 字の高さは保ったまま横だけ詰める(3桁でも技名の幅を圧迫しないため)。
+     transformは占有幅を変えないので、縮んだぶん(3桁で2px程度)が右に余白として残るが、
+     右隣はヒット数・条件チップで行のgap(--space-4)がもともと空いているため詰めない。 */
+  transform-origin: left center;
+  transform: scaleX(var(--damage-card-move-power-scale-x));
+  display: inline-block;
 }
 
 :is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text[hidden] {
