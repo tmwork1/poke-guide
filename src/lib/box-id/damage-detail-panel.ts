@@ -1876,19 +1876,19 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		const style = window.getComputedStyle(moveSelectInput);
 		if (!movePowerMeasureCtx) movePowerMeasureCtx = document.createElement("canvas").getContext("2d");
 		const ctx = movePowerMeasureCtx;
-		if (!ctx) {
-			movePowerText.hidden = true;
-			return;
-		}
+		if (!ctx) return;
 		ctx.font = style.font || (style.fontWeight + " " + style.fontSize + " " + style.fontFamily);
 		const textWidth = ctx.measureText(moveSelectInput.value).width;
 		const paddingStart = Number.parseFloat(style.paddingInlineStart || style.paddingLeft || "0") || 0;
-		const left = paddingStart + textWidth;
-		// 技名が長くて入力欄の幅を使い切っている場合は、はみ出すより出さない方を選ぶ。
-		const paddingEnd = Number.parseFloat(style.paddingInlineEnd || style.paddingRight || "0") || 0;
-		if (left + movePowerText.offsetWidth > moveSelectInput.clientWidth - paddingEnd) {
-			movePowerText.hidden = true;
-			return;
+		let left = paddingStart + textWidth;
+		// 技名が長くて右端からはみ出す場合だけ、入力欄の右端に寄せる(隠さない)。
+		// clientWidthが0なのはパネルがまだ表示されていないときで、その場合は
+		// 測り直せないのでそのまま置き、表示後にrequestAnimationFrameで再計算する。
+		const available = moveSelectInput.clientWidth;
+		if (available > 0) {
+			const paddingEnd = Number.parseFloat(style.paddingInlineEnd || style.paddingRight || "0") || 0;
+			const maxLeft = available - paddingEnd - movePowerText.offsetWidth;
+			if (left > maxLeft) left = Math.max(paddingStart, maxLeft);
 		}
 		movePowerText.style.left = left + "px";
 	}
@@ -1901,6 +1901,12 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 		movePowerText.textContent = String(power);
 		movePowerText.hidden = false;
 		positionMovePower();
+		// パネルを開く前(レイアウト前)に組み立てられるため、表示されて幅が決まってから
+		// もう一度合わせ直す(初回表示で位置がずれたまま残らないようにする)。
+		window.requestAnimationFrame(() => {
+			if (!movePowerText.isConnected || movePowerText.hidden) return;
+			positionMovePower();
+		});
 	}
 	movePowerSync = refreshMovePower;
 	// 入力中(技名の途中)は計算済みの威力と技名が食い違うため、入力のたびに引き直す
