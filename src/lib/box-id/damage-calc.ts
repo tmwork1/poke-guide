@@ -114,6 +114,7 @@ import {
 	closeDetailPanelOverlay,
 	initDamageDetailPanel,
 	notifyDetailAbilityChanged,
+	refreshDetailPanelMovePower,
 	notifyDetailMoveChanged,
 	syncDetailPanelTotal,
 } from "./damage-detail-panel";
@@ -675,6 +676,12 @@ if (opponentNotesSection) {
 		renderConditionChipsInto: (container, attack, row) => renderConditionChipsInto(container, attack, row),
 		configureColumnMoveInput: (input, row, column) => configureColumnMoveInput(input, row, column),
 		getColumnMoveCandidates: (row, column) => getColumnMoveCandidates(row, column),
+		getColumnBasePower: (column) => {
+			const moveName = column.moveName.trim();
+			const cached = columnBasePowers.get(column);
+			if (!cached || cached.moveName !== moveName || cached.power <= 0) return null;
+			return cached.power;
+		},
 		getColumnMultiHitRange: (moveName) => getColumnMultiHitRange(moveName),
 		refreshColumnDisplay: (row, column) => refreshColumnDisplay(row, column),
 		renderDetailPanelEmpty: () => {
@@ -1626,6 +1633,9 @@ if (opponentNotesSection) {
 				perAttackBasePower: seqResult.perAttackBasePower,
 			};
 			renderColumnDisplays(row);
+			// 詳細パネルを開いたまま条件を変えた場合、技入力欄の威力も新しい値へ揃える
+			// (カードと同じcolumnBasePowersを見ているため、再計算のたびに通知するだけでよい)。
+			refreshDetailPanelMovePower();
 			// エンジン初期化直後の再計算(要件: 保存済みclientResultはページ再読み込み直後の
 			// スナップショット表示用。エンジン初期化後は再計算して上書きする)を含め、
 			// 再計算後の値が以前の保存値と実際に異なるときだけ保存する。

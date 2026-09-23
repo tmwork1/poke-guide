@@ -1392,6 +1392,26 @@ body.box-edit-page {
 		display: block;
 		visibility: hidden;
 	}
+	/* 選択中の技の威力。<input>の中には要素を置けないため、タイプアイコンと同じく
+		絶対配置で重ねる(leftは技名の実幅からJS側で算出。damage-detail-panel.tsの
+		positionMovePower参照)。見た目はダメージカードの威力表示と同じトークンを使う。 */
+	#damage-detail-panel-body .damage-detail-move-power {
+		position: absolute;
+		z-index: 1;
+		top: 50%;
+		margin-left: var(--space-2);
+		transform-origin: left center;
+		transform: translateY(-50%) scaleX(var(--damage-card-move-power-scale-x));
+		color: var(--damage-detail-muted-color);
+		font-size: var(--damage-card-move-power-font-size);
+		font-weight: var(--damage-detail-font-weight-regular);
+		line-height: var(--damage-detail-line-height-tight);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+	#damage-detail-panel-body .damage-detail-move-power[hidden] {
+		display: none;
+	}
 	/* --------------------------------------------------------------------------
 		実数値・努力値の編集
 		-------------------------------------------------------------------------- */

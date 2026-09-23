@@ -1720,6 +1720,24 @@ body.box-edit-page {
   overflow: hidden;
 }
 
+/* 候補の威力(マスターデータの静的値)。技名の直後に置き、見た目はダメージカードの
+   威力表示(.damage-column-power-text)と同じトークンで揃える。 */
+#damage-detail-panel-body .damage-detail-move-dropdown-option-power {
+  flex: none;
+  margin-inline-start: calc(var(--space-1) - var(--damage-card-dropdown-option-gap));
+  transform-origin: left center;
+  transform: scaleX(var(--damage-card-move-power-scale-x));
+  color: var(--color-text-muted);
+  font-size: var(--damage-card-move-power-font-size);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-tight);
+  display: inline-block;
+}
+
+#damage-detail-panel-body .damage-detail-move-dropdown-option-power[hidden] {
+  display: none;
+}
+
 #damage-detail-panel-body .damage-detail-hitcount-row {
   display: flex;
   align-items: center;

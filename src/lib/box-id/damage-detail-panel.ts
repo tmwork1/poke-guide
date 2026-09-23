@@ -36,6 +36,7 @@ import {
 	getDamageBuildDetailForm,
 	configureDamageColumnMoveInput,
 	getDamageColumnMoveCandidates,
+	getDamageColumnBasePower,
 	getDamageColumnMultiHitRange,
 	deleteDamageRow,
 	deleteDamageColumn,
@@ -94,6 +95,13 @@ let moveDropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null
 // パネルを開き直すたびに作り直されるDOMを指すので、renderColumnLevelDetailPanel()の
 // 冒頭で毎回nullへ戻し、古いDOMへの参照を残さない。
 let attackerGrandLeaderSync: { row: DamageRowState; sync: (abilityName: string) => void } | null = null;
+// 技入力欄に重ねて出す威力(ダメージカードが技名の右に出しているのと同じエンジン値)。
+// 値はdamage-calc.ts側の再計算で決まるため、再計算のたびにrefreshDetailPanelMovePower()で
+// 呼び戻してもらう。attackerGrandLeaderSyncと同じく、パネルを開き直すたびに作り直される
+// DOMを指すのでrenderColumnLevelDetailPanel()の冒頭でnullへ戻す。
+let movePowerSync: (() => void) | null = null;
+// 入力欄の技名の実幅を測るためのキャンバス(位置合わせ用。使い回して都度生成しない)。
+let movePowerMeasureCtx: CanvasRenderingContext2D | null = null;
 let detailHintSlotEl: HTMLElement | null = null;
 let detailHintTimer: number | null = null;
 let detailHintSeq = 0;
@@ -186,6 +194,11 @@ export function notifyDetailAbilityChanged(row: DamageRowState, abilityName: str
 	// isAttacker=trueのときだけ、渡されたabilityNameが「攻撃側の特性」を表す
 	// (呼び出し側がrow.directionを見て判定済み。上のimport元 damage-calc.ts 参照)。
 	if (isAttacker && attackerGrandLeaderSync?.row === row) attackerGrandLeaderSync.sync(abilityName);
+}
+
+/** 再計算で威力が確定した(または変わった)ことをダメージカード側から知らせる。 */
+export function refreshDetailPanelMovePower(): void {
+	movePowerSync?.();
 }
 
 // 詳細パネルは常にオーバーレイとして開閉する。aria-modalも開閉に連動させ、
@@ -1650,6 +1663,7 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 // 選択中の技がない場合は、表示できる技を優先順位どおりに選ぶ。
 	clearDetailHint();
 	attackerGrandLeaderSync = null;
+	movePowerSync = null;
 	detailPanelBodyEl.innerHTML = "";
 	const idx = row.attacks.indexOf(column);
 	if (idx === -1) {
@@ -1778,7 +1792,19 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 				const text = document.createElement("span");
 				text.className = "damage-detail-move-dropdown-option-text";
 				text.textContent = candidateName;
-				option.append(icon, text);
+				// 候補の威力はマスターデータの静的値(detail/moves.json)。選択中の欄に出す
+				// エンジン値(けたぐり等の変動を反映した基礎威力)とは別物で、変動技では
+				// 選んだ瞬間に数値が変わる(候補30件ぶんエンジンを回すのは重すぎるため)。
+				const powerText = document.createElement("span");
+				powerText.className = "damage-detail-move-dropdown-option-power tnum";
+				powerText.hidden = true;
+				void moveAutoInputDetailsPromise.then((details) => {
+					const power = details.get(candidateName)?.power ?? null;
+					if (power === null || power <= 0) return;
+					powerText.textContent = String(power);
+					powerText.hidden = false;
+				});
+				option.append(icon, text, powerText);
 				option.addEventListener("mousedown", (event) => event.preventDefault());
 				option.addEventListener("click", (event) => {
 					// inputイベントで候補DOMを差し替えるため、元のclickがdocumentまで到達すると
@@ -1840,8 +1866,51 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 			moveTypeIcon.hidden = false;
 		});
 	}
-	moveComboWrap.append(moveTypeIcon, moveSelectInput, moveDropdownList);
+	// 選択中の技の威力。ダメージカードと同じエンジン値(getDamageColumnBasePower)を出す。
+	// 入力欄は<input>で中に要素を置けないため、タイプアイコン(上のmoveTypeIcon)と同じく
+	// 絶対配置で重ね、技名の実幅ぶんだけ右にずらして「技テキストの直後」に見せる。
+	const movePowerText = document.createElement("span");
+	movePowerText.className = "damage-detail-move-power tnum";
+	movePowerText.hidden = true;
+	function positionMovePower(): void {
+		const style = window.getComputedStyle(moveSelectInput);
+		if (!movePowerMeasureCtx) movePowerMeasureCtx = document.createElement("canvas").getContext("2d");
+		const ctx = movePowerMeasureCtx;
+		if (!ctx) {
+			movePowerText.hidden = true;
+			return;
+		}
+		ctx.font = style.font || (style.fontWeight + " " + style.fontSize + " " + style.fontFamily);
+		const textWidth = ctx.measureText(moveSelectInput.value).width;
+		const paddingStart = Number.parseFloat(style.paddingInlineStart || style.paddingLeft || "0") || 0;
+		const left = paddingStart + textWidth;
+		// 技名が長くて入力欄の幅を使い切っている場合は、はみ出すより出さない方を選ぶ。
+		const paddingEnd = Number.parseFloat(style.paddingInlineEnd || style.paddingRight || "0") || 0;
+		if (left + movePowerText.offsetWidth > moveSelectInput.clientWidth - paddingEnd) {
+			movePowerText.hidden = true;
+			return;
+		}
+		movePowerText.style.left = left + "px";
+	}
+	function refreshMovePower(): void {
+		const power = column.moveName.trim() === "" ? null : getDamageColumnBasePower(column);
+		if (power === null) {
+			movePowerText.hidden = true;
+			return;
+		}
+		movePowerText.textContent = String(power);
+		movePowerText.hidden = false;
+		positionMovePower();
+	}
+	movePowerSync = refreshMovePower;
+	// 入力中(技名の途中)は計算済みの威力と技名が食い違うため、入力のたびに引き直す
+	// (getDamageColumnBasePowerが技名を突き合わせるので、一致しない間は自然に消える)。
+	moveSelectInput.addEventListener("input", refreshMovePower);
+	// Webフォントが後から入ると実幅が変わるので、確定後に位置だけ合わせ直す。
+	if (document.fonts?.ready) void document.fonts.ready.then(() => { if (!movePowerText.hidden) positionMovePower(); });
+	moveComboWrap.append(moveTypeIcon, moveSelectInput, movePowerText, moveDropdownList);
 	refreshMoveTypeIcon();
+	refreshMovePower();
 
 	const hitRow = document.createElement("div");
 	hitRow.className = "damage-column-hitcount-row damage-detail-hitcount-row";

@@ -453,6 +453,7 @@ export interface DamageCalcBridge {
 	renderConditionChipsInto: (container: HTMLElement, attack: DamageColumnState, row: DamageRowState) => void;
 	configureColumnMoveInput: (input: HTMLInputElement, row: DamageRowState, column: DamageColumnState) => void;
 	getColumnMoveCandidates: (row: DamageRowState, column: DamageColumnState) => string[];
+	getColumnBasePower: (column: DamageColumnState) => number | null;
 	getColumnMultiHitRange: (moveName: string) => Promise<[number, number] | undefined>;
 	refreshColumnDisplay: (row: DamageRowState, column: DamageColumnState) => void;
 	renderDetailPanelEmpty: () => void;
@@ -486,6 +487,12 @@ export function configureDamageColumnMoveInput(
 
 export function getDamageColumnMoveCandidates(row: DamageRowState, column: DamageColumnState): string[] {
 	return damageCalcBridge!.getColumnMoveCandidates(row, column);
+}
+
+// いま計算済みの技固有の基礎威力(ダメージカードが技名の右に出しているのと同じ値)。
+// 未計算・技未設定・威力0(変化技等)はnull。詳細パネルの技入力欄の表示に使う。
+export function getDamageColumnBasePower(column: DamageColumnState): number | null {
+	return damageCalcBridge!.getColumnBasePower(column);
 }
 
 export function getDamageColumnMultiHitRange(moveName: string): Promise<[number, number] | undefined> {
