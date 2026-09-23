@@ -22,6 +22,7 @@ body.box-edit-page {
   --damage-card-move-font-size: var(--font-size-sm1); /* 技名・確定数の文字サイズ */
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
+  --damage-card-move-power-font-size: 14px; /* 技名の右に出す威力の文字サイズ(技名15.2pxよりわずかに小さく) */
   --damage-card-save-font-size: var(--font-size-sm3); /* 保存状態の文字サイズ */
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
@@ -1265,13 +1266,16 @@ body.box-edit-page {
   font-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
 }
 
-/* 技名のすぐ右に出す威力(技固有の基礎威力。数値のみ)。技名と同じ字サイズまで大きくし、
+/* 技名のすぐ右に出す威力(技固有の基礎威力。数値のみ)。技名とほぼ同じ字サイズで、
    太さを落として色を控えめにすることで、技名の読み取りを邪魔しない
    (ヒット数のようなピル背景は付けない。威力は常設の補助情報のため)。 */
 :is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text {
   flex: none;
   color: var(--color-text-muted);
-  font-size: var(--damage-card-move-font-size);
+  /* 技名のすぐ右に置くため、行のgap(--space-4)を負のマージンで詰めて
+     威力の前だけ狭くする(他の補助情報との間隔は行のgapのまま)。 */
+  margin-left: calc(var(--space-1) - var(--space-4));
+  font-size: var(--damage-card-move-power-font-size);
   font-weight: var(--font-weight-normal);
   line-height: var(--line-height-tight);
 }
