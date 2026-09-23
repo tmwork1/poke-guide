@@ -254,6 +254,30 @@ export function toSetSeries<T extends { attackCount: number; probability: number
 	return sets;
 }
 
+/**
+ * エンジンが返す setLethal(技列1巡=1セットとして最大10セット繰り返したときの、セット
+ * ごとの累計致死率。pyodide-engine.ts の CalcLethalSequenceResult.setLethal 参照)を、
+ * describeSeriesVerdict がそのまま読める {attackCount, probability} の系列に直す。
+ * setCount をそのまま attackCount に移すだけ(複数技の行の確定数はセット単位で数える
+ * 取り決めのため、toSetSeries を通した lethal と同じ土俵に乗る)。
+ *
+ * setLethal を持たない古いスナップショット(サーバに保存済みの client_result)や、
+ * sequentialOnly で計算をスキップした結果では undefined を返す。呼び出し側は
+ * その場合だけ従来のJS外挿へフォールバックする。
+ */
+export function toSetLethalSeries(
+	result: OpponentClientResultInput,
+): Array<{ attackCount: number; probability: number }> | undefined {
+	const series = result.setLethal;
+	if (!Array.isArray(series) || series.length === 0) return undefined;
+	const converted: Array<{ attackCount: number; probability: number }> = [];
+	for (const entry of series) {
+		if (!entry || !Number.isFinite(entry.setCount) || !Number.isFinite(entry.probability)) return undefined;
+		converted.push({ attackCount: entry.setCount, probability: entry.probability });
+	}
+	return converted;
+}
+
 /** 累計致死率の系列から「確N」を求める。全乱数分岐が致死(probability≒1)になる最初の位置だけを採る。 */
 function describeSeriesVerdict(
 	series: Array<{ attackCount: number; probability: number }> | undefined,
@@ -270,9 +294,12 @@ function describeSeriesVerdict(
 
 /**
  * 攻撃列の範囲内で確殺に届かなかったときの延長見積り。
- * 有効な攻撃列が1件だけなら perAttackLethal[0](エンジンの厳密値)をそのまま使い、
- * それ以外は perAttackDamages を先頭から繰り返し当てたHP分布で近似する
- * (damage-calc-helpers.ts の describeExtendedTotalVerdict と同じ)。
+ * 優先順位は damage-calc-helpers.ts の describeExtendedTotalVerdict と完全に同じ:
+ *   1. 有効な攻撃列が1件だけなら perAttackLethal[0](エンジンの厳密値)。
+ *   2. setLethal(エンジンが技列を実際に最大10巡させた厳密値。すなあらし等の
+ *      ターン終了時効果も積み上がる)。
+ *   3. どちらも無い古いスナップショットだけ、perAttackDamages を先頭から繰り返し
+ *      当てたHP分布での近似(ターン終了時効果が一切入らない)。
  * 複数技のときの確定数はセット(技列1巡)単位(toSetSeries 参照)。最大
  * MAX_STANDALONE_ATTACKS セットまで見る。
  */
@@ -284,6 +311,8 @@ function describeExtendedNoLethalVerdict(
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
 		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
+	const setSeries = toSetLethalSeries(result);
+	if (setSeries) return describeSeriesVerdict(setSeries, TEN_OR_MORE_LABEL);
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) return { label: TEN_OR_MORE_LABEL, severity: 'safe' };
@@ -311,8 +340,10 @@ function describeExtendedNoLethalVerdict(
 }
 
 /**
- * 累計ダメージ「31〜37 (20〜25%)」。cumulativeDamage(エンジンの厳密値)があればそれを使い、
- * 無い古いスナップショットだけ perAttackDamages の最小同士・最大同士の単純加算で近似する。
+ * 累計ダメージ「31〜37 (20〜25%)」。優先順位は
+ * cumulativeNetDamage(打点の合計＋ターン終了時の増減。0でクランプしないエンジンの厳密値)
+ * → cumulativeDamage(打点の合計。エンジンの厳密値)+ endOfTurnRecovery の近似パッチ
+ * → perAttackDamages の最小同士・最大同士の単純加算、の順。
  */
 /** 累計ダメージの表示文字列と、HP比(%)の生の数値。 */
 export interface CumulativeDamage {
@@ -321,7 +352,14 @@ export interface CumulativeDamage {
 	pctMax?: number;
 }
 
-/** 加算ダメージ表示にだけ反映する、各攻撃後の回復量。 */
+/**
+ * 加算ダメージ表示にだけ反映する、各攻撃後の回復量。
+ *
+ * ⚠️ これは cumulativeNetDamage(エンジンがターン終了時処理まで含めて求めた累計)が
+ * 無かった時代の、たべのこしだけをJS側で後から引く近似パッチ。
+ * cumulativeNetDamage を持つ結果では二重計上になるため computeCumulativeDamage が
+ * 無視する。古いスナップショットの表示にだけ効く。
+ */
 export interface CumulativeDamageOptions {
 	endOfTurnRecovery?: number;
 }
@@ -365,6 +403,16 @@ export function computeCumulativeDamage(
 	result: OpponentClientResultInput,
 	options: CumulativeDamageOptions = {},
 ): CumulativeDamage {
+	// cumulativeNetDamage(エンジンが打点の合計＋ターン終了時の増減で求めた、0で
+	// クランプしない累計)があれば最優先で使う。すなあらし等のターン終了時スリップも、
+	// たべのこし等の回復も既に織り込み済みなので、下の endOfTurnRecovery(たべのこし
+	// ぶんをJS側で後から引く旧パッチ)は **二重計上になるため適用しない**。
+	// 倒しきる分岐ではオーバーキル(100%超)がそのまま出る(エンジン側で0クランプを
+	// 外したのがこのフィールドの要点。pyodide-engine.ts のコメント参照)。
+	const net = result.cumulativeNetDamage;
+	if (net && Number.isFinite(net.min) && Number.isFinite(net.max)) {
+		return formatCumulativeRange(Math.max(0, net.min), Math.max(0, net.max), result.defenderHp);
+	}
 	const exact = result.cumulativeDamage;
 	let min: number;
 	let max: number;
@@ -397,7 +445,11 @@ export function computeCumulativeDamage(
 			max = Math.max(0, max - totalRecovery);
 		}
 	}
-	const hp = result.defenderHp;
+	return formatCumulativeRange(min, max, result.defenderHp);
+}
+
+/** 累計ダメージの最小/最大を「31〜37 (20.0〜25.0%)」の形に整える。 */
+function formatCumulativeRange(min: number, max: number, hp: number | undefined): CumulativeDamage {
 	if (hp && hp > 0) {
 		const pctMin = (min / hp) * 100;
 		const pctMax = (max / hp) * 100;

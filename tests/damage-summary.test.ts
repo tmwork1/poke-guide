@@ -6,9 +6,11 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
+import { describeExtendedTotalVerdict } from '../src/lib/box-id/damage-calc-helpers.ts';
 import {
 	collectNoteConditionChips,
 	computeBuildStatCells,
+	computeCumulativeDamage,
 	describeNoteVerdict,
 	formatCumulativeDamage,
 	formatNoteConditionLine,
@@ -425,6 +427,102 @@ test('describeNoteVerdict: 一撃必殺技には命中率の断りを添える',
 	);
 	assert.equal(v.label, '確1');
 	assert.ok(v.note.includes('命中率30%'));
+});
+
+// --- 延長見積り(setLethal / cumulativeNetDamage) ---------------------------
+//
+// すなあらし等のターン終了時効果は jpoke 側の hp_dist にしか現れないため、JS側で
+// perAttackDamages を繰り返し当てる旧近似では一切反映されなかった。エンジンが
+// 技列を実際に最大10巡させた厳密値(setLethal)と、ターン終了時の増減まで積んだ累計
+// (cumulativeNetDamage)を受け取るようにした分の取り決めをここで固定する。
+//
+// cumulativeNetDamage は「打点の合計 ＋ ターン終了時の増減」であって、HP分布から
+// 引いた「実際に減ったHP」(旧 cumulativeHpLoss)ではない。倒しきる分岐にはターン終了時
+// 処理が走らないので、そこでは打点の合計そのもの＝オーバーキル分(100%超)が残る。
+//
+// 圧縮表示(damage-summary.ts)と個体編集画面(box-id/damage-calc-helpers.ts)は
+// 同じ優先順位で動く契約なので、両方を同じフィクスチャで突き合わせる。
+
+// 技2枚・1巡では倒れない行。打点だけを外挿する旧近似だと5セット必要だが、
+// すなあらしのスリップまで含めたエンジンの厳密値では3セットで確定する、という想定。
+const RESULT_WITH_SET_LETHAL = {
+	defenderHp: 200,
+	lethal: [{ attackCount: 1, probability: 0 }, { attackCount: 2, probability: 0 }],
+	perAttackDamages: [[20, 22], [20, 22]],
+	cumulativeDamage: { min: 40, max: 44 },
+	// 打点40〜44 + すなあらしのスリップ2ターンぶん25 = 65〜69(0でクランプしない累計)。
+	cumulativeNetDamage: { min: 65, max: 69 },
+	setLethal: [
+		{ setCount: 1, probability: 0 },
+		{ setCount: 2, probability: 0 },
+		{ setCount: 3, probability: 1 },
+	],
+};
+
+test('describeNoteVerdict: setLethal があれば旧近似ではなくエンジンの厳密値を使う', () => {
+	const attacks = normalizeNoteAttacks(
+		{ attacks: [{ moveName: 'フレアドライブ' }, { moveName: 'スケイルショット' }] },
+		null,
+	);
+	const v = describeNoteVerdict(attacks, RESULT_WITH_SET_LETHAL, categoryOf);
+	// 打点だけの外挿(20〜22 × 2技)なら200HPを削り切るのに5セットかかるが、
+	// setLethal は3セット目で probability=1 → 確3。
+	assert.equal(v.label, '確3');
+	// 累計は cumulativeDamage(40〜44)ではなく cumulativeNetDamage(65〜69)を使う。
+	assert.equal(v.detail, '65〜69 (32.5〜34.5%)');
+});
+
+test('describeExtendedTotalVerdict: 個体編集画面側も同じ setLethal を同じ優先順位で使う', () => {
+	assert.deepEqual(describeExtendedTotalVerdict(2, RESULT_WITH_SET_LETHAL), {
+		label: '確3',
+		severity: 'safe',
+	});
+	// setLethal が無い古いスナップショットだけ、従来のJS外挿へフォールバックする
+	// (200HP ÷ 20〜22 の2技セット = 5セット目で全分岐が致死)。
+	const legacy = { ...RESULT_WITH_SET_LETHAL, setLethal: undefined, cumulativeNetDamage: undefined };
+	assert.deepEqual(describeExtendedTotalVerdict(2, legacy), { label: '確5', severity: 'safe' });
+	// 圧縮表示側も同じ結論になること(両者が食い違わないことの固定)。
+	const attacks = normalizeNoteAttacks(
+		{ attacks: [{ moveName: 'フレアドライブ' }, { moveName: 'スケイルショット' }] },
+		null,
+	);
+	assert.equal(describeNoteVerdict(attacks, legacy, categoryOf).label, '確5');
+});
+
+test('formatCumulativeDamage: cumulativeNetDamage があれば cumulativeDamage より優先する', () => {
+	assert.equal(formatCumulativeDamage(2, RESULT_WITH_SET_LETHAL), '65〜69 (32.5〜34.5%)');
+});
+
+test('formatCumulativeDamage: cumulativeNetDamage は0でクランプしないのでオーバーキルが出る', () => {
+	// 倒しきる分岐ではターン終了時処理が走らないため、累計＝打点の合計のまま。
+	// HP(185)で頭打ちにせず、137.3〜162.2% と余裕度が読めることを固定する
+	// (旧 cumulativeHpLoss は initial_hp - hp_dist だったため 185〜185 (100.0%) になっていた)。
+	const overkill = {
+		defenderHp: 185,
+		lethal: [{ attackCount: 1, probability: 1 }],
+		perAttackDamages: [[254, 300]],
+		cumulativeDamage: { min: 254, max: 300 },
+		cumulativeNetDamage: { min: 254, max: 300 },
+		setLethal: [{ setCount: 1, probability: 1 }],
+	};
+	assert.equal(formatCumulativeDamage(1, overkill), '254〜300 (137.3〜162.2%)');
+});
+
+test('computeCumulativeDamage: cumulativeNetDamage は負にならない(回復が打点を上回る場合)', () => {
+	// たべのこし等の回復が打点を上回るケース。エンジン側で0を下限に切っているが、
+	// 万一負の値が保存されていた古いデータでも表示を負にしない。
+	const healed = { ...RESULT_WITH_SET_LETHAL, cumulativeNetDamage: { min: -8, max: 4 } };
+	assert.equal(computeCumulativeDamage(2, healed).text, '0〜4 (0.0〜2.0%)');
+});
+
+test('computeCumulativeDamage: cumulativeNetDamage があれば endOfTurnRecovery を二重計上しない', () => {
+	// たべのこしぶんをJS側で引く旧パッチは、ターン終了時効果込みの cumulativeNetDamage には
+	// 既に織り込まれているため効かせてはいけない。
+	const withRecovery = computeCumulativeDamage(2, RESULT_WITH_SET_LETHAL, { endOfTurnRecovery: 12 });
+	assert.equal(withRecovery.text, '65〜69 (32.5〜34.5%)');
+	// 古いスナップショット(cumulativeNetDamage なし)では従来通りパッチが効く。
+	const legacy = { ...RESULT_WITH_SET_LETHAL, cumulativeNetDamage: undefined };
+	assert.equal(computeCumulativeDamage(2, legacy, { endOfTurnRecovery: 12 }).text, '28〜32 (14.0〜16.0%)');
 });
 
 // --- 実数値 ----------------------------------------------------------------

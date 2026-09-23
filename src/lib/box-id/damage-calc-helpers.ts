@@ -14,10 +14,16 @@
 // pyodide-engine.ts からは型だけを借りる(値をimportすると計算エンジン一式を
 // 引き込んでしまう。damage-summary.ts 冒頭コメントと同じ理由)。
 
-import type { LethalResult } from "../pyodide-engine";
-import type { OpponentClientResultInput } from "../opponent-notes-validation";
-import { STAT_KEYS, type StatKey } from "../stats";
-import { MAX_STANDALONE_ATTACKS, TEN_OR_MORE_LABEL, ZERO_DAMAGE_LABEL, hasOnlyZeroDamages } from "../damage-summary";
+import type { LethalResult } from "../pyodide-engine.ts";
+import type { OpponentClientResultInput } from "../opponent-notes-validation.ts";
+import { STAT_KEYS, type StatKey } from "../stats.ts";
+import {
+	MAX_STANDALONE_ATTACKS,
+	TEN_OR_MORE_LABEL,
+	ZERO_DAMAGE_LABEL,
+	hasOnlyZeroDamages,
+	toSetLethalSeries,
+} from "../damage-summary.ts";
 
 /** 確N判定の重み。severity-bar[data-severity](global.css)の値と対応する。 */
 export type DamageSeverity = "lethal" | "risky" | "safe" | "none";
@@ -149,14 +155,24 @@ export function describeExtendedTotalVerdict(
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
 		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
+	// 技が2枚以上の行は、エンジンが返す setLethal(技列を実際に最大10巡させ、
+	// 各巡の終了時点の致死率を resume_from で繋いだ厳密値)をそのまま使う。
+	// すなあらし等のターン終了時スリップ・たべのこし等の回復が正しく積み上がるため、
+	// 下の「打点だけを繰り返し当てる」近似より常に優先する。
+	// (damage-summary.ts の describeExtendedNoLethalVerdict と同じ優先順位)
+	const setSeries = toSetLethalSeries(result);
+	if (setSeries) return describeSeriesVerdict(setSeries, TEN_OR_MORE_LABEL);
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
 		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
 	}
+	// ここから下は setLethal を持たない古いスナップショット専用のフォールバック。
 	// 複数技の確定数はセット(技列1巡=per.length発)単位で数える(damage-summary.ts の
 	// toSetSeries と同じ取り決め)。最大 MAX_STANDALONE_ATTACKS セットまで、各セットの
 	// 最後の技を当て終えた時点の致死率を系列にする。
+	// ⚠️ この近似はエンジンを呼ばずJS側で打点だけを外挿するため、ターン終了時効果
+	// (すなあらし・どく・たべのこし等)が一切反映されない。
 	const extendedSeries: LethalResult[] = [];
 	let dist = new Map<number, number>([[hp, 1]]);
 	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS * per.length; attack += 1) {

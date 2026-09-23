@@ -144,7 +144,20 @@ export interface OpponentClientResultInput {
   perAttackLethal?: Array<Array<{ attackCount: number; probability: number }>>;
   // 加算後(攻撃列を先頭から順に当てた)ダメージの厳密な最小/最大
   // (LethalHitResult.__add__による分布合成の結果。各攻撃の最小/最大の単純合計ではない)。
+  // 打点の合計であり、すなあらし等のターン終了時スリップ・たべのこし等の回復は含まない。
+  // cumulativeNetDamageが無い古いスナップショット用のフォールバックとして残している。
   cumulativeDamage?: { min: number; max: number };
+  // 技列を1巡ぶん当てたときの累計ダメージの最小/最大(打点の合計に、すなあらし等の
+  // ターン終了時スリップ・たべのこし等の回復を積んだもの)。0でクランプしないため
+  // 倒しきる分岐のオーバーキル(100%超)もそのまま出る。
+  // pyodide-engine.tsのCalcLethalSequenceResult.cumulativeNetDamage参照。
+  cumulativeNetDamage?: { min: number; max: number };
+  // 技列を1巡=1セットとして最大10セット繰り返したときの、セットごとの累計致死率。
+  // 技列1巡で倒しきれない行の「延長見積り」(あと何巡で倒せるか)に使う。
+  // 保存する理由はperAttackLethalと同じで、ページ再読み込み直後(Pyodide初期化前)にも
+  // スナップショットのまま確定数を表示できるようにするため。
+  // pyodide-engine.tsのCalcLethalSequenceResult.setLethal参照。
+  setLethal?: Array<{ setCount: number; probability: number }>;
   // 単発メモでは、単一の技の1発あたりダメージ乱数16段階を保持する。
   damages?: number[];
 }

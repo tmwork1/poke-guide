@@ -1128,12 +1128,15 @@ if (opponentNotesSection) {
 
 
 	// 「加算後のダメ・致死率」(DamageCard.pngの育成パネル最下段)の累計ダメージ。
-	// 通常はエンジンが返す cumulativeDamage(LethalHitResult.__add__ による分布合成から
-	// 求めた厳密な最小/最大)を使う。この関数は、cumulativeDamage が無い時代の
-	// client_result スナップショットを表示するときのフォールバック
-	// (各攻撃の最小同士・最大同士を単純加算した近似値)。
+	// 通常はエンジンが返す cumulativeNetDamage(打点の合計にターン終了時の
+	// スリップ・回復を積んだ、0でクランプしない累計の厳密な最小/最大)を使う。
 	// 本体は damage-summary.ts の computeCumulativeDamage(圧縮表示と共有。上のimport参照)。
-	// ここは「行から有効な技列の件数を数える」ぶんだけを足す薄い層。
+	// ここは「行から有効な技列の件数を数える」ぶんと、下記の旧パッチ用の値を足す薄い層。
+	//
+	// endOfTurnRecovery は cumulativeNetDamage が無かった時代の、たべのこしぶんだけを
+	// JS側で後から引く近似パッチ。cumulativeNetDamage を持つ結果では二重計上になるため
+	// computeCumulativeDamage 側が無視する(= 新しい計算結果には効かない)。
+	// 古い client_result スナップショットを表示している間だけ効く。
 	function formatCumulativeDamage(
 		row: DamageRowState,
 		result: OpponentClientResultInput,
@@ -1595,6 +1598,13 @@ if (opponentNotesSection) {
 				lethal: seqResult.lethal,
 				perAttackLethal,
 				cumulativeDamage: seqResult.cumulativeDamage,
+				// ターン終了時効果込みの累計ダメージと、技列を最大10巡させたときの
+				// セットごとの致死率。どちらもエンジンの厳密値で、JS側の外挿
+				// (describeExtendedTotalVerdict / endOfTurnRecovery)を置き換える。
+				// perAttackLethalと同じ理由でスナップショットに載せる
+				// (ページ再読み込み直後・Pyodide初期化前にも同じ確定数を出すため)。
+				cumulativeNetDamage: seqResult.cumulativeNetDamage,
+				setLethal: seqResult.setLethal,
 			};
 			renderColumnDisplays(row);
 			// エンジン初期化直後の再計算(要件: 保存済みclientResultはページ再読み込み直後の

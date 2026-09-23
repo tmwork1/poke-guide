@@ -96,7 +96,7 @@
         },
         {
           "attackCount": 7,
-          "probability": 0.9999999962747097
+          "probability": 0.9999999962405681
         },
         {
           "attackCount": 8,
@@ -104,10 +104,40 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 26,
       "max": 33
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 26,
+      "max": 33
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.17449685651808977
+      },
+      {
+        "setCount": 5,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_hit_count_multi": {
     "defenderHp": 120,
@@ -148,22 +178,43 @@
         },
         {
           "attackCount": 5,
-          "probability": 0.0019094719684300543
-        },
-        {
-          "attackCount": 6,
-          "probability": 0.9257066439733825
-        },
-        {
-          "attackCount": 7,
           "probability": 1.0
         }
       ]
     ],
+    "perAttackBasePower": [
+      18
+    ],
     "cumulativeDamage": {
       "min": 24,
       "max": 30
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 24,
+      "max": 30
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 3.552713678800501e-15
+      },
+      {
+        "setCount": 5,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_per_attack_boosts_override": {
     "defenderHp": 235,
@@ -275,10 +326,44 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 42,
       "max": 50
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 42,
+      "max": 50
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.028088508077416918
+      },
+      {
+        "setCount": 6,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_per_attack_terastallize": {
     "defenderHp": 120,
@@ -333,10 +418,24 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 132,
       "max": 158
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 132,
+      "max": 158
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_ailment_burn": {
     "defenderHp": 235,
@@ -446,10 +545,44 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 28,
       "max": 34
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 42,
+      "max": 48
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 1.571703251102008e-06
+      },
+      {
+        "setCount": 6,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_volatile_curse": {
     "defenderHp": 230,
@@ -535,10 +668,32 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 42,
       "max": 50
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 99,
+      "max": 107
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_per_attack_field_override": {
     "defenderHp": 119,
@@ -636,7 +791,7 @@
         },
         {
           "attackCount": 7,
-          "probability": 0.9988310411572456
+          "probability": 0.9988310399161516
         },
         {
           "attackCount": 8,
@@ -644,10 +799,44 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 22,
       "max": 28
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 22,
+      "max": 28
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.9936689281949543
+      },
+      {
+        "setCount": 6,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_multiscale_second_hit": {
     "defenderHp": 166,
@@ -759,10 +948,44 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 22,
       "max": 27
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 22,
+      "max": 27
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 2.450542524456978e-08
+      },
+      {
+        "setCount": 6,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_early_termination": {
     "defenderHp": 110,
@@ -900,10 +1123,27 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40,
+      40,
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 116,
       "max": 138
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 116,
+      "max": 138
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_stealth_rock": {
     "defenderHp": 105,
@@ -953,7 +1193,7 @@
         },
         {
           "attackCount": 8,
-          "probability": 0.999998472398147
+          "probability": 0.9999984355354555
         },
         {
           "attackCount": 9,
@@ -961,10 +1201,55 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40
+    ],
     "cumulativeDamage": {
       "min": 13,
       "max": 16
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 13,
+      "max": 16
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.0
+      },
+      {
+        "setCount": 6,
+        "probability": 0.0
+      },
+      {
+        "setCount": 7,
+        "probability": 0.02513333037495613
+      },
+      {
+        "setCount": 8,
+        "probability": 0.9999984355354555
+      },
+      {
+        "setCount": 9,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_spikes": {
     "defenderHp": 196,
@@ -1026,10 +1311,59 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40
+    ],
     "cumulativeDamage": {
       "min": 14,
       "max": 17
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 14,
+      "max": 17
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.0
+      },
+      {
+        "setCount": 6,
+        "probability": 0.0
+      },
+      {
+        "setCount": 7,
+        "probability": 0.0
+      },
+      {
+        "setCount": 8,
+        "probability": 0.0
+      },
+      {
+        "setCount": 9,
+        "probability": 0.0
+      },
+      {
+        "setCount": 10,
+        "probability": 0.0
+      }
+    ]
   },
   "lethal_seq_defender_disguise_broken": {
     "defenderHp": 105,
@@ -1072,7 +1406,7 @@
         },
         {
           "attackCount": 6,
-          "probability": 0.9999740123748779
+          "probability": 0.9999740123516432
         },
         {
           "attackCount": 7,
@@ -1080,10 +1414,47 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40
+    ],
     "cumulativeDamage": {
       "min": 17,
       "max": 21
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 17,
+      "max": 21
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 9.5367431640625e-07
+      },
+      {
+        "setCount": 6,
+        "probability": 0.9999740123516432
+      },
+      {
+        "setCount": 7,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_attacker_ailment_burn": {
     "defenderHp": 235,
@@ -1195,10 +1566,60 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 21,
       "max": 25
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 21,
+      "max": 25
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.0
+      },
+      {
+        "setCount": 6,
+        "probability": 0.0
+      },
+      {
+        "setCount": 7,
+        "probability": 0.0
+      },
+      {
+        "setCount": 8,
+        "probability": 0.0
+      },
+      {
+        "setCount": 9,
+        "probability": 0.0
+      },
+      {
+        "setCount": 10,
+        "probability": 0.0027766566415272326
+      }
+    ]
   },
   "lethal_seq_attacker_volatile_charge": {
     "defenderHp": 120,
@@ -1301,10 +1722,40 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 27,
       "max": 34
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 27,
+      "max": 34
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.7597622551288369
+      },
+      {
+        "setCount": 5,
+        "probability": 1.0
+      }
+    ]
   },
   "lethal_seq_defender_boosts_override": {
     "defenderHp": 235,
@@ -1417,10 +1868,60 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 21,
       "max": 26
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 21,
+      "max": 26
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.0
+      },
+      {
+        "setCount": 3,
+        "probability": 0.0
+      },
+      {
+        "setCount": 4,
+        "probability": 0.0
+      },
+      {
+        "setCount": 5,
+        "probability": 0.0
+      },
+      {
+        "setCount": 6,
+        "probability": 0.0
+      },
+      {
+        "setCount": 7,
+        "probability": 0.0
+      },
+      {
+        "setCount": 8,
+        "probability": 0.0
+      },
+      {
+        "setCount": 9,
+        "probability": 0.0
+      },
+      {
+        "setCount": 10,
+        "probability": 0.08315697212560415
+      }
+    ]
   },
   "lethal_seq_per_attack_defender_terastallize": {
     "defenderHp": 120,
@@ -1505,9 +2006,31 @@
         }
       ]
     ],
+    "perAttackBasePower": [
+      40,
+      40
+    ],
     "cumulativeDamage": {
       "min": 55,
       "max": 67
-    }
+    },
+    "cumulativeNetDamage": {
+      "min": 55,
+      "max": 67
+    },
+    "setLethal": [
+      {
+        "setCount": 1,
+        "probability": 0.0
+      },
+      {
+        "setCount": 2,
+        "probability": 0.5372314453125
+      },
+      {
+        "setCount": 3,
+        "probability": 1.0
+      }
+    ]
   }
 }
