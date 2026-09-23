@@ -1265,14 +1265,14 @@ body.box-edit-page {
   font-weight: var(--font-weight-medium); /* 未選択の技名表示の文字の太さ */
 }
 
-/* 技名のすぐ右に出す威力(技固有の基礎威力。数値のみ)。ヒット数(.damage-column-hitcount-text)
-   と同じ小さめの字送りで、色は控えめにして技名の読み取りを邪魔しない
-   (ヒット数のようなピル背景は付けない。威力は常設の補助情報で、強調すると技名と競合するため)。 */
+/* 技名のすぐ右に出す威力(技固有の基礎威力。数値のみ)。技名と同じ字サイズまで大きくし、
+   太さを落として色を控えめにすることで、技名の読み取りを邪魔しない
+   (ヒット数のようなピル背景は付けない。威力は常設の補助情報のため)。 */
 :is(#opponent-notes-section, .damage-card-scope) .damage-column-power-text {
   flex: none;
   color: var(--color-text-muted);
-  font-size: var(--damage-card-column-order-font-size);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--damage-card-move-font-size);
+  font-weight: var(--font-weight-normal);
   line-height: var(--line-height-tight);
 }
 

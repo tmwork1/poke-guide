@@ -1070,6 +1070,10 @@ if (opponentNotesSection) {
 
 		row.memo = note.memo ?? "";
 		row.clientResult = (note.client_result as unknown as OpponentClientResultInput | null) ?? null;
+		// 保存済みの威力を技列へ戻す(perAttackBasePowerはperAttackDamagesと同じく
+		// 「技名を持つ列」の並び順。読み込み直後は技名も保存時のままなので、
+		// renderColumnPower側の技名突き合わせはそのまま通る)。
+		seedColumnBasePowers(row);
 		const order = typeof field.order === "number" && Number.isFinite(field.order) ? field.order : undefined;
 		return { row, needsResave, order };
 	}
@@ -1160,16 +1164,28 @@ if (opponentNotesSection) {
 	// calcLethalSequence()の戻り値 perAttackBasePower から技列ごとに詰め、
 	// renderColumnDisplays()が対応する.damage-column-power-textへ流し込む。
 	//
-	// 保存対象(row.clientResult)には載せない。clientResultはサーバ(opponent_notes.
-	// client_result)へそのまま保存されるスナップショットで、形を変えると
-	// src/lib/opponent-notes-validation.ts の受け入れ形まで波及するため、
-	// 表示専用でページ再読み込みまでの寿命しか要らない威力はここに持つ
-	// (エンジン初期化前のスナップショット表示中は威力が出ず、初期化後の
-	// 再計算で出る。ダメージ値と違い威力は補助情報なのでこの挙動で許容する)。
+	// ダメージ値と同じくrow.clientResult(= opponent_notes.client_result)にも
+	// perAttackBasePowerとして保存し、ページ再読み込み直後・Pyodide初期化前でも
+	// 威力を出す。スナップショット読み込み時にこのWeakMapへ流し込むため、
+	// 表示側(renderColumnPower)は保存値と再計算値を区別しない。
 	//
 	// 技名を書き換えた直後〜再計算完了までの間に古い威力を出さないよう、
 	// 計算時の技名も一緒に控えて突き合わせる。
 	const columnBasePowers = new WeakMap<DamageColumnState, { moveName: string; power: number }>();
+
+	// 保存済みスナップショット(row.clientResult.perAttackBasePower)の威力を
+	// columnBasePowersへ戻す。並びは有効な攻撃列(技名を持つ列)と1:1対応する契約。
+	function seedColumnBasePowers(row: DamageRowState): void {
+		const powers = row.clientResult?.perAttackBasePower;
+		if (!Array.isArray(powers)) return;
+		const validColumns = row.attacks.filter((a) => a.moveName.trim() !== "");
+		if (powers.length !== validColumns.length) return;
+		validColumns.forEach((attack, index) => {
+			const power = powers[index];
+			if (typeof power !== "number" || !Number.isFinite(power)) return;
+			columnBasePowers.set(attack, { moveName: attack.moveName.trim(), power });
+		});
+	}
 
 	// 技列1つぶんの威力表示を現在値へ揃える。技未設定・威力0(変化技・固定ダメージ技)・
 	// 技名を変えた直後で再計算がまだ終わっていない場合は、いずれも非表示にする。
@@ -1577,8 +1593,8 @@ if (opponentNotesSection) {
 				const attackIndex = chargedAttackIndexes[resultIndex];
 				if (repeatResult && attackIndex !== undefined) perAttackLethal[attackIndex] = repeatResult.lethal;
 			});
-			// 威力表示用の値を技列ごとに控える(保存対象のclientResultには載せない。
-			// columnBasePowersのコメント参照)。validAttacksOf()は技名を持つ列だけを
+			// 威力表示用の値を技列ごとに控える(同じ配列をclientResultにも載せて
+			// 保存する)。validAttacksOf()は技名を持つ列だけを
 			// 同じ順で新しいオブジェクトに詰め替えて返すため、WeakMapのキーには
 			// 使えない(row.attacksの実体と別物になる)。同じ絞り込み条件で
 			// row.attacks側の実体を並べ直し、perAttackBasePowerと位置で対応させる。
@@ -1605,6 +1621,9 @@ if (opponentNotesSection) {
 				// (ページ再読み込み直後・Pyodide初期化前にも同じ確定数を出すため)。
 				cumulativeNetDamage: seqResult.cumulativeNetDamage,
 				setLethal: seqResult.setLethal,
+				// 技名の右に出す技固有の基礎威力。表示専用だが、ダメージ値と同じく
+				// 再読み込み直後から出せるようスナップショットに含める。
+				perAttackBasePower: seqResult.perAttackBasePower,
 			};
 			renderColumnDisplays(row);
 			// エンジン初期化直後の再計算(要件: 保存済みclientResultはページ再読み込み直後の

@@ -158,6 +158,11 @@ export interface OpponentClientResultInput {
   // スナップショットのまま確定数を表示できるようにするため。
   // pyodide-engine.tsのCalcLethalSequenceResult.setLethal参照。
   setLethal?: Array<{ setCount: number; probability: number }>;
+  // 攻撃列ごとの技固有の基礎威力(perAttackDamagesと同じく有効な攻撃列の並び順)。
+  // 表示専用(ダメージ計算には使わない)だが、ページ再読み込み直後・Pyodide初期化前にも
+  // 技名の右へ威力を出せるよう、ダメージ値と一緒にスナップショットへ載せる。
+  // pyodide-engine.tsのCalcLethalSequenceResult.perAttackBasePower参照。
+  perAttackBasePower?: number[];
   // 単発メモでは、単一の技の1発あたりダメージ乱数16段階を保持する。
   damages?: number[];
 }
