@@ -23,7 +23,7 @@ body.box-edit-page {
   --damage-card-condition-font-size: var(--font-size-sm3); /* 条件チップと見出しの文字サイズ */
   --damage-card-column-order-font-size: var(--font-size-sm3); /* ヒット数表示・撃破済みキャプション等の文字サイズ */
   --damage-card-move-power-font-size: 14px; /* 技名の右に出す威力の文字サイズ(技名15.2pxよりわずかに小さく) */
-  --damage-card-move-power-scale-x: 0.85; /* 威力の横方向の圧縮率(1で圧縮なし)。小さくすると横幅だけ詰まる */
+  --damage-card-move-power-scale-x: 0.9; /* 威力の横方向の圧縮率(1で圧縮なし)。小さくすると横幅だけ詰まる */
   --damage-card-save-font-size: var(--font-size-sm3); /* 保存状態の文字サイズ */
   --damage-card-build-detail-font-size: var(--font-size-sm3); /* 相手情報2段目(特性・テラス・アイテム・実数値)の文字サイズ */
 
