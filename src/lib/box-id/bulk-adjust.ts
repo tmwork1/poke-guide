@@ -41,6 +41,7 @@ import {
 	type SolveResult,
 } from "./bulk-adjust-solver";
 import { renderBulkAdjustResults, openDetailPanelOverlay } from "./damage-detail-panel";
+import { withoutIgnoredBoxDamageItem } from "./damage-calc-helpers";
 
 const bulkAdjustButton = el<HTMLButtonElement>("bulk-adjust-button");
 const backdropEl = el<HTMLElement>("bulk-adjust-backdrop");
@@ -361,7 +362,8 @@ async function runCompute(): Promise<void> {
 			baseStats,
 			fixedEvs,
 			currentNature,
-			buildDefenderSpec: (nature: string, evs: number[]): PokemonSpec => buildAttackerSpec({ nature, evs }),
+			buildDefenderSpec: (nature: string, evs: number[]): PokemonSpec =>
+				withoutIgnoredBoxDamageItem(buildAttackerSpec({ nature, evs })),
 			onProgress: (info) => {
 				progressTextEl.textContent = `${info.phase}(${info.done}/${info.total})`;
 			},

@@ -160,6 +160,7 @@ import {
 	rankFromLegacyBoosts,
 	setResultPlain,
 	setResultVerdict,
+	withoutIgnoredBoxDamageItem,
 } from "./damage-calc-helpers";
 
 export interface DamageRowForShare {
@@ -1490,8 +1491,8 @@ if (opponentNotesSection) {
 		// _resolve_move()が技リストに無い技名からMoveを新規生成するため計算できる
 		// (pyodide-engine.tsの_resolve_move参照)。
 		const selfIsAttacker = row.direction !== "defense";
-		const selfSpec = buildAttackerSpec();
-		const opponentSpec: PokemonSpec = buildDefenderStatsSpec(row);
+		const selfSpec = withoutIgnoredBoxDamageItem(buildAttackerSpec());
+		const opponentSpec = withoutIgnoredBoxDamageItem(buildDefenderStatsSpec(row));
 		const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
 		const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
 		// jpokeはteraType未指定でも

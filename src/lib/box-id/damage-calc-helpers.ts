@@ -14,7 +14,7 @@
 // pyodide-engine.ts からは型だけを借りる(値をimportすると計算エンジン一式を
 // 引き込んでしまう。damage-summary.ts 冒頭コメントと同じ理由)。
 
-import type { LethalResult } from "../pyodide-engine.ts";
+import type { LethalResult, PokemonSpec } from "../pyodide-engine.ts";
 import type { OpponentClientResultInput } from "../opponent-notes-validation.ts";
 import { STAT_KEYS, type StatKey } from "../stats.ts";
 import {
@@ -35,6 +35,15 @@ export interface DamageVerdict {
 
 /** 能力値キー -> 表示用の1文字(H/A/B/C/D/S)。 */
 export const STAT_KANJI: Record<string, string> = { hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S" };
+
+// ダメージ計算では行動保証系・浮遊系アイテムの一時効果を考慮しない。
+export const BOX_DAMAGE_IGNORED_ITEMS: ReadonlySet<string> = new Set(["きあいのタスキ", "ふうせん"]);
+
+/** ボックスのダメージ計算エンジンへ渡す直前のspecから、計算対象外アイテムだけを外す。 */
+export function withoutIgnoredBoxDamageItem(spec: PokemonSpec): PokemonSpec {
+	if (!spec.itemName || !BOX_DAMAGE_IGNORED_ITEMS.has(spec.itemName)) return spec;
+	return { ...spec, itemName: undefined };
+}
 
 /** 乱数シード入力欄の値。空欄・数値でない入力は「指定なし」(undefined)にする。 */
 export function parseSeed(raw: string): number | undefined {
