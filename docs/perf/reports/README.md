@@ -9,6 +9,33 @@
 - **フェーズ0(計測網の整備)**: **完了(2026-09-11)**。下の「フェーズ0 完了」節を参照。
 - **フェーズ1以降(実装)**: **未着手**。次に何をやるかは「次のセッションへの引き継ぎ」節にまとめてある。
 
+## 統合バックログ(2026-09-26 整理)
+
+本ファイルのフェーズ1〜3と [navigation-rerender.md](navigation-rerender.md) の「残りの提案」を、
+コードの現状と dashboard の現在値で突き合わせて1本の優先順に並べ直したもの。**着手順はこの表を正とする**
+(下の「推奨する着手順」「次のセッションへの引き継ぎ」は経緯として残す)。
+
+優先度の付け方: ①dashboard で 🟡 の計測行に効くもの → ②小コスト・低リスクの単発修正 → ③中コストの構造改善。
+方針相談が要るものは実装対象から外して末尾に置いた。
+
+| 順 | 状態 | 対象 | 内容 | 出典 | コスト |
+|---|---|---|---|---|---|
+| 1 | 未着手 | `/box/[id]?tab=damage`(🟡 6290ms/1.26x) | 相手カード全行の再計算に `yieldToBrowser()` を挟む | 横断課題6 / box.md 発見A | 小 |
+| 2 | 未着手 | `/api/search`(🟡 871ms/1.09x) | `searches`・`events` のログinsertをレスポンスの前提から外す(`waitUntil` があれば使う、無ければ `Promise.all`) | 横断課題4 / home-search-shell.md 発見A | 小 |
+| 3 | 未着手 | `/box/ranked`(🟡 1759ms/1.17x) | `/api/ranked-teams` の `listRankedSeasons()` 重複検証を解消 | 横断課題5 / box-insight.md 発見B | 小〜中 |
+| 4 | 未着手 | 各所 | 小粒まとめ: `/ranked-teams` リダイレクト1段化(P10)/`share/[slug]`・`MobilePokemonPreview` を `pokemon-core.json` へ/`pokemon.json` preload のオプトイン化(P9)/ランクステッパー `refresh()` の同値スキップ(P12)/未使用 `renderRankedTeamCard` の削除 | フェーズ1・2 / P9・P10・P12 | 小 |
+| 5 | 未着手 | `/box/data`・`/box/matchup`・`/box/ranked` | 非表示の編集パネル `pokemon-edit-panel.ts` を遅延 import | P1 | 中 |
+| 6 | 未着手 | 共通(bfcache) | リビジョンを「所持ポケモン」「チーム」に分ける | P11 | 小 |
+| 7 | 未着手 | `/box/[id]` | 種族値・実数値セルを SSR で出す | P7 | 小〜中 |
+| 8 | 未着手 | `/team/[id]` | 類似チームの類似度計算をサーバー側で行い上位N件だけ返すAPI | P2 / 横断課題2 | 中〜大 |
+
+実装対象から外したもの(着手前に方針相談): P3〜P6 の SSR 寄せ(表示モデル共有の設計が先)、P8(効果1往復分・`needsResave` 経路)、
+フェーズ3 の全項目(自動継続読み込みの共通設計、`updateOwnedPokemon()` 並列化、`getSupabasePublicClient()` メモ化、
+ゲストサジェストのサーバー集計化、Pyodide の Web Worker 化)、`@font-face` 378個の削減(寄与度が未計測)。
+
+対応済みで表から落としたもの: `team-mate-card.ts` の250ms遅延(ダブルタップ未使用の呼び出し元では遅延しない。枠選択は 🟢 111ms/64ms)、
+`/team/[id]` 類似チームの遅延取得(`76a141a6`)。すばやさ表SSRの `Promise.all` 化は、manifest → list の依存があり並列化できないため取り下げ。
+
 ## 前提と限界(読む前に必ず)
 
 - **個別報告書の「発見」はすべてコード読解に基づく**(調査時は新規計測を行っていない。並列調査中に
