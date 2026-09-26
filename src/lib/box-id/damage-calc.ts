@@ -15,7 +15,6 @@
 import { el } from "../owned-pokemon-form";
 import {
 	initEngine,
-	scheduleEnginePrefetch,
 	calcStats,
 	calcLethalSequence,
 	isEngineReady,
@@ -3660,9 +3659,12 @@ if (opponentNotesSection) {
 	}
 
 	if (new URLSearchParams(location.search).get("tab") === "damage") {
-		// ダメージタブを初期表示する場合だけ、表示直後の操作と衝突しない間隔を空けて
-		// バックグラウンドでプリフェッチする(詳細はpyodide-engine.ts参照)。
-		scheduleEnginePrefetch(startDamageEngine);
+		// ダメージタブを初期表示する場合は、ユーザーは計算結果を待っているので即座に
+		// 初期化を始める。以前は育成タブの自動保存(700msデバウンス+PUT)とメインスレッドを
+		// 奪い合わないよう3秒+アイドル待ちしていたが(box-item-select-autosaveシナリオで
+		// 確認した不具合への対策)、その競合は育成タブ側の話で、このタブでは初回表示を
+		// 約3秒遅らせるだけだった(docs/perf/reports/pyodide-worker.md)。
+		startDamageEngine();
 	} else {
 		// 育成タブでは約5.5MBのPyodideを先読みしない。ダメージタブへ切り替える意思が
 		// 確定したpointerdownで開始し、clickを待たずタブ切替中にロードを進める。

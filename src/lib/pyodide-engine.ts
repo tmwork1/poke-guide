@@ -1468,43 +1468,6 @@ def calc_max_damage_matrix_json(attacker_specs, defender_specs, move_hit_counts,
         gc.collect()
 `;
 
-// requestIdleCallbackはページ読み込み直後(まだ何もCPUを使っていない状態)だと
-// ほぼ即座に発火する。box/[id].astroのようにページ表示直後にユーザーが即編集を
-// 始める画面でschedulePrefetch経由のinitEngine()をrequestIdleCallback単独で
-// スケジュールすると、Pyodideの重いロード処理(WASM取得・wheelインストール等)が
-// 編集操作の自動保存(700msデバウンス+PUT)とメインスレッドを奪い合い、保存が
-// 数秒単位で遅延する不具合をperf計測(box-item-select-autosaveシナリオ)で確認した。
-// 「ユーザー操作をブロックしない」という元々の意図を保つため、アイドル時間まで
-// 待つだけでなく、最低でもこのぶんはページ表示直後の操作と重ならないよう間を空ける。
-// アイテム選択から自動保存完了まではページ表示後およそ2秒かかるため、余裕を持たせて
-// 3秒待ってからプリフェッチを開始する。
-const ENGINE_PREFETCH_FLOOR_MS = 3000;
-
-/**
- * initEngine()のバックグラウンドプリフェッチを、ページ表示直後の操作と衝突しない
- * タイミングまで遅らせて呼び出す。「ボタンを押すまで遅延初期化」が既定方針の中で、
- * 明示的にプリフェッチを行うページ(box/[id].astroのダメージ計算タブ・一括調整ダイアログ)
- * 専用のヘルパー。
- */
-export function scheduleEnginePrefetch(callback: () => void): void {
-  // connection未対応ブラウザではundefinedとなり、従来どおり先読みする。
-  const connection = (navigator as Navigator & {
-    connection?: { saveData?: boolean; effectiveType?: string };
-  }).connection;
-  if (connection?.saveData || connection?.effectiveType === "slow-2g" || connection?.effectiveType === "2g") {
-    // 先読みを見送るだけで、必要になった時点のinitEngine()は従来どおり初期化を開始する。
-    return;
-  }
-  const runIdle = (): void => {
-    if (typeof window.requestIdleCallback === "function") {
-      window.requestIdleCallback(() => callback());
-    } else {
-      callback();
-    }
-  };
-  setTimeout(runIdle, ENGINE_PREFETCH_FLOOR_MS);
-}
-
 /**
  * Pyodide + jpoke を初期化する(遅延初期化・シングルトン)。
  *
