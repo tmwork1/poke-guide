@@ -109,6 +109,25 @@ export async function applyGuestCookie(context, baseUrl) {
 }
 
 /**
+ * CDPでモバイル相当のCPU・回線制限を掛ける。
+ * Fast 3G相当: 1.6Mbps down / 750Kbps up / RTT 150ms、CPU 4倍遅延。
+ */
+export async function applyMobileThrottle(page) {
+	const client = await page.context().newCDPSession(page);
+	await client.send("Network.enable");
+	await client.send("Network.setCacheDisabled", { cacheDisabled: true });
+	await client.send("Network.emulateNetworkConditions", {
+		offline: false,
+		latency: 150,
+		downloadThroughput: (1_600_000 / 8),
+		uploadThroughput: (750_000 / 8),
+		connectionType: "cellular3g",
+	});
+	await client.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+	return client;
+}
+
+/**
  * ダメージ計算の結果セルが出そろうまで待つ。
  * Pyodideを積んでいない画面では何もしない(→ pitfalls.md「Pyodideの初期化を待つ」)。
  */

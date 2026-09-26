@@ -40,7 +40,7 @@
 | 自動継続読み込み + 全体再構築の共通設計(横断課題2の残り: `/box`・`/team`・`/box/ranked`・`loadAllOwnedPokemon`) | 見送り(計測はすべて 🟢) | — |
 | `updateOwnedPokemon()` の認証/archetype 並列化 | 見送り(🟢、効果1往復分に対し未認証書き込みの再設計が要る) | — |
 | `getSupabasePublicClient()` の使い回し | モジュール単位で使い回す | 済 `05af1904` |
-| `@font-face` 378個の削減 | 先に体感への寄与を計測してから判断 | 未着手 |
+| `@font-face` 378個の削減 | 先に体感への寄与を計測してから判断 | 計測済み → [webfont-cost.md](webfont-cost.md)。高速回線では差なし、Fast 3G+4x CPUでは378宣言のCSSが初回描画を数秒止める(preview非圧縮のため本番では縮む)。コア3ウェイト約667KBの全ページpreloadも重い |
 | P8(`?tab=damage` のSSR相手カード再利用) | 見送り(効果1往復分、`needsResave` 経路のリスク) | — |
 | `/box/[id]` の編集パネル動的 import による1往復増 | `/box/[id]` だけ静的 import に戻す | 済 `bc145887` |
 | ゲストサジェストのサーバー集計化 | 対象外(匿名認証への移行で該当コードが消滅) | — |

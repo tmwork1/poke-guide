@@ -37,6 +37,8 @@
  *   --block <部分文字列> そのURLを含むリクエストを落として開く(複数指定可)。「この通信が
  *                       来なかったらどうなるか」を実測して原因を切り分ける。例:
  *                       `--block fonts.gstatic.com` でWebフォント抜きのレイアウトを見る
+ *   --throttle          Fast 3G相当(1.6Mbps down/750Kbps up/RTT 150ms) + CPU 4倍遅延。
+ *                       各 --repeat は新しいcontextで開くため、ブラウザキャッシュも引き継がない
  *   --no-js             JSを無効にして開く。SSRだけの寸法が見えるので、`--rect` の結果を
  *                       JS有効時と見比べれば「JSが入って何px動くか」= 揺れの正体が分かる
  *   --watch <sel>       その要素の内側で起きたDOM変更(テキスト・属性・子要素の増減)を
@@ -78,8 +80,9 @@
  *   --limit <n>             セレクタごとの最大報告件数。既定 10
  *   --json                  JSONだけを出す(既定は人が読めるサマリ + JSON)
  *
- * 追加観測: --from は遷移元画面、--guest は開発用ゲストCookie、--cls はレイアウトシフト(揺れ)、--timing は Navigation/Paint Timing、
- * --repeat <n> は各観測を独立 context で n 回実行して中央値も出力する。
+ * 追加観測: --from は遷移元画面、--guest は開発用ゲストCookie、--cls はレイアウトシフト(揺れ)、
+ * --vitals (`--timing` も同義) はFCP/LCP/loadと通信量、--resource-pattern <部分文字列> は
+ * 一致URLの通信量を別集計(複数指定可)、--repeat <n> は独立contextで反復して中央値も出力する。
  *
  * 【--cls の読み方】
  *   total   : 入力起因(hadRecentInput)を除いた合計。Web VitalsのCLSと同じ定義
@@ -92,6 +95,7 @@
 import { chromium, devices } from "@playwright/test";
 import {
 	applyGuestCookie,
+	applyMobileThrottle,
 	assertServerUp,
 	detectBaseUrl,
 	hideDevToolbar,
@@ -102,7 +106,7 @@ import {
 } from "./lib/page-session.mjs";
 
 const USAGE = [
-	"  --from <path> / --guest / --cls / --mark <label> / --watch <sel> / --no-js / --timing / --repeat <n>",
+	"  --from <path> / --guest / --cls / --vitals / --repeat <n> / --throttle / --resource-pattern <部分文字列>",
 	"使い方: npm run probe -- --page <path> [操作] [実測]",
 	"",
 	"  対象  --page box/<id> [--theme dark] [--size 390x844]",
@@ -128,6 +132,8 @@ function parseArgs(argv) {
 		keepToolbar: false,
 		noJs: false,
 		block: [],
+		resourcePatterns: [],
+		throttle: false,
 		watch: null,
 		htmlLen: 1000,
 		limit: 10,
@@ -194,10 +200,17 @@ function parseArgs(argv) {
 			case "--block":
 				opts.block.push(next());
 				break;
+			case "--resource-pattern":
+				opts.resourcePatterns.push(next());
+				break;
+			case "--throttle":
+				opts.throttle = true;
+				break;
 			case "--cls":
 				opts.cls = true;
 				break;
 			case "--timing":
+			case "--vitals":
 				opts.timing = true;
 				break;
 			case "--repeat":
@@ -608,8 +621,8 @@ function median(values) {
 	return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
 }
 
-async function collectNavigationMetrics(page, includeCls, includeTiming, limit) {
-	return page.evaluate(({ includeCls, includeTiming, limit }) => {
+async function collectNavigationMetrics(page, includeCls, includeTiming, limit, resourcePatterns) {
+	return page.evaluate(({ includeCls, includeTiming, limit, resourcePatterns }) => {
 		const round = (value) => Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
 		const shifts = includeCls ? (window.__probeLayoutShifts ?? []) : [];
 		const marks = includeCls ? (window.__probeClsMarks ?? []) : [];
@@ -653,8 +666,9 @@ async function collectNavigationMetrics(page, includeCls, includeTiming, limit) 
 		const nav = performance.getEntriesByType("navigation")[0];
 		const paint = performance.getEntriesByType("paint").find((entry) => entry.name === "first-contentful-paint");
 		const resources = performance.getEntriesByType("resource").map((entry) => entry.toJSON());
-		const resourceRows = resources.map((entry) => ({ url: entry.name.length > 60 ? `…${entry.name.slice(-60)}` : entry.name, transferSize: entry.transferSize ?? 0, decodedBodySize: entry.decodedBodySize ?? 0, duration: entry.duration ?? 0 }));
+		const resourceRows = resources.map((entry) => ({ url: entry.name, transferSize: entry.transferSize ?? 0, decodedBodySize: entry.decodedBodySize ?? 0, duration: entry.duration ?? 0 }));
 		resourceRows.sort((a, b) => b.transferSize - a.transferSize);
+		const matched = resourceRows.filter((entry) => resourcePatterns.some((pattern) => entry.url.includes(pattern)));
 		return {
 			cls,
 			timing: {
@@ -662,10 +676,11 @@ async function collectNavigationMetrics(page, includeCls, includeTiming, limit) 
 				domInteractive: round(nav.domInteractive), domContentLoadedEventEnd: round(nav.domContentLoadedEventEnd), loadEventEnd: round(nav.loadEventEnd),
 				transferSize: nav.transferSize, decodedBodySize: nav.decodedBodySize,
 				fcp: round(paint?.startTime), lcp: round(window.__probeLcp?.startTime),
-				resources: { count: resourceRows.length, transferSize: resourceRows.reduce((total, entry) => total + entry.transferSize, 0), largest: resourceRows.slice(0, 10) },
+				resources: { count: resourceRows.length, transferSize: resourceRows.reduce((total, entry) => total + entry.transferSize, 0), largest: resourceRows.slice(0, 10).map((entry) => ({ ...entry, url: entry.url.length > 60 ? `…${entry.url.slice(-60)}` : entry.url })) },
+				matchedResources: { patterns: resourcePatterns, count: matched.length, transferSize: matched.reduce((total, entry) => total + entry.transferSize, 0), decodedBodySize: matched.reduce((total, entry) => total + entry.decodedBodySize, 0), entries: matched.map((entry) => ({ ...entry, url: entry.url.length > 100 ? `…${entry.url.slice(-100)}` : entry.url })) },
 			},
 		};
-	}, { includeCls, includeTiming, limit });
+	}, { includeCls, includeTiming, limit, resourcePatterns });
 }
 
 // --block で指定した部分文字列を含むURLのリクエストを落とす。Webフォントや外部画像が
@@ -691,6 +706,7 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 	if (opts.guest) await applyGuestCookie(context, opts.base);
 	await applyBlockRules(context, opts.block);
 	const page = await context.newPage();
+	const throttleClient = opts.throttle ? await applyMobileThrottle(page) : null;
 	const report = { url: `${opts.base}${pagePath}`, theme: opts.theme, viewport, probes: [] };
 	try {
 		await page.emulateMedia({ colorScheme: opts.theme });
@@ -715,9 +731,10 @@ async function measureWithObservers(browser, opts, viewport, pagePath) {
 		for (const action of opts.actions) await runAction(page, action);
 		if (opts.actions.length > 0) await page.waitForTimeout(opts.cls ? 1000 : 250);
 		for (const probe of opts.probes) report.probes.push(await runProbe(page, probe, opts));
-		if (opts.cls || opts.timing) Object.assign(report, await collectNavigationMetrics(page, opts.cls, opts.timing, opts.limit));
+		if (opts.cls || opts.timing) Object.assign(report, await collectNavigationMetrics(page, opts.cls, opts.timing, opts.limit, opts.resourcePatterns));
 		if (opts.watch) report.mutations = await page.evaluate(() => window.__probeMutations ?? []);
 	} finally {
+		if (throttleClient) await throttleClient.detach();
 		await context.close();
 	}
 	return report;
@@ -730,6 +747,7 @@ function timingMedian(reports, opts) {
 		const names = ["ttfb", "responseEnd", "domInteractive", "domContentLoadedEventEnd", "loadEventEnd", "transferSize", "decodedBodySize", "fcp", "lcp"];
 		result.timing = Object.fromEntries(names.map((name) => [name, median(reports.map((report) => report.timing?.[name]))]));
 		result.timing.resources = { count: median(reports.map((report) => report.timing?.resources?.count)), transferSize: median(reports.map((report) => report.timing?.resources?.transferSize)) };
+		result.timing.matchedResources = { count: median(reports.map((report) => report.timing?.matchedResources?.count)), transferSize: median(reports.map((report) => report.timing?.matchedResources?.transferSize)), decodedBodySize: median(reports.map((report) => report.timing?.matchedResources?.decodedBodySize)) };
 	}
 	return result;
 }
@@ -770,6 +788,7 @@ async function runNewMeasurement(opts) {
 			const timing = report.timing;
 			lines.push(`Timing: TTFB ${timing.ttfb}ms / responseEnd ${timing.responseEnd}ms / DOM interactive ${timing.domInteractive}ms / DCL ${timing.domContentLoadedEventEnd}ms / load ${timing.loadEventEnd}ms / FCP ${timing.fcp}ms / LCP ${timing.lcp}ms`);
 			lines.push(`  navigation ${timing.transferSize}B transfer, ${timing.decodedBodySize}B decoded; resources ${timing.resources.count}, ${timing.resources.transferSize}B transfer`);
+			if (timing.matchedResources.patterns.length) lines.push(`  matched resources ${timing.matchedResources.count}, ${timing.matchedResources.transferSize}B transfer, ${timing.matchedResources.decodedBodySize}B decoded`);
 			for (const resource of timing.resources.largest) lines.push(`  ${resource.transferSize}B ${resource.url}`);
 		}
 		if (report.median) lines.push(`中央値 (${opts.repeat}回): ${JSON.stringify(report.median)}`);
