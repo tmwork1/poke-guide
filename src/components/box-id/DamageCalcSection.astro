@@ -86,6 +86,10 @@ import '../../styles/box-damage-card.css';
 
 
 <script>
+	// /box/[id] だけは編集パネルを最初から使うので、静的 import で同じバンドルに入れる
+	// (PokemonEditPanel.astro 側の動的 import は同じモジュールを指すので二重評価されず、
+	// 取得の往復も増えない)。damage-calc より先に評価してブリッジ登録を済ませる。
+	import "../../lib/box-id/pokemon-edit-panel";
 	import "../../lib/box-id/damage-calc";
 
 </script>
