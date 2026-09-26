@@ -682,7 +682,8 @@ if (form) {
 		for (let i = 0; i < STAT_KEYS.length; i++) {
 			const el2 = document.getElementById(`base-${STAT_KEYS[i]}`);
 			if (!el2) continue;
-			el2.textContent = base ? String(base[i]) : "-";
+			const nextValue = base ? String(base[i]) : "-";
+			if (el2.textContent !== nextValue) el2.textContent = nextValue;
 		}
 		const hpFixedNoteEl = document.getElementById("hp-fixed-note");
 		if (hpFixedNoteEl) hpFixedNoteEl.hidden = !(base && base[0] === 1);

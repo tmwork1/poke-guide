@@ -11,6 +11,7 @@ import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.j
 import { buildPokemonPreviewViewModel, type PreviewPokemonMasterEntry } from '../../lib/box-id/preview-view-model';
 import { teraTypeIconUrl } from '../../lib/sprite-urls';
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../../lib/type-colors';
+import { calculatePokemonStatDisplay, NATURE_STAT_MODIFIERS, type StatKey } from '../../lib/stats';
 import '../../styles/move-picker-dialog.css';
 import '../../styles/team-card.css';
 import '../../styles/team-mate-card.css';
@@ -19,7 +20,7 @@ import '../../styles/ev-preset-badges.css';
 import '../../styles/pokemon-share-image.css';
 
 interface Props {
-	pokemon: OwnedPokemonRecord;
+	pokemon: OwnedPokemonRecord & { ssrBaseStats?: number[] };
 }
 const { pokemon } = Astro.props;
 const master = (pokemonMasterRaw as PreviewPokemonMasterEntry[]).find((entry) => entry.name === pokemon.species_name);
@@ -30,12 +31,14 @@ const teraIconUrl = teraTypeIconUrl(teraName);
 const teraFallbackColor = TYPE_COLORS[teraName] ?? DEFAULT_TYPE_COLOR;
 // 匿名ユーザーは編集とメモ保存はできるが、個体・チームの新規作成と削除はできない。
 const isTrialUser = !Astro.locals.user || Astro.locals.user.isAnonymous;
+const statDisplay = pokemon.ssrBaseStats ? calculatePokemonStatDisplay(pokemon.ssrBaseStats, pokemon.evs, pokemon.nature) : null;
+const initialNatureMod = statDisplay ? NATURE_STAT_MODIFIERS[pokemon.nature ?? ""] ?? { up: null, down: null } : null;
 
 // 能力値ラベルは全角表記(「素早さ」等)だとラベル列(最大幅)がスライダー列(最狭・操作対象)を
 // 圧迫するため、表示上はH/A/B/C/D/Sの1文字表記に統一する(相手ビルド箱・/box一覧の
 // STAT_LABELS = ["H","A","B","C","D","S"]と表記を揃える)。full(素早さ等の正式名称)は
 // aria-label/titleに必ず残し、アクセシビリティ上「短縮表記だけになる」ことを避ける。
-const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
+const STAT_LABELS: Array<{ key: StatKey; label: string; short: string }> = [
 	{ key: "hp", label: "HP", short: "H" },
 	{ key: "atk", label: "攻撃", short: "A" },
 	{ key: "def", label: "防御", short: "B" },
@@ -43,6 +46,10 @@ const STAT_LABELS: Array<{ key: string; label: string; short: string }> = [
 	{ key: "spd", label: "特防", short: "D" },
 	{ key: "spe", label: "素早さ", short: "S" },
 ];
+
+function natureState(key: StatKey): "up" | "down" | "none" {
+	return initialNatureMod?.up === key ? "up" : initialNatureMod?.down === key ? "down" : "none";
+}
 
 const MOVE_SLOTS = [1, 2, 3, 4];
 
@@ -236,7 +243,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 			</div>
 			{STAT_LABELS.map(({ key, label: statLabel, short: statShort }, i) => (
 				<div class="stat-row">
-					<span id={`nature-label-${key}`} class="stat-row-label" aria-label={statLabel} title={statLabel}>
+					<span id={`nature-label-${key}`} class="stat-row-label" aria-label={statLabel} title={statLabel} data-mod={statDisplay?.[key].mod}>
 						{statShort}
 					</span>
 					{key === "hp" ? (
@@ -247,13 +254,13 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 								type="button"
 								id={`nature-toggle-${key}`}
 								class="stat-nature-btn"
-								data-nature-state="none"
-								aria-label={`${statLabel}の性格補正`}
-								title={`${statLabel}の性格補正を切り替える`}
+								data-nature-state={natureState(key)}
+								aria-label={statDisplay ? `${statLabel}の性格補正: ${natureState(key) === "up" ? "上昇" : natureState(key) === "down" ? "下降" : "未設定"}` : `${statLabel}の性格補正`}
+								title={statDisplay ? `クリックで性格補正を切り替える (現在: ${natureState(key) === "up" ? "上昇" : natureState(key) === "down" ? "下降" : "未設定"})` : `${statLabel}の性格補正を切り替える`}
 							></button>
 						</span>
 					)}
-					<span id={`base-${key}`} class="stat-row-base tnum">-</span>
+					<span id={`base-${key}`} class="stat-row-base tnum">{statDisplay?.[key].base ?? "-"}</span>
 					{/* 努力値の入力欄には可視ラベルが無い(左端の .stat-row-label は入力と紐づいていない)ため、
 					    スライダー・数値入力の両方に aria-label で「どの能力の努力値か」を持たせる。 */}
 					<div class="stat-input-controls">
@@ -283,7 +290,7 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 						</div>
 					</div>
 					<span class="stat-row-real-wrap">
-						<span id={`stat-${key}`} class="stat-row-real stat-value tnum">-</span>
+						<span id={`stat-${key}`} class="stat-row-real stat-value tnum" data-mod={statDisplay?.[key].mod}>{statDisplay?.[key].value ?? "-"}</span>
 					</span>
 				</div>
 			))}

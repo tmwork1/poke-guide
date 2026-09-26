@@ -436,19 +436,21 @@ export async function recalcStats(): Promise<void> {
 		const value = key === "hp"
 			? calcHpStat(level, base[i], iv, ev)
 			: calcOtherStat(level, base[i], iv, ev, natureMod.up === key ? 1.1 : natureMod.down === key ? 0.9 : 1.0);
-		valueEl.textContent = String(value);
+		// /box/[id] はSSRで同じ値を出しているので、初回の再計算は同値なら書かない。
+		const nextValue = String(value);
+		if (valueEl.textContent !== nextValue) valueEl.textContent = nextValue;
 		if (key === "hp") {
 			const indicatorEl = document.getElementById("hp-16n-indicator");
-			if (indicatorEl) {
-				indicatorEl.textContent = hpBracketLabel(value);
+			const nextLabel = hpBracketLabel(value);
+			if (indicatorEl && indicatorEl.textContent !== nextLabel) {
+				indicatorEl.textContent = nextLabel;
 			}
 		}
-		if (natureMod.up === key) {
-			valueEl.dataset.mod = "up";
-		} else if (natureMod.down === key) {
-			valueEl.dataset.mod = "down";
-		} else {
-			delete valueEl.dataset.mod;
+		const nextMod = natureMod.up === key ? "up" : natureMod.down === key ? "down" : undefined;
+		if (nextMod === undefined) {
+			if (valueEl.dataset.mod !== undefined) delete valueEl.dataset.mod;
+		} else if (valueEl.dataset.mod !== nextMod) {
+			valueEl.dataset.mod = nextMod;
 		}
 	});
 }

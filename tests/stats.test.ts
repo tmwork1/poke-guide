@@ -18,7 +18,33 @@ import {
   calcOtherStat,
   calcHpStatAtLv50Iv31,
   calcOtherStatAtLv50Iv31,
+  calculatePokemonStatDisplay,
 } from '../src/lib/stats.ts';
+
+describe('calculatePokemonStatDisplay', () => {
+  const base = [78, 84, 78, 109, 85, 100];
+  const evs = [32, 0, 0, 32, 0, 2];
+
+  it('種族値・実数値・性格補正表示をまとめて返す', () => {
+    const display = calculatePokemonStatDisplay(base, evs, 'ひかえめ');
+    assert.ok(display);
+    assert.deepEqual(display.hp, { base: 78, value: calcHpStat(50, 78, 31, 32) });
+    assert.deepEqual(display.atk, { base: 84, value: calcOtherStat(50, 84, 31, 0, 0.9), mod: 'down' });
+    assert.deepEqual(display.spa, { base: 109, value: calcOtherStat(50, 109, 31, 32, 1.1), mod: 'up' });
+  });
+
+  it('性格未確定はクライアントと同じく無補正として扱う', () => {
+    const display = calculatePokemonStatDisplay(base, evs, null);
+    assert.ok(display);
+    assert.equal(display.atk.value, calcOtherStat(50, 84, 31, 0, 1));
+    assert.equal(display.atk.mod, undefined);
+    assert.equal(display.spa.mod, undefined);
+  });
+
+  it('種族値が6個未満なら表示不能を返す', () => {
+    assert.equal(calculatePokemonStatDisplay([78], evs, 'ひかえめ'), null);
+  });
+});
 
 describe('chmpToLegacyEffort', () => {
   it('n=0のときだけ特例で0を返す(8n-4だと-4になってしまうため)', () => {

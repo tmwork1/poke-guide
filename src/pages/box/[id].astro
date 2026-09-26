@@ -32,6 +32,8 @@ import { getOwnedPokemon, type OwnedPokemonRecord } from '../../lib/owned-pokemo
 import { listOpponentNotes, type OpponentNoteRecord } from '../../lib/opponent-notes';
 import { getOpggUsageList, getOpggUsageManifest, sortOpggSeasons } from '../../lib/opgg-usage';
 import { env } from 'cloudflare:workers';
+import pokemonCoreRaw from '../../../public/master-data/detail/pokemon-core.json';
+import type { PokemonCoreDetailEntry } from '../../lib/pokemon-master-data';
 
 const user = Astro.locals.user;
 const id = Astro.params.id;
@@ -88,6 +90,10 @@ if (user && isNewMode) {
 }
 
 const opggRankedSpeciesNames = await opggRankedSpeciesPromise;
+const pokemonBaseStats = pokemon?.species_name
+	? (pokemonCoreRaw as PokemonCoreDetailEntry[]).find((entry) => entry.name === pokemon.species_name)?.baseStats
+	: undefined;
+const editPanelPokemon = pokemon && pokemonBaseStats ? { ...pokemon, ssrBaseStats: pokemonBaseStats } : pokemon;
 
 // UI刷新(第4弾): 性格の選択UI(<select>)は要件により廃止した。性格はステータス補正にしか
 // 影響しないため、能力値ラベルのクリックで上昇/下降(HP以外)を選び、性格名は<script>側で
@@ -158,7 +164,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 			    src/lib/box-id/pokemon-edit-panel.ts へ切り出した(見た目・ロジックは一切変更していない)。
 			    SSRで取得済みのpokemon(この分岐では非null)だけをpropsで渡す。 */}
 			{/* 育成・閲覧タブで共有するポケモン設定モーダルホスト。ここでは編集フォームも表示する。 */}
-			<PokemonSettingsModalHost pokemon={pokemon} showForm={true} opggRankedSpeciesNames={opggRankedSpeciesNames} />
+			<PokemonSettingsModalHost pokemon={editPanelPokemon!} showForm={true} opggRankedSpeciesNames={opggRankedSpeciesNames} />
 			{/* 保存状態とダメージ計算の保存失敗件数は、最終表示位置にSSRする。新規作成直後は
 			    localStorageのゲスト個体を復元して保存済みへ変わる場合があるため、復元前だけ
 			    「入力すると保存されます」の領域を出すと高さが揺れる。通常時と同じsavedで

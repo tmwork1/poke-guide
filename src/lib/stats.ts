@@ -112,6 +112,34 @@ export function calcOtherStat(level: number, base: number, iv: number, evChamp: 
 	return Math.floor((Math.floor(((base * 2 + iv + Math.floor(effort / 4)) * level) / 100) + 5) * nc);
 }
 
+export interface PokemonStatDisplay {
+	base: number;
+	value: number;
+	mod?: "up" | "down";
+}
+
+/**
+ * /box/[id] のSSRとクライアント再計算で使う表示値を、Championsルール(Lv50・IV31)で求める。
+ * 性格名が未確定・不明、または無補正性格なら全能力を無補正として扱う。
+ */
+export function calculatePokemonStatDisplay(
+	baseStats: readonly number[],
+	evs: readonly number[],
+	nature: string | null | undefined,
+): Record<StatKey, PokemonStatDisplay> | null {
+	if (baseStats.length < STAT_KEYS.length) return null;
+	const natureMod = NATURE_STAT_MODIFIERS[nature ?? ""] ?? { up: null, down: null };
+	return Object.fromEntries(STAT_KEYS.map((key, index) => {
+		const base = baseStats[index];
+		const ev = typeof evs[index] === "number" ? evs[index] : 0;
+		const mod = natureMod.up === key ? "up" : natureMod.down === key ? "down" : undefined;
+		const value = key === "hp"
+			? calcHpStat(50, base, 31, ev)
+			: calcOtherStat(50, base, 31, ev, mod === "up" ? 1.1 : mod === "down" ? 0.9 : 1.0);
+		return [key, { base, value, ...(mod ? { mod } : {}) }];
+	})) as Record<StatKey, PokemonStatDisplay>;
+}
+
 // /pokemon/[name].astro (種族単位ページ)専用の薄いラッパー。
 // このページは「特定の個体」ではなく「種族の基礎データ」を示す画面のため、level/ivを
 // 引数に取らず常にLv50・IV31固定(チャンピオンズルール)、性格補正なし(nc=1.0固定)で計算する。
