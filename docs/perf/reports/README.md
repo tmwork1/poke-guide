@@ -96,6 +96,7 @@
 | [team.md](team.md) | `/team`・`/team/[id]` | チームメモ編集と自動保存 1430ms/1.79x | 🟢 869ms(目標を1200msへ改訂) |
 | [data.md](data.md) | `/data`・`/data/top-builds`・すばやさ表・`/ranked-teams` | 上位チームの表示 3020ms/2.01x | 🟢 521ms |
 | [home-search-shell.md](home-search-shell.md) | `/`・`/search`・`/share/[slug]`・全画面共通シェル | 検索: 実行して結果を表示 1450ms/1.81x | 🟡 871ms/1.09x |
+| [navigation-rerender.md](navigation-rerender.md) | 全画面(遷移後の無駄な再描画、2026-09-26) | — | 一部修正済み(`76a141a6`)、残りは同ファイルの「残りの提案」 |
 
 ---
 
@@ -188,7 +189,7 @@
 - `data/index.astro` のタブ別データ取得の出し分け(横断課題3)
 - すばやさ表SSRの `Promise.all` 化(余裕が最も無い2画面)
 - `AppLayout.astro` のpreloadをオプトイン化
-- `/team/[id]` の `loadSimilarBuilds()` をデータタブ表示時まで遅延(横断課題2)
+- ~~`/team/[id]` の `loadSimilarBuilds()` をデータタブ表示時まで遅延(横断課題2)~~ → **対応済み(2026-09-26, `76a141a6`)**。タブを開いたときのコストは残る([navigation-rerender.md](navigation-rerender.md) P2)
 - `/api/ranked-teams` の `listRankedSeasons` 重複解消(横断課題5)
 - `/api/search` のログ書き込みを `waitUntil` でバックグラウンド化(横断課題4)
 
