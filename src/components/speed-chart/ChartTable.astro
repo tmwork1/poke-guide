@@ -1,18 +1,18 @@
 ---
 // すばやさ早見表(/speed-chart)本体のテンプレート。
-// 実データの取得・行の描画は chart-table.ts に委譲する。
-// SSR側(index.astro)はレギュレーション一覧・初期レギュレーション・?owned=の有無だけを
-// 渡す。マスターデータ本体・採用率データ・埋め込みレコードは index.astro が
-// <script type="application/json"> で埋め込み、data-*属性で chart-table.ts へ橋渡しする。
+// 行は共有表示モデルを使ってSSRし、chart-table.tsは初期DOMを採用してイベントを付ける。
+// 操作用の生データと?owned=の埋め込みレコードは index.astro がJSONで橋渡しする。
 import OwnedPanel from './OwnedPanel.astro';
+import { speedChartSpriteUrl, type SpeedChartPhysicalRowView } from '../../lib/speed-chart/row-display-model';
 
 interface Props {
 	regulation: string;
 	ownedId: string | null;
 	hasOwnedPanel: boolean;
 	embedded?: boolean;
+	displayRows: SpeedChartPhysicalRowView[];
 }
-const { regulation, ownedId, hasOwnedPanel, embedded = false } = Astro.props;
+const { regulation, ownedId, hasOwnedPanel, embedded = false, displayRows } = Astro.props;
 import '../../styles/speed-chart-table.css';
 ---
 <section
@@ -35,15 +35,39 @@ import '../../styles/speed-chart-table.css';
 
 		<div id="speed-chart-minimap" class="speed-chart-minimap" aria-hidden="true">
 			<div class="speed-chart-minimap-track">
+				{displayRows.filter((row) => row.classNames.includes('speed-chart-row-value-end')).map(() => <span class="speed-chart-minimap-marker"></span>)}
 				<div class="speed-chart-minimap-viewport"></div>
 			</div>
 		</div>
 
 		<div class="panel-content speed-chart-content">
 			{/* 列見出しは廃止(自明なため)。上余白は.speed-chart-content側に持たせる。 */}
-			<p id="speed-chart-status" class="speed-chart-status loading-center">読み込み中…</p>
-			<div id="speed-chart-rows" class="speed-chart-rows" hidden>
-				<div id="speed-chart-rows-body"></div>
+			<p id="speed-chart-status" class="speed-chart-status loading-center" hidden>読み込み中…</p>
+			<div id="speed-chart-rows" class="speed-chart-rows">
+				<div id="speed-chart-rows-body">
+					{displayRows.map((row) => (
+						<div class:list={row.classNames} data-value={row.value} data-base-speed={row.group?.baseSpeed} data-ssr-row>
+							<div class="speed-chart-value-cell tnum">{row.valueText}</div>
+							{row.group && <>
+								<div class="speed-chart-meta-cell">
+									<span class="speed-chart-base-speed-label">{row.group.baseSpeedLabel}</span>
+									<span class="speed-chart-spread-badge" data-spread={row.group.spreadKind}>{row.group.spreadLabel}</span>
+									{row.group.magnitudeLabel && <span class="speed-chart-magnitude-badge">{row.group.magnitudeLabel}</span>}
+								</div>
+								<div class="speed-chart-chips-cell"><div class="speed-chart-chips-row">
+									{row.group.entries.map((entry) => <div class="speed-chart-chip-unit">
+										<span class="speed-chart-chip">
+											{entry.imageId && <img class="sprite-icon speed-chart-chip-icon" src={speedChartSpriteUrl(entry.imageId)} data-image-id={entry.imageId} alt="" loading="lazy" />}
+											<span class="speed-chart-chip-name">{entry.formName}</span>
+										</span>
+										{entry.originName && <span class="speed-chart-chip-origin">{entry.originName}</span>}
+									</div>)}
+								</div></div>
+							</>}
+							{hasOwnedPanel && <div class="speed-chart-owned-cell"></div>}
+						</div>
+					))}
+				</div>
 			</div>
 		</div>
 	</div>

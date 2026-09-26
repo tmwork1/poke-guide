@@ -28,6 +28,27 @@ import {
   type SpeedModifiersData,
 } from '../src/lib/speed-chart.ts';
 import { calcOtherStat } from '../src/lib/stats.ts';
+import { createSpeedChartRowDisplayModel } from '../src/lib/speed-chart/row-display-model.ts';
+
+describe('すばやさ表の共有行表示モデル', () => {
+  it('物理行のクラス・値・セル内容・画像IDを決定する', () => {
+    const rows = createSpeedChartRowDisplayModel([{
+      value: 150,
+      entries: [
+        { formName: 'B', rank: 2, spread: 'max', modifier: null, isMega: false },
+        { formName: 'A', rank: 1, spread: 'max', modifier: null, isMega: false },
+      ],
+    }], {
+      baseSpeedByName: new Map([['A', 100], ['B', 100]]),
+      imageIdByName: new Map([['A', 1], ['B', 2]]),
+    });
+    assert.equal(rows.length, 1);
+    assert.deepEqual(rows[0].classNames, ['speed-chart-row', 'speed-chart-row-single-group', 'speed-chart-row-value-end']);
+    assert.equal(rows[0].valueText, '150');
+    assert.equal(rows[0].group?.baseSpeedLabel, '100族');
+    assert.deepEqual(rows[0].group?.entries.map((entry) => [entry.formName, entry.imageId]), [['A', 1], ['B', 2]]);
+  });
+});
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(path.join(root, file), 'utf8')) as T;

@@ -34,7 +34,7 @@ const chart = await loadSpeedChartSsr(env.OPGG_USAGE, Astro.url.searchParams.get
 		<div class="toolbar-item"><label class="speed-chart-regulation-label" for="speed-chart-regulation-select">シーズン</label><select id="speed-chart-regulation-select" aria-label="シーズン">{chart.seasons.map((season) => <option value={season.id} selected={season.id === chart.selectedSeasonId}>{season.label ?? season.id}</option>)}</select></div>
 		{hasOwnedPanel && <label class="speed-chart-reachable-toggle"><span class="toggle-switch"><input type="checkbox" id="speed-chart-reachable-only-toggle" class="toggle-switch-input" aria-label="すべて表示" /><span class="toggle-switch-track" aria-hidden="true"><span class="toggle-switch-thumb"></span></span></span><span>すべて表示</span></label>}
 	</SecondHeader>
-	<ChartTable regulation={chart.selectedSeasonId ?? ''} ownedId={ownedId} hasOwnedPanel={hasOwnedPanel} embedded={false} />
+	<ChartTable regulation={chart.selectedSeasonId ?? ''} ownedId={ownedId} hasOwnedPanel={hasOwnedPanel} embedded={false} displayRows={chart.displayRows} />
 	<script type="application/json" id="speed-chart-config" set:html={toJsonScriptContent(speedChartConfig)} />
 	<script type="application/json" id="speed-chart-rows-data" set:html={toJsonScriptContent(chart.rows)} />
 	{hasOwnedPanel && <script type="application/json" id="speed-chart-owned-record" set:html={toJsonScriptContent(ownedRecord)} />}

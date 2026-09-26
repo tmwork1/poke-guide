@@ -15,8 +15,14 @@ import {
   type SpeedModifiersData,
   type SpeedChartRow,
 } from '../speed-chart.ts';
+import { createSpeedChartRowDisplayModel, type SpeedChartPhysicalRowView } from './row-display-model.ts';
 
-const config = speedChartConfigRaw as SpeedChartConfig;
+type SpeedChartSsrConfig = SpeedChartConfig & {
+  hiddenEntries?: { rules?: Array<{ spread?: 'max' | 'sub' | 'none' | 'min'; hasModifier?: boolean }> };
+  hiddenPokemon?: { names?: string[] };
+};
+
+const config = speedChartConfigRaw as SpeedChartSsrConfig;
 const core = pokemonCoreRaw as Array<{ name: string; baseStats: number[]; abilities: string[] }>;
 const pokemonIndex = pokemonMasterRaw as Array<{ name: string; dexNo: number; forme: string | null }>;
 const learnsets = new Map(Object.entries(speedLearnsetsRaw as Record<string, string[]>));
@@ -26,6 +32,7 @@ export interface SpeedChartSsrData {
   seasons: OpggUsageSeason[];
   selectedSeasonId: string | null;
   rows: SpeedChartRow[];
+  displayRows: SpeedChartPhysicalRowView[];
 }
 
 /** requestedSeasonが無効/未指定ならcurrentSeasonId(なければ表示順先頭)へ安全に戻す。 */
@@ -40,10 +47,10 @@ export async function loadSpeedChartSsr(
   const selectedSeason = forceCurrent
     ? seasons.find((season) => season.id === currentId) ?? seasons[0]
     : seasons.find((season) => season.id === requestedSeason) ?? seasons.find((season) => season.id === currentId) ?? seasons[0];
-  if (!selectedSeason) return { seasons, selectedSeasonId: null, rows: [] };
+  if (!selectedSeason) return { seasons, selectedSeasonId: null, rows: [], displayRows: [] };
 
   const list = await getOpggUsageList(kv, selectedSeason);
-  if (!list) return { seasons, selectedSeasonId: selectedSeason.id, rows: [] };
+  if (!list) return { seasons, selectedSeasonId: selectedSeason.id, rows: [], displayRows: [] };
   const ranked = list.pokemon.map((entry, index) => ({
     name: entry.name,
     rank: entry.rank ?? index + 1,
@@ -51,9 +58,23 @@ export async function loadSpeedChartSsr(
   }));
   const population = buildOpggSpeedChartPopulation(ranked, config.population.topN, core.map((entry) => ({ ...entry, learnset: [] })), pokemonIndex, megaStones, learnsets, config.formAdoptionRate.threshold);
   const usageByName = new Map(ranked.map((entry) => [entry.name, entry.single]));
+  const rows = buildSpeedChartRows(population, getEffectiveSpeedModifiers(speedModifiersRaw as SpeedModifiersData, config), config.adoptionRate, usageByName, config.spreadConditions);
+  const visibleRows = rows
+    .map((row) => ({
+      ...row,
+      entries: row.entries.filter((entry) => !config.hiddenEntries?.rules?.some((rule) =>
+        (rule.spread === undefined || rule.spread === entry.spread)
+        && (rule.hasModifier === undefined || rule.hasModifier === (entry.modifier !== null)))),
+    }))
+    .filter((row) => row.entries.length > 0)
+    .map((row) => ({ ...row, entries: row.entries.filter((entry) => !config.hiddenPokemon?.names?.includes(entry.formName)) }))
+    .filter((row) => row.entries.length > 0);
+  const baseSpeedByName = new Map(core.map((entry) => [entry.name, entry.baseStats[5]]));
+  const imageIdByName = new Map((pokemonMasterRaw as Array<{ name: string; imageId: number }>).map((entry) => [entry.name, entry.imageId]));
   return {
     seasons,
     selectedSeasonId: selectedSeason.id,
-    rows: buildSpeedChartRows(population, getEffectiveSpeedModifiers(speedModifiersRaw as SpeedModifiersData, config), config.adoptionRate, usageByName, config.spreadConditions),
+    rows,
+    displayRows: createSpeedChartRowDisplayModel(visibleRows, { baseSpeedByName, imageIdByName }),
   };
 }

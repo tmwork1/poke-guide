@@ -21,7 +21,6 @@
 // 両対応の純粋関数のみを提供し、データの読み込み自体は呼び出し側の責務(ファイル冒頭コメント参照)。
 import {
   includeReachableValuesInRows,
-  SPEED_SPREADS,
   type SpeedChartConfig,
   type SpeedChartEntry,
   type SpeedChartForm,
@@ -42,6 +41,11 @@ import {
   type OwnedReachableValuesEventDetail,
 } from './owned-panel';
 import type { OwnedPokemonRecord } from '../owned-pokemon';
+import {
+  createSpeedChartRowDisplayModel,
+  type SpeedChartPhysicalRowView,
+  type SpeedChartRowGroupView,
+} from './row-display-model';
 
 interface PokemonAutocompleteEntry {
   name: string;
@@ -110,7 +114,7 @@ export async function initSpeedChartPage(): Promise<void> {
 
   let masterData: MasterData;
   try {
-    masterData = await loadMasterData();
+    masterData = hasOwnedPanel ? await loadMasterData() : readMasterDataFromSsrRows(bodyEl);
   } catch (err) {
     statusEl.textContent = 'マスターデータの読み込みに失敗しました。';
     // eslint-disable-next-line no-console
@@ -148,6 +152,7 @@ export async function initSpeedChartPage(): Promise<void> {
   // 描画を抑止し、状態(lastKnownReachableValues)の更新だけ先に済ませておく。
   let isInitializingOwnedController = false;
   let minimapFrame: number | null = null;
+  let hasAdoptedInitialRows = false;
 
   // --------------------------------------------------------------------------
   // ポケモンチップ列の「どこを掴んでもスライドできる」横スクロール
@@ -252,17 +257,21 @@ export async function initSpeedChartPage(): Promise<void> {
 
   function rebuildMinimapMarkers(): void {
     if (!minimapTrack || !minimapViewport) return;
-    minimapTrack.querySelectorAll('.speed-chart-minimap-marker').forEach((marker) => marker.remove());
     const documentHeight = getDocumentHeight();
-    const fragment = document.createDocumentFragment();
-    bodyEl!.querySelectorAll<HTMLElement>('.speed-chart-row-value-end').forEach((row) => {
+    const rows = [...bodyEl!.querySelectorAll<HTMLElement>('.speed-chart-row-value-end')];
+    const markers = [...minimapTrack.querySelectorAll<HTMLElement>('.speed-chart-minimap-marker')];
+    while (markers.length > rows.length) markers.pop()?.remove();
+    while (markers.length < rows.length) {
       const marker = document.createElement('span');
       marker.className = 'speed-chart-minimap-marker';
+      minimapTrack.insertBefore(marker, minimapViewport);
+      markers.push(marker);
+    }
+    rows.forEach((row, index) => {
+      const marker = markers[index];
       const boundaryY = row.getBoundingClientRect().bottom + window.scrollY;
       marker.style.top = `${Math.min(1, boundaryY / documentHeight) * 100}%`;
-      fragment.appendChild(marker);
     });
-    minimapTrack.insertBefore(fragment, minimapViewport);
     scheduleMinimapViewportUpdate();
   }
 
@@ -350,7 +359,13 @@ export async function initSpeedChartPage(): Promise<void> {
       }
     }
     applyOwnedPanelAvailability(ownedController !== null);
-    renderVisibleRows();
+    if (!hasAdoptedInitialRows && currentRegulation === initialRegulation && bodyEl!.children.length > 0) {
+      adoptServerRenderedRows();
+      if (hasOwnedPanel) enhanceServerRenderedOwnedRows();
+      hasAdoptedInitialRows = true;
+    } else {
+      renderVisibleRows();
+    }
     if (ownedController) {
       const value = ownedController.getCurrentValue();
       lastKnownOwnedValue = value;
@@ -390,81 +405,8 @@ export async function initSpeedChartPage(): Promise<void> {
     const fragment = document.createDocumentFragment();
     const baseSpeedByName = new Map<string, number>();
     for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
-
-    for (const row of rows) {
-      if (row.entries.length === 0) {
-        const rowEl = document.createElement('div');
-        rowEl.className = 'speed-chart-row speed-chart-row-owned-only speed-chart-row-single-group speed-chart-row-value-end';
-        rowEl.dataset.value = String(row.value);
-
-        const valueCell = document.createElement('div');
-        valueCell.className = 'speed-chart-value-cell tnum';
-        valueCell.textContent = String(row.value);
-        rowEl.appendChild(valueCell);
-
-        if (hasOwnedPanel) {
-          const ownedCell = document.createElement('div');
-          ownedCell.className = 'speed-chart-owned-cell';
-          ownedCell.appendChild(ownedController ? ownedController.renderCell(row.value) : buildDashCell());
-          rowEl.appendChild(ownedCell);
-        }
-
-        fragment.appendChild(rowEl);
-        rowElements.set(row.value, [rowEl]);
-        continue;
-      }
-
-      // 実数値1件ぶんのentriesを「振り方+補正」のグループへ分け、族(baseSpeed)降順の
-      // フラットな配列として、グループごとに独立した物理行を作る(要件2)。
-      const groups = groupEntriesIntoRowGroups(row.entries, baseSpeedByName);
-      const elementsForValue: HTMLElement[] = [];
-
-      groups.forEach((group, groupIndex) => {
-        const isLastGroup = groupIndex === groups.length - 1;
-        const rowEl = document.createElement('div');
-        rowEl.className = 'speed-chart-row';
-        if (ownedRecord && group.entries.some((entry) => entry.formName === ownedRecord.species_name)) {
-          rowEl.classList.add('is-opgg-spread');
-        }
-        // 1段だけの実数値グループは、補正要因があっても先頭2列を垂直中央に置く。
-        if (groups.length === 1) rowEl.classList.add('speed-chart-row-single-group');
-        // 同じ実数値内の行同士は境界線を軽くし(is-value-group-end無し)、
-        // 実数値の最後の行にだけ通常の境界線を付ける(値ごとの区切りを分かりやすくする)。
-        if (isLastGroup) rowEl.classList.add('speed-chart-row-value-end');
-        rowEl.dataset.value = String(row.value);
-
-        const valueCell = document.createElement('div');
-        valueCell.className = 'speed-chart-value-cell tnum';
-        // 実数値はその値の先頭行だけに出す(2行目以降は同じ実数値であることが行の並びで
-        // 分かるため空欄のままにし、値の重複表示を避ける)。
-        if (groupIndex === 0) valueCell.textContent = String(row.value);
-        rowEl.appendChild(valueCell);
-
-        rowEl.appendChild(buildMetaCell(group));
-        rowEl.appendChild(buildChipsCell(group, imageIdByName));
-
-        // 要件: 4列目(調整)は?owned=連携時だけ存在する(ChartTable.astro側もdata-has-owned-panel
-        // で列数を切り替えている)。列数がズレないよう、無いときはセル自体を作らない。
-        if (hasOwnedPanel) {
-          const ownedCell = document.createElement('div');
-          ownedCell.className = 'speed-chart-owned-cell';
-          // 「この個体」列も実数値ごとに1つの内容なので、その値の先頭行だけに出す。
-          if (groupIndex === 0) {
-            if (ownedController) {
-              ownedCell.appendChild(ownedController.renderCell(row.value));
-            } else {
-              ownedCell.appendChild(buildDashCell());
-            }
-          }
-          rowEl.appendChild(ownedCell);
-        }
-
-        fragment.appendChild(rowEl);
-        elementsForValue.push(rowEl);
-      });
-
-      rowElements.set(row.value, elementsForValue);
-    }
+    const displayRows = createSpeedChartRowDisplayModel(rows, { baseSpeedByName, imageIdByName });
+    for (const row of displayRows) fragment.appendChild(buildPhysicalRow(row));
 
     bodyEl!.appendChild(fragment);
     statusEl!.hidden = true;
@@ -478,6 +420,73 @@ export async function initSpeedChartPage(): Promise<void> {
       currentHighlightValue = null;
       applyHighlight(value);
     }
+  }
+
+  function adoptServerRenderedRows(): void {
+    rowElements.clear();
+    bodyEl!.querySelectorAll<HTMLElement>('.speed-chart-row').forEach((row) => {
+      const value = Number(row.dataset.value);
+      if (Number.isFinite(value)) rowElements.set(value, [...(rowElements.get(value) ?? []), row]);
+    });
+    attachSpriteFallbacks(bodyEl!);
+    statusEl!.hidden = true;
+    tableEl!.hidden = false;
+    rebuildMinimapMarkers();
+  }
+
+  function enhanceServerRenderedOwnedRows(): void {
+    const rows = lastKnownReachableValues
+      ? includeReachableValuesInRows(currentRows, lastKnownReachableValues)
+      : currentRows;
+    const valuesInDom = new Set(rowElements.keys());
+    const baseSpeedByName = new Map<string, number>();
+    for (const [name, form] of formsByName) baseSpeedByName.set(name, form.baseSpeed);
+
+    for (const row of rows) {
+      if (valuesInDom.has(row.value)) continue;
+      const view = createSpeedChartRowDisplayModel([row], { baseSpeedByName, imageIdByName })[0];
+      if (!view) continue;
+      const rowEl = buildPhysicalRow(view);
+      const next = [...bodyEl!.querySelectorAll<HTMLElement>('.speed-chart-row')]
+        .find((candidate) => Number(candidate.dataset.value) < row.value);
+      bodyEl!.insertBefore(rowEl, next ?? null);
+      valuesInDom.add(row.value);
+    }
+
+    for (const [value, elements] of rowElements) {
+      elements.forEach((row, index) => {
+        if (ownedRecord && [...row.querySelectorAll<HTMLElement>('.speed-chart-chip-name')]
+          .some((name) => name.textContent === ownedRecord!.species_name)) row.classList.add('is-opgg-spread');
+        const cell = row.querySelector<HTMLElement>('.speed-chart-owned-cell');
+        if (!cell || index !== 0 || cell.children.length > 0) return;
+        cell.appendChild(ownedController ? ownedController.renderCell(value) : buildDashCell());
+      });
+    }
+    rebuildMinimapMarkers();
+  }
+
+  function buildPhysicalRow(row: SpeedChartPhysicalRowView): HTMLElement {
+    const rowEl = document.createElement('div');
+    rowEl.className = row.classNames.join(' ');
+    rowEl.dataset.value = String(row.value);
+    if (ownedRecord && row.group?.entries.some((entry) => entry.formName === ownedRecord.species_name)) rowEl.classList.add('is-opgg-spread');
+
+    const valueCell = document.createElement('div');
+    valueCell.className = 'speed-chart-value-cell tnum';
+    valueCell.textContent = row.valueText;
+    rowEl.appendChild(valueCell);
+    if (row.group) {
+      rowEl.appendChild(buildMetaCell(row.group));
+      rowEl.appendChild(buildChipsCell(row.group, imageIdByName));
+    }
+    if (hasOwnedPanel) {
+      const ownedCell = document.createElement('div');
+      ownedCell.className = 'speed-chart-owned-cell';
+      if (row.valueText) ownedCell.appendChild(ownedController ? ownedController.renderCell(row.value) : buildDashCell());
+      rowEl.appendChild(ownedCell);
+    }
+    rowElements.set(row.value, [...(rowElements.get(row.value) ?? []), rowEl]);
+    return rowEl;
   }
 
   function applyHighlight(value: number): void {
@@ -552,7 +561,7 @@ export async function initSpeedChartPage(): Promise<void> {
   function requestInitialScroll(value: number): void {
     if (hasScrolledInitially) return;
     pendingInitialScrollValue = value;
-    if (!isEmbedded) flushInitialScroll();
+    if (!isEmbedded) window.requestAnimationFrame(flushInitialScroll);
   }
 
   function flushInitialScroll(): void {
@@ -756,6 +765,25 @@ async function loadMasterData(): Promise<MasterData> {
   return { pokemonAutocomplete, pokemonDetail, speedModifiers };
 }
 
+function readMasterDataFromSsrRows(body: HTMLElement): MasterData {
+  const imageIds = new Map<string, number>();
+  const baseSpeeds = new Map<string, number>();
+  body.querySelectorAll<HTMLElement>('.speed-chart-row[data-base-speed]').forEach((row) => {
+    const baseSpeed = Number(row.dataset.baseSpeed);
+    row.querySelectorAll<HTMLElement>('.speed-chart-chip-unit').forEach((unit) => {
+      const name = unit.querySelector<HTMLElement>('.speed-chart-chip-name')?.textContent ?? '';
+      const imageId = Number(unit.querySelector<HTMLImageElement>('img[data-image-id]')?.dataset.imageId);
+      if (name && Number.isFinite(baseSpeed)) baseSpeeds.set(name, baseSpeed);
+      if (name && Number.isFinite(imageId)) imageIds.set(name, imageId);
+    });
+  });
+  return {
+    pokemonAutocomplete: [...imageIds].map(([name, imageId]) => ({ name, imageId, regulations: [] })),
+    pokemonDetail: [...baseSpeeds].map(([name, baseSpeed]) => ({ name, baseStats: [0, 0, 0, 0, 0, baseSpeed], abilities: [], learnset: [] })),
+    speedModifiers: { abilities: {}, items: {}, moves: {} },
+  };
+}
+
 // U-2/R-4: 「こだわりスカーフ」という名前をハードコードせず、items内で kind==='multiplier' の
 // エントリを機械的に見つける(speed-chart.ts冒頭コメントの「アプリ側にポケモン名・技名・
 // 特性名をハードコードしない」方針を持ち物名にも適用したもの)。
@@ -778,70 +806,32 @@ function buildDashCell(): HTMLElement {
   return wrap;
 }
 
-/** 3列目に描くチップ1個ぶん(ポケモン+その補正要因の組)。 */
-interface RowGroupEntry {
-  formName: string;
-  rank: number;
-  /** null = 補正なし(素の実数値)。特性名/わざ名/持ち物名。 */
-  originName: string | null;
-}
-
-interface RowGroup {
-  spreadKind: SpeedSpreadKind;
-  baseSpeed: number;
-  /** 倍率表記(例 "x2")。補正なしグループはnull(2列目に倍率を出さない)。 */
-  magnitudeLabel: string | null;
-  entries: RowGroupEntry[];
-}
-
-function groupEntriesIntoRowGroups(
-  entries: SpeedChartEntry[],
-  baseSpeedByName: Map<string, number>,
-): RowGroup[] {
-  const groups = new Map<string, RowGroup>();
-  for (const entry of entries) {
-    const baseSpeed = baseSpeedByName.get(entry.formName) ?? 0;
-    const magnitudeLabel = entry.modifier ? formatModifierMagnitude(entry.modifier.modifier) : null;
-    const key = `${entry.spread}|${baseSpeed}|${magnitudeLabel ?? 'none'}`;
-    let group = groups.get(key);
-    if (!group) {
-      group = { spreadKind: entry.spread, baseSpeed, magnitudeLabel, entries: [] };
-      groups.set(key, group);
-    }
-    const originName = entry.modifier?.name ?? null;
-    const existingEntry = group.entries.find((groupEntry) => groupEntry.formName === entry.formName);
-    if (!existingEntry) {
-      group.entries.push({ formName: entry.formName, rank: entry.rank, originName });
-    } else if (
-      existingEntry.originName &&
-      originName &&
-      !existingEntry.originName.split('/').includes(originName)
-    ) {
-      existingEntry.originName = `${existingEntry.originName}/${originName}`;
-    }
-  }
-
-  const orderedGroups = Array.from(groups.values(), (group) => {
-    const sortedEntries = [...group.entries].sort((a, b) => a.rank - b.rank || a.formName.localeCompare(b.formName, 'ja'));
-    return { ...group, entries: sortedEntries };
+function attachSpriteFallbacks(root: ParentNode): void {
+  root.querySelectorAll<HTMLImageElement>('img.speed-chart-chip-icon[data-image-id]').forEach((img) => {
+    img.addEventListener('error', () => {
+      const imageId = Number(img.dataset.imageId);
+      if (!Number.isFinite(imageId) || img.src.endsWith(`/pokemon-artwork/${imageId}.webp`)) return;
+      img.src = officialArtworkUrl(imageId);
+    }, { once: true });
   });
-
-  // 族(baseSpeed)降順に並べる。同じ族内は元の出現順(entriesの出現順=Mapの挿入順)を
-  // 維持したいので、安定ソートに依存する(Array#sortはES2019以降で安定性が仕様上保証されている)。
-  return orderedGroups.sort((a, b) => b.baseSpeed - a.baseSpeed);
 }
 
+/** 3列目に描くチップ1個ぶん(ポケモン+その補正要因の組)。 */
 /** 2列目(族・配分バッジ・倍率)を作る。 */
-function buildMetaCell(group: RowGroup): HTMLElement {
+function buildMetaCell(group: SpeedChartRowGroupView): HTMLElement {
   const cell = document.createElement('div');
   cell.className = 'speed-chart-meta-cell';
 
   const baseSpeedLabel = document.createElement('span');
   baseSpeedLabel.className = 'speed-chart-base-speed-label';
-  baseSpeedLabel.textContent = `${group.baseSpeed}族`;
+  baseSpeedLabel.textContent = group.baseSpeedLabel;
   cell.appendChild(baseSpeedLabel);
 
-  cell.appendChild(buildSpreadBadge(group.spreadKind));
+  const spreadBadge = document.createElement('span');
+  spreadBadge.className = 'speed-chart-spread-badge';
+  spreadBadge.dataset.spread = group.spreadKind;
+  spreadBadge.textContent = group.spreadLabel;
+  cell.appendChild(spreadBadge);
 
   if (group.magnitudeLabel) {
     const magnitude = document.createElement('span');
@@ -855,7 +845,7 @@ function buildMetaCell(group: RowGroup): HTMLElement {
 
 // チップは常に全件表示する(幅で足切りして「+N件」バッジを出す旧仕様は廃止済み)。
 // 収まらない場合は表示領域側で折り返す(speed-chart-table.cssのflex-wrap)。
-function buildChipsCell(group: RowGroup, imageIdByName: Map<string, number>): HTMLElement {
+function buildChipsCell(group: SpeedChartRowGroupView, imageIdByName: Map<string, number>): HTMLElement {
   const cell = document.createElement('div');
   cell.className = 'speed-chart-chips-cell';
 
@@ -871,7 +861,7 @@ function buildChipsCell(group: RowGroup, imageIdByName: Map<string, number>): HT
 }
 
 /** チップ+補正要因ラベルを縦積みにした1ユニットを作る(要因はエントリごとに表示)。 */
-function buildChipUnit(entry: RowGroupEntry, imageIdByName: Map<string, number>): HTMLElement {
+function buildChipUnit(entry: SpeedChartRowGroupView['entries'][number], imageIdByName: Map<string, number>): HTMLElement {
   const unit = document.createElement('div');
   unit.className = 'speed-chart-chip-unit';
   unit.appendChild(buildChip(entry.formName, imageIdByName));
@@ -884,25 +874,6 @@ function buildChipUnit(entry: RowGroupEntry, imageIdByName: Map<string, number>)
   }
 
   return unit;
-}
-
-// 振り方(最速/準速/無振り/最遅)を既存トークンの濃淡で示すバッジ。
-// 最遅も新色を増やさず、無振りとの差は既存のborderトークンで示す。
-function buildSpreadBadge(spreadKind: SpeedSpreadKind): HTMLElement {
-  const badge = document.createElement('span');
-  badge.className = 'speed-chart-spread-badge';
-  badge.dataset.spread = spreadKind;
-  badge.textContent = SPEED_SPREADS[spreadKind].label;
-  return badge;
-}
-
-function formatModifierMagnitude(modifier: SpeedModifierEntry): string {
-  const ratio = modifier.kind === 'rank' ? (2 + modifier.stages) / 2 : modifier.numerator / modifier.denominator;
-  return `×${formatRatio(ratio)}`;
-}
-
-function formatRatio(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function buildChip(formName: string, imageIdByName: Map<string, number>): HTMLElement {
