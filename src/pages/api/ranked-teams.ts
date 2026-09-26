@@ -1,5 +1,5 @@
 import type { APIContext } from 'astro';
-import { listAllRankedTeams, listRankedSeasons, listRankedTeamsBySeason } from '../../lib/ranked-teams';
+import { listAllRankedTeams, listRankedTeamsBySeason, rankedSeasonExists } from '../../lib/ranked-teams';
 import { ALL_SEASONS_PARAM, normalizeSeasonParam } from '../../lib/ranked-teams-validation';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { badRequest, jsonResponse, methodNotAllowed } from './_shared';
@@ -24,10 +24,6 @@ export async function GET({ url }: APIContext): Promise<Response> {
 
   try {
     const supabase = await getSupabasePublicClient();
-    const seasons = await listRankedSeasons(supabase);
-    if (season !== ALL_SEASONS_PARAM && !seasons.some((entry) => entry.season === season)) {
-      return badRequest('存在しないシーズンです');
-    }
     const page = season === ALL_SEASONS_PARAM
       ? (limit === undefined
         ? { teams: await listAllRankedTeams(supabase), hasMore: false }
@@ -35,6 +31,11 @@ export async function GET({ url }: APIContext): Promise<Response> {
       : (limit === undefined
         ? { teams: await listRankedTeamsBySeason(season, supabase), hasMore: false }
         : await listRankedTeamsBySeason(season, supabase, { limit, offset }));
+    // 1件でも取得できれば、その結果自体がシーズンの存在証明になる。
+    // 0件時だけ軽量な存在確認を行い、末尾を越えたoffsetと存在しないシーズンを区別する。
+    if (season !== ALL_SEASONS_PARAM && page.teams.length === 0 && !await rankedSeasonExists(season, supabase)) {
+      return badRequest('存在しないシーズンです');
+    }
     return jsonResponse({ season, ...page }, 200, {
       'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=86400',
     });

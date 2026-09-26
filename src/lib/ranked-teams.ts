@@ -120,6 +120,23 @@ export async function listRankedSeasons(supabase: SupabaseClient): Promise<Ranke
   return [...bySeason.values()].sort((a, b) => b.seasonNumber - a.seasonNumber);
 }
 
+/**
+ * 指定シーズンの存在だけを確認する。
+ *
+ * ページング結果が0件でも、offsetが末尾を越えただけの既存シーズンかもしれないため、
+ * API側ではその場合に限ってこの軽量クエリを使う。
+ */
+export async function rankedSeasonExists(season: string, supabase: SupabaseClient): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('ranked_teams')
+    .select('id')
+    .eq('season', season)
+    .limit(1);
+
+  if (error) throw new Error('上位構築のシーズンを確認できませんでした', { cause: error });
+  return (data?.length ?? 0) > 0;
+}
+
 function toPage(teams: RankedTeam[], limit: number | undefined): RankedTeam[] | RankedTeamsPage {
   if (limit === undefined) return teams;
   return { teams: teams.slice(0, limit), hasMore: teams.length > limit };
