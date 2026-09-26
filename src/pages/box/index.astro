@@ -15,7 +15,7 @@
 // 回す)。技は実数値グリッドの下に2×2グリッドで表示し、未設定スロットは何も出さない
 // (「-」を4つ並べると壊れて見えるため、空文字列はfilterで除外する)。
 // タイプバッジ・テラスバッジ・性格表示・特性の常時表示・努力値ミニバーはカードに出さないが、
-// 検索対象からは外さない(matchesSearchはタイプ・特性・持ち物・テラスタイプ・技を含む)。
+// 検索対象からは外さない(matchesSearchは種族タイプ・特性・持ち物・テラスタイプ・技を含む)。
 // アイテム画像は公式絵への重ね配置ではなく.card-item-row(名前行と技グリッドの間)に分離し、
 // 画像の右にアイテム名を表示する。テラスバッジは.card-badge-rowに残り、アイコンと被らない
 // 程度に右へ寄せる。
@@ -56,8 +56,8 @@ import '../../styles/guest-login-dialog.css';
 									id="search-input"
 									type="search"
 									class="field-control"
-									placeholder="ポケモン・特性・もちもの・わざ"
-									aria-label="検索"
+									placeholder="ポケモン・タイプ・特性・もちもの・わざ"
+									aria-label="ポケモン・タイプ・特性・もちもの・わざ"
 									autocomplete="off"
 								/>
 							</div>
@@ -155,6 +155,7 @@ import '../../styles/guest-login-dialog.css';
 		} from "../../lib/owned-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
 		import { splitSearchTokens } from "../../lib/search-tokens";
+		import { loadTypesMap } from "../../lib/pokemon-master-data";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 		import { deleteOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
 		import { isGuestMode } from "../../lib/data/guest-mode";
@@ -224,18 +225,25 @@ import '../../styles/guest-login-dialog.css';
 			let loadingMore = false;
 			const POKEMON_PAGE_SIZE = 48;
 			let displayMode: DisplayDensityMode = loadDensityMode(BOX_DISPLAY_DENSITY_STORAGE_KEY);
+			let typesMap = new Map<string, string[]>();
+			// 種族タイプは検索専用なので一覧の取得・描画を待たせない。読み込み後、検索中なら掛け直す。
+			void loadTypesMap().then((loadedTypesMap) => {
+				typesMap = loadedTypesMap;
+				if (searchInput.value.trim()) renderList();
+			}).catch((err) => console.error(err));
 
 			function updateDensityToggleUi(): void {
 				boxGrid?.classList.toggle("is-compact", displayMode === "compressed");
 				updateDensityToggleButton(densityToggle, displayMode);
 			}
 
-			// カードの表示にはタイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
+			// カードの表示には種族タイプ・特性・持ち物・テラスタイプ・技を出さないが、検索対象は
 			// それらすべてを引き続き含める(表示されない項目も検索できるようにする)。
 			function matchesSearch(p: OwnedPokemon, term: string): boolean {
 				if (!term) return true;
 				const haystack = [
 					p.species_name,
+					...(typesMap.get(p.species_name) ?? []),
 					p.ability_name ?? "",
 					p.item_name ?? "",
 					p.tera_type ?? "",

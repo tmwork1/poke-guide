@@ -243,7 +243,7 @@ if (!isGuestNewMode) {
 										<circle cx="11" cy="11" r="7" />
 										<line x1="21" y1="21" x2="16.65" y2="16.65" />
 									</svg>
-									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモン・特性・もちもの・わざ" aria-label="検索" autocomplete="off" />
+									<input id="team-formation-mobile-search" class="field-control" type="search" placeholder="ポケモン・タイプ・特性・もちもの・わざ" aria-label="検索" autocomplete="off" />
 								</div>
 							</div>
 							<div class="second-header-sort toolbar-item toolbar-sort">
@@ -324,7 +324,7 @@ if (!isGuestNewMode) {
 		// 自動保存のデバウンス方式は box/[id].astro と同じ(700ms・保存ボタンは作らない・
 		// topbar-statusスロットで状態表示)。初期表示データ(SSR取得済みのチーム)は
 		// #team-edit-layout の data-initial-team から読む(fetch往復を待たずに6枠を描ける)。
-		import { loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
+		import { loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap, loadTypesMap } from "../../lib/pokemon-master-data";
 		import { applyCompactItemIcon, applyCompactPokemonSprite } from "../../lib/compact-pokemon-sprite";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
 		import { selectionBlockReason, type SelectionCandidate, type TeamRequestBody } from "../../lib/team-validation";
@@ -508,6 +508,12 @@ if (!isGuestNewMode) {
 			const deleteTeamButton = document.getElementById("delete-team-button") as HTMLButtonElement | null;
 
 			const baseStatsMapPromise = loadBaseStatsMap();
+			let typesMap = new Map<string, string[]>();
+			// 種族タイプは検索専用なので候補一覧の取得・描画を待たせない。読み込み後、検索中なら掛け直す。
+			void loadTypesMap().then((loadedTypesMap) => {
+				typesMap = loadedTypesMap;
+				if (formationMobileSearchInput.value.trim()) renderFormationMobile();
+			}).catch((err) => console.error(err));
 
 			const STAT_LABELS: Record<(typeof STAT_KEYS)[number], string> = {
 				hp: "H", atk: "A", def: "B", spa: "C", spd: "D", spe: "S",
@@ -1925,7 +1931,7 @@ if (!isGuestNewMode) {
 			function matchesSearch(p: OwnedPokemonRecord, term: string): boolean {
 				if (!term) return true;
 				// ボックス一覧と同じ対象を空白連結し、複数語ANDのかな部分一致で探す。
-				const haystack = [p.species_name, p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
+				const haystack = [p.species_name, ...(typesMap.get(p.species_name) ?? []), p.ability_name ?? "", p.item_name ?? "", p.tera_type ?? "", ...p.move_names].join(" ");
 				return splitSearchTokens(term)
 					// 既存の複数語ANDを保ち、各語のかな表記だけを正規化して比較する。
 					.every((token) => kanaIncludes(haystack, token));
