@@ -31,16 +31,22 @@ function applyTab(): void {
 	const elements = getTabElements();
 	if (!elements) return;
 	const { mobileTrainingUi, mobileTrainingBar, editShell } = elements;
-	mobileTrainingUi.dataset.mobileTab = activeTab;
-	editShell.dataset.mobileTab = activeTab;
+	// 起動直後はSSR済みのdataset/aria-currentと同値のことが多いため、値が変わるときだけ書く
+	// (クリック経由の切り替え挙動はそのまま)。
+	if (mobileTrainingUi.dataset.mobileTab !== activeTab) mobileTrainingUi.dataset.mobileTab = activeTab;
+	if (editShell.dataset.mobileTab !== activeTab) editShell.dataset.mobileTab = activeTab;
 	for (const button of mobileTrainingBar.querySelectorAll<HTMLButtonElement>("button[data-mobile-tab]")) {
 		const isActive = button.dataset.mobileTab === activeTab;
 		// app-header.css は `[data-active="true"]` を選択状態としている。
 		// toggleAttribute() は値なしの `data-active` にしてしまい、このセレクタから
 		// 外れるため、リロード直後に背景ハイライトだけが消えていた。
-		button.dataset.active = isActive ? "true" : "false";
-		if (isActive) button.setAttribute("aria-current", "page");
-		else button.removeAttribute("aria-current");
+		const activeValue = isActive ? "true" : "false";
+		if (button.dataset.active !== activeValue) button.dataset.active = activeValue;
+		if (isActive) {
+			if (button.getAttribute("aria-current") !== "page") button.setAttribute("aria-current", "page");
+		} else if (button.hasAttribute("aria-current")) {
+			button.removeAttribute("aria-current");
+		}
 	}
 	updateStatAdjustmentSheetVisibility();
 }

@@ -59,6 +59,9 @@ export function setupRankedTeamsSearchHeader({
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const updateDensityToggleUi = (): void => {
+		// dataset.modeが既に一致していれば(SSRと同値の初期化呼び出し等)何もしない。
+		// 保存値がcompressedのときはSSRの既定(expanded)と異なるため、この分岐を通らず更新される。
+		if (densityToggle.dataset.mode === displayMode) return;
 		densityToggle.dataset.mode = displayMode;
 		densityToggle.innerHTML = displayMode === 'expanded' ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
 		densityToggle.setAttribute(

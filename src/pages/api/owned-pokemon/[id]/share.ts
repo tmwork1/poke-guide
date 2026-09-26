@@ -6,7 +6,6 @@
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../../_shared';
-import { getSessionUser } from '../../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../../lib/supabase';
 import { setOwnedPokemonSharing } from '../../../../lib/owned-pokemon';
 import { ownedPokemonRateLimiter } from '../../../../lib/rate-limit';
@@ -17,8 +16,8 @@ function notFound(): Response {
   return jsonResponse({ error: 'Owned pokemon not found' }, 404);
 }
 
-export async function PUT({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PUT({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {

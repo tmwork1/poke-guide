@@ -14,6 +14,9 @@ export function updateDensityToggleButton(
   button: HTMLButtonElement,
   mode: DisplayDensityMode,
 ): void {
+  // dataset.modeが既に一致していれば(SSRと同値の初期化呼び出し等)何もしない。
+  // 保存値がcompressedのときはSSRの既定(expanded)と異なるため、この分岐を通らず更新される。
+  if (button.dataset.mode === mode) return;
   button.dataset.mode = mode;
   button.innerHTML = mode === "expanded" ? DENSITY_ICON_EXPANDED : DENSITY_ICON_COMPRESSED;
   button.setAttribute(

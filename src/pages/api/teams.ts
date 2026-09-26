@@ -6,15 +6,14 @@
 // 詳細は src/lib/team.ts 冒頭のコメント参照)。
 import type { APIContext } from 'astro';
 import { isSameOrigin, jsonResponse, methodNotAllowed } from './_shared';
-import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { createTeam, listTeams, listTeamsPage } from '../../lib/team';
 import { teamsRateLimiter } from '../../lib/rate-limit';
 
 export const prerender = false;
 
-export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, url }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const supabase = await getSupabaseAdminClient();
@@ -38,8 +37,8 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   return jsonResponse({ teams: result.data }, 200);
 }
 
-export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function POST({ request, locals }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
   if (user.isAnonymous) return jsonResponse({ error: 'Anonymous users cannot create teams' }, 403);
 

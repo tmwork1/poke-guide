@@ -141,6 +141,12 @@ export async function initSpeedChartPage(): Promise<void> {
   // R-12更新: 「個体が到達可能な実数値の集合」はowned-panel.tsが所有する。ここではCustomEvent
   // 経由で受け取った値をキャッシュするだけ(クロージャ共有はしない)。
   let lastKnownReachableValues: Set<number> | null = null;
+  // initOwnedPanel()はreturn前にOWNED_REACHABLE_VALUES_EVENTを同期dispatchする
+  // (owned-panel.ts側の初期dispatch)。この間はownedControllerがまだ未代入なので、そのまま
+  // renderVisibleRows()を呼ぶと所有個体セルがダッシュの状態で1回描画されてしまい、代入後の
+  // 再描画と合わせて表全体が2回構築される。このフラグでinitOwnedPanel()呼び出し中だけ
+  // 描画を抑止し、状態(lastKnownReachableValues)の更新だけ先に済ませておく。
+  let isInitializingOwnedController = false;
   let minimapFrame: number | null = null;
 
   // --------------------------------------------------------------------------
@@ -328,14 +334,19 @@ export async function initSpeedChartPage(): Promise<void> {
       if (ownedDetail) {
         const ownedForm = formsByName.get(ownedRecord.species_name);
         const scarfUsable = !ownedForm?.isMega && !!scarfEntry;
-        ownedController = initOwnedPanel({
-          ownedRecord,
-          baseSpeed: ownedDetail.baseStats[5],
-          scarfModifier: scarfUsable ? scarfEntry!.modifier : null,
-          scarfItemName: scarfUsable ? scarfEntry!.name : null,
-          abilityModifier: ownedRecord.ability_name ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null : null,
-          spriteImageId: imageIdByName.get(ownedRecord.species_name) ?? null,
-        });
+        isInitializingOwnedController = true;
+        try {
+          ownedController = initOwnedPanel({
+            ownedRecord,
+            baseSpeed: ownedDetail.baseStats[5],
+            scarfModifier: scarfUsable ? scarfEntry!.modifier : null,
+            scarfItemName: scarfUsable ? scarfEntry!.name : null,
+            abilityModifier: ownedRecord.ability_name ? masterData.speedModifiers.abilities[ownedRecord.ability_name] ?? null : null,
+            spriteImageId: imageIdByName.get(ownedRecord.species_name) ?? null,
+          });
+        } finally {
+          isInitializingOwnedController = false;
+        }
       }
     }
     applyOwnedPanelAvailability(ownedController !== null);
@@ -362,11 +373,15 @@ export async function initSpeedChartPage(): Promise<void> {
   function updateOrderToggle(): void {
     if (!orderToggle) return;
     const isAscending = sortOrder === 'asc';
-    orderToggle.dataset.order = sortOrder;
-    orderToggle.setAttribute('aria-pressed', String(isAscending));
-    orderToggle.setAttribute('aria-label', `実数値の並び順: ${isAscending ? '遅い順' : '速い順'}`);
+    // 初期化時点でSSRと同値のことが多いため、値が変わるときだけ書く。
+    if (orderToggle.dataset.order !== sortOrder) orderToggle.dataset.order = sortOrder;
+    const ariaPressedValue = String(isAscending);
+    if (orderToggle.getAttribute('aria-pressed') !== ariaPressedValue) orderToggle.setAttribute('aria-pressed', ariaPressedValue);
+    const ariaLabelValue = `実数値の並び順: ${isAscending ? '遅い順' : '速い順'}`;
+    if (orderToggle.getAttribute('aria-label') !== ariaLabelValue) orderToggle.setAttribute('aria-label', ariaLabelValue);
     const label = orderToggle.querySelector<HTMLElement>('.sort-dir-toggle-label');
-    if (label) label.textContent = isAscending ? '遅い順' : '速い順';
+    const labelText = isAscending ? '遅い順' : '速い順';
+    if (label && label.textContent !== labelText) label.textContent = labelText;
   }
 
   function renderRows(rows: SpeedChartRow[]): void {
@@ -619,6 +634,9 @@ export async function initSpeedChartPage(): Promise<void> {
   document.addEventListener(OWNED_REACHABLE_VALUES_EVENT, (event) => {
     const detail = (event as CustomEvent<OwnedReachableValuesEventDetail>).detail;
     lastKnownReachableValues = new Set(detail.values);
+    // 初期化中の同期dispatch分はここでは描画しない。render()側でownedController代入後に
+    // 1回だけrenderVisibleRows()を呼ぶ(状態の更新自体は上の行で済ませてある)。
+    if (isInitializingOwnedController) return;
     renderVisibleRows();
   });
 

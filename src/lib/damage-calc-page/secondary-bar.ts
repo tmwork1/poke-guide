@@ -34,12 +34,12 @@ function recordOpponentSpecies(speciesName: string): void {
   }
 }
 
-function commitOpponentSpecies(speciesName: string): void {
+function commitOpponentSpecies(speciesName: string, options: { silent?: boolean } = {}): void {
   const previous = getOpponentBuild();
   recordOpponentSpecies(speciesName);
   if (previous.speciesName === speciesName) return;
   setOpponentBuild({ ...previous, speciesName, abilityName: "" });
-  emitChange("opponent");
+  if (!options.silent) emitChange("opponent");
 }
 
 export function initSecondaryBar(): void {
@@ -58,7 +58,10 @@ export function initSecondaryBar(): void {
       commitOpponentSpecies(name);
       renderRail();
     };
-    selectOpponent(getOpponentBuild().speciesName || opggRankedSpeciesNames[0] || "サーフゴー");
+    // 初期デフォルト相手は、対面カードの初回run()が埋め込みJSON(damage-calc-opgg-ranked-species)
+    // から導く既定値と同じもの。ここでイベントを発火すると同内容のカードが再構築されるだけなので、
+    // 状態への反映と対戦履歴への記録(recordOpponentSpecies)だけ行い、通知は出さない。
+    commitOpponentSpecies(getOpponentBuild().speciesName || opggRankedSpeciesNames[0] || "サーフゴー", { silent: true });
     function renderRail(): void {
       const tokens = splitSearchTokens(opponentSearch.value).map(normalizeForSearch);
       const matchingNames = tokens.length > 0

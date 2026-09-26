@@ -6,7 +6,6 @@
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
-import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../../lib/owned-pokemon-validation';
 import {
@@ -23,8 +22,8 @@ function notFound(): Response {
   return jsonResponse({ error: 'Owned pokemon not found' }, 404);
 }
 
-export async function GET({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const id = params.id;
@@ -38,8 +37,8 @@ export async function GET({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ data: result.data }, 200);
 }
 
-export async function PUT({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PUT({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {
@@ -72,8 +71,8 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ data: result.data }, 200);
 }
 
-export async function DELETE({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function DELETE({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
   if (user.isAnonymous) return jsonResponse({ error: 'Anonymous users cannot delete pokemon' }, 403);
 
@@ -101,8 +100,8 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
 // PUT(全項目上書き契約、§6.2)とは別の追加経路であり、PUTの契約は変更しない。
 // updateCollectionOptOut() は対象列だけを UPDATE し updated_at には触れないため、
 // 「更新順」表示中にこれをトグルしても対象個体自身の表示順位置が動かないことを保証する。
-export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PATCH({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {

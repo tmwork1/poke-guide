@@ -8,7 +8,6 @@
 // (src/pages/api/owned-pokemon/[id].ts と同じ方針)。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
-import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateOpponentNoteRequestBody } from '../../../lib/opponent-notes-validation';
 import { deleteOpponentNote, getOpponentNote, updateOpponentNote } from '../../../lib/opponent-notes';
@@ -22,8 +21,8 @@ function notFound(): Response {
   return jsonResponse({ error: 'Opponent note not found' }, 404);
 }
 
-export async function GET({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const id = params.id;
@@ -37,8 +36,8 @@ export async function GET({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ data: result.data }, 200);
 }
 
-export async function PUT({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PUT({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {
@@ -78,8 +77,8 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ data: result.data }, 200);
 }
 
-export async function DELETE({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function DELETE({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {

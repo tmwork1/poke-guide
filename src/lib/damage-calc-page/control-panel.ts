@@ -64,7 +64,15 @@ function syncControlBarHeight(): void {
   // 宣言されているため、:root(documentElement)へ書き込んでも同じ要素での宣言に負けて
   // 子孫からは常に0pxに見えてしまう(相手選択レールの高さ計算などが壊れる)。
   // 同じbody要素へ直接書き込み、インラインstyleでスタイルシート側の宣言を上書きする。
-  const update = () => document.body.style.setProperty("--damage-calc-control-bar-height", `${bar.offsetHeight}px`);
+  // observe()呼び出し直後に発火する初回通知と、直後の手動update()が同じ値を
+  // 二重にsetPropertyしないよう、前回値を保持して変化時だけ書き込む。
+  let lastHeight = -1;
+  const update = () => {
+    const height = bar.offsetHeight;
+    if (height === lastHeight) return;
+    lastHeight = height;
+    document.body.style.setProperty("--damage-calc-control-bar-height", `${height}px`);
+  };
   new ResizeObserver(update).observe(bar);
   update();
 }
@@ -75,7 +83,14 @@ function syncControlBarHeight(): void {
 function syncContentTop(): void {
   const secondaryBar = document.querySelector<HTMLElement>(".damage-calc-secondary-bar");
   if (!secondaryBar) return;
-  const update = () => document.body.style.setProperty("--damage-calc-content-top", `${secondaryBar.getBoundingClientRect().bottom}px`);
+  // 上と同じ理由で、observe()の初回通知と手動update()の値が同じときは書き込まない。
+  let lastBottom = -1;
+  const update = () => {
+    const bottom = secondaryBar.getBoundingClientRect().bottom;
+    if (bottom === lastBottom) return;
+    lastBottom = bottom;
+    document.body.style.setProperty("--damage-calc-content-top", `${bottom}px`);
+  };
   new ResizeObserver(update).observe(secondaryBar);
   update();
 }
@@ -172,6 +187,12 @@ export function initControlPanel(): void {
     });
   })();
   const getSelfTeraType = (): string => getSelfBuilds()[0]?.tera_type ?? "";
+  // 同じ値をsetAttribute/プロパティ代入し直さないようにする(全変更イベントでrender()が
+  // 無条件に走るため、変わっていない値の再代入を避けて無駄な描画コストを減らす)。
+  const setAriaPressedIfChanged = (button: HTMLButtonElement, pressed: boolean): void => {
+    const value = String(pressed);
+    if (button.getAttribute("aria-pressed") !== value) button.setAttribute("aria-pressed", value);
+  };
   const render = () => {
     const self = getSelfState(), opponent = getOpponentState(), field = getFieldState();
     (["self", "opponent"] as const).forEach((side) => {
@@ -182,26 +203,34 @@ export function initControlPanel(): void {
     (["self", "opponent"] as const).forEach((side) => {
       const value = side === "self" ? self.ailment : opponent.ailment;
       const root = side === "self" ? selfAilmentButtons : opponentAilmentButtons;
-      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === value)));
+      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => setAriaPressedIfChanged(button, button.dataset.value === value));
     });
     (["weather", "terrain"] as const).forEach((kind) => {
       const value = kind === "weather" ? field.weather : field.terrain;
       const root = kind === "weather" ? weatherButtons : terrainButtons;
-      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.value === value)));
+      root.querySelectorAll<HTMLButtonElement>("button").forEach((button) => setAriaPressedIfChanged(button, button.dataset.value === value));
     });
     (["self", "opponent"] as const).forEach((side) => {
       const button = teraButtons[side];
       const active = side === "self" ? self.teraType !== "" : opponent.teraType !== "";
       const teraType = side === "self" ? (active ? getSelfTeraType() : "") : opponent.teraType;
       const hasTeraType = side === "self" ? getSelfTeraType() !== "" : true;
-      button.classList.toggle("is-active", active); button.setAttribute("aria-pressed", String(active));
-      button.disabled = !hasTeraType;
-      button.ariaLabel = side === "self"
+      button.classList.toggle("is-active", active);
+      setAriaPressedIfChanged(button, active);
+      if (button.disabled !== !hasTeraType) button.disabled = !hasTeraType;
+      const ariaLabel = side === "self"
         ? (hasTeraType ? `テラスタル: ${active ? "ON" : "OFF"}` : "テラスタル: テラスタイプが未設定")
         : "テラスタルタイプを選択";
+      if (button.ariaLabel !== ariaLabel) button.ariaLabel = ariaLabel;
       const icon = teraIcons[side];
       const iconUrl = teraTypeIconUrl(teraType);
-      if (icon) { icon.hidden = false; icon.src = iconUrl ?? GENERIC_TERA_ICON_URL; }
+      // icon.srcはブラウザが絶対URLへ正規化して返すため、代入前の値と比較するなら
+      // 同じ絶対URLに解決してから比べる(相対パスのままだと常に不一致になり同値判定にならない)。
+      const resolvedIconUrl = new URL(iconUrl ?? GENERIC_TERA_ICON_URL, window.location.href).href;
+      if (icon) {
+        if (icon.hidden) icon.hidden = false;
+        if (icon.src !== resolvedIconUrl) icon.src = resolvedIconUrl;
+      }
     });
   };
   resetButton?.addEventListener("click", () => {
@@ -220,8 +249,11 @@ export function initControlPanel(): void {
   teraButtons.opponent.addEventListener("click", opponentTeraDialog.open);
   document.addEventListener("damage-calc:change", () => {
     const opponentSpecies = getOpponentBuild().speciesName;
-    if (opponentSpecies !== previousOpponentSpecies) {
-      previousOpponentSpecies = opponentSpecies;
+    // 未選択("")→初期デフォルト相手への反映はsecondary-bar.tsが通知なしで行うため、
+    // その後の最初のイベントで「相手が変わった」と誤判定してランク等を消さないよう除外する。
+    const changed = opponentSpecies !== previousOpponentSpecies && previousOpponentSpecies !== "";
+    previousOpponentSpecies = opponentSpecies;
+    if (changed) {
       setOpponentState({ ...DEFAULT_OPPONENT_STATE, boosts: [...DEFAULT_OPPONENT_STATE.boosts] });
     }
     render();

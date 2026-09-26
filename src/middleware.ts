@@ -6,6 +6,8 @@
 // 設計のため(育成データ管理計画.md §8 Phase A-3)、ミドルウェア側での強制リダイレクトも行わない。
 // /api/auth/** はセッション確立前のリクエストを扱う経路であり、locals.user をセットする以外の
 // 保護は元々存在しないため、この方針のもとでは自動的に対象外になる。
+// 認証必須の /api/** ハンドラは getSessionUser() を再度呼ばず、ここでセットした locals.user で
+// 401 を判定する(本番の Supabase auth.getUser() を1リクエスト1回に抑えるため)。
 // 加えて、静的アセットには届かないSSRレスポンスのセキュリティヘッダもここで付与する。
 import { defineMiddleware } from 'astro:middleware';
 import { ensureAnonymousStarterData } from './lib/data/anonymous-starter-data';

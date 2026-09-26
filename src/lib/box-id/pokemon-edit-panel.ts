@@ -804,6 +804,24 @@ if (form) {
 		updateEvRemaining,
 	});
 
+	// /box/data・/box/matchup・/box/ranked(PokemonSettingsModalHost.astroのshowForm=false)
+	// では#edit-formはCSSで常時非表示(is-form-visible不在)のままで、プレビューから
+	// 種族/もちもの/テラス/技/ステータスいずれかの設定モーダルを開いたとき(settings-modal.tsの
+	// box-settings:openイベント)だけ内容の一部が見える(ステータス調整欄は
+	// stat-adjustment-dialog.tsがDOMごとモーダルへ移動する)。そのため、ネットワークを伴う
+	// 候補取得(reloadPopularBuildSuggestions・loadOwnedPokemonTeams)は、フォームが最初から
+	// 見えるページ(showForm=true、is-form-visible付与済み)では従来どおり即時実行し、
+	// 見えないページでは最初に何らかの設定モーダルが開かれるまで遅延する
+	// (見えない間に叩いても無駄なだけのため)。
+	const isFormVisibleFromStart = form.closest(".pokemon-settings-modal-host")?.classList.contains("is-form-visible") ?? true;
+	function runWhenFormVisible(run: () => void): void {
+		if (isFormVisibleFromStart) {
+			run();
+			return;
+		}
+		document.addEventListener("box-settings:open", run, { once: true });
+	}
+
 	let ownedPokemonId = form.dataset.id ?? "";
 	const speciesInput = el<HTMLInputElement>("species-name");
 	const evPresetBadges = buildEvPresetBadges({
@@ -1177,8 +1195,10 @@ if (form) {
 	// 保存済みの持ち物が誤っていても正しいメガストーンへ補正しロックする。
 	void applyLeftMegaStoneAutofill(speciesInput.value.trim());
 	// 匿名集計サジェスト機能・第5段階: ページ初期化時(SSRで埋め込まれた現在の種族名)にも
-	// 1回呼ぶ。
-	reloadPopularBuildSuggestions();
+	// 1回呼ぶ。フォームが見えないページでは runWhenFormVisible が最初の設定モーダル表示まで遅らせる。
+	runWhenFormVisible(() => {
+		reloadPopularBuildSuggestions();
+	});
 	void evPresetBadges.load(speciesInput.value.trim());
 	evPresetBadges.syncCurrent(STAT_KEYS.map((key) => readEv(key)));
 
@@ -1756,7 +1776,11 @@ if (form) {
 	}
 	syncPokemonPreview();
 
-	void loadOwnedPokemonTeams();
+	// フォームが見えないページでは runWhenFormVisible が最初の設定モーダル表示まで遅らせる
+	// (上のreloadPopularBuildSuggestionsと同じ理由)。
+	runWhenFormVisible(() => {
+		void loadOwnedPokemonTeams();
+	});
 	setupCreateTeamButton();
 }
 

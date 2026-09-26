@@ -15,7 +15,6 @@
 // 数式もSQLも書かない(既存APIルートが生のSupabaseクエリをlib層へ委譲しているのと同じ分業)。
 import type { APIContext } from 'astro';
 import { badRequest, isValidUuid, jsonResponse, methodNotAllowed } from './_shared';
-import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient, getSupabasePublicClient } from '../../lib/supabase';
 import { listOwnedPokemonByIds } from '../../lib/owned-pokemon';
 import { classifyArchetype, type ArchetypeKey, type ArchetypeRole } from '../../lib/archetype';
@@ -90,8 +89,8 @@ function parseMemberIds(raw: string | null): { ok: true; ids: string[] } | { ok:
   return { ok: true, ids: [...new Set(ids)] };
 }
 
-export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, url }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const parsed = parseMemberIds(url.searchParams.get('member_ids'));

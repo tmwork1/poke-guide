@@ -245,11 +245,17 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				});
 			}
 
-			function renderList(): void {
-				const filtered = allTeams.filter(
+			// 検索語での絞り込み+更新日時降順のソート(renderListと、追加ページの追記描画
+			// appendListBatchの両方から使う共通処理)。
+			function sortedFilteredTeams(teams: Team[]): Team[] {
+				const filtered = teams.filter(
 					(t) => matchesSearch(t, searchInput.value.trim()),
 				);
-				const sorted = [...filtered].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+				return [...filtered].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+			}
+
+			function renderList(): void {
+				const sorted = sortedFilteredTeams(allTeams);
 				listRoot.innerHTML = "";
 				// 「本当に0件」(空状態)と「絞り込みで0件」(検索結果なし)を区別する
 				// (box/index.astroの#empty-message/#no-match-messageと同じ切り分け)。
@@ -260,6 +266,33 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				for (const t of sorted) {
 					listRoot.appendChild(renderCard(t));
 				}
+			}
+
+			// 初期ロード中に25件目以降を自動取得するたび(loadListのreset=false
+			// 自動継続)、renderList()の全カード再生成をすると既存カードまで作り直してしまう。
+			// 新規バッチだけをDocumentFragmentで追記する(検索条件は新規バッチにも適用する)。
+			// 更新日時降順という並び順は、新規バッチの中の最新のチームが既存表示分の
+			// 最後尾より新しい(=並びが崩れる)場合にだけ、安全側で通常のrenderList()に
+			// フォールバックする。ユーザー操作(検索・密度変更・削除)は従来どおり
+			// renderList()で全再描画する。
+			function appendListBatch(previousTeams: Team[], newTeams: Team[]): void {
+				const previousSorted = sortedFilteredTeams(previousTeams);
+				if (previousSorted.length === 0) {
+					// 追記の基準となる表示が無い(検索結果なし等)ので、全体を描き直す。
+					renderList();
+					return;
+				}
+				const newSorted = sortedFilteredTeams(newTeams);
+				if (newSorted.length === 0) return;
+				const lastRenderedUpdatedAt = new Date(previousSorted[previousSorted.length - 1].updated_at).getTime();
+				const firstNewUpdatedAt = new Date(newSorted[0].updated_at).getTime();
+				if (firstNewUpdatedAt > lastRenderedUpdatedAt) {
+					renderList();
+					return;
+				}
+				const fragment = document.createDocumentFragment();
+				for (const t of newSorted) fragment.appendChild(renderCard(t));
+				listRoot.appendChild(fragment);
 			}
 
 			async function deletePokemon(p: TeamMemberPokemon): Promise<void> {
@@ -305,12 +338,19 @@ import SecondHeader from '../../components/SecondHeader.astro';
 				errorMessage.hidden = true;
 				try {
 					const offset = reset ? 0 : allTeams.length;
+					const previousTeams = allTeams;
 					const body = await listTeamsPage({ limit: TEAM_PAGE_SIZE, offset });
 					allTeams = reset ? body.teams : [...allTeams, ...body.teams];
 					hasMoreTeams = body.hasMore;
 					loadedNextBatch = body.teams.length > 0;
 					loadingMessage.hidden = true;
-					renderList();
+					// 初期ロードの自動継続(reset=false)で、既に表示済みの分がある場合だけ
+					// 追記描画にする。それ以外(初回描画・追加分が0件)は従来どおり全再描画する。
+					if (reset || previousTeams.length === 0) {
+						renderList();
+					} else {
+						appendListBatch(previousTeams, body.teams);
+					}
 				} catch (err) {
 					console.error(err);
 					loadingMessage.hidden = true;

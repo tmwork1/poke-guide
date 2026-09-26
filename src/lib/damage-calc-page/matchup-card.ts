@@ -631,7 +631,14 @@ async function run(selfArtworkUrl = ""): Promise<void> {
   }
 }
 
-export function initMatchupCardList(): void {
+/**
+ * @param pendingTeamApplied `/damage-calc?team=...`でチームを復元中はこのPromiseを渡す。
+ * 解決値がtrueならチーム反映(selectTeam)側のdamage-calc:change(reason self)が
+ * 既にrun()を呼んでいるので、ここでは呼ばない。falseはチームが見つからない/取得失敗の
+ * フォールバックで、通常の空状態を描画するためにrun()を呼ぶ。渡さない場合(通常ロード)は
+ * 従来通り即座にrun()する。
+ */
+export function initMatchupCardList(pendingTeamApplied?: Promise<boolean>): void {
   document.addEventListener(CHANGE_EVENT, (event) => {
     const detail = (event as CustomEvent<{ reason?: string; abilityName?: string; artworkUrl?: string }>).detail;
     if (detail.reason === "opponent-ability") {
@@ -646,5 +653,11 @@ export function initMatchupCardList(): void {
     }
     timer = window.setTimeout(() => void run(), 700);
   });
+  if (pendingTeamApplied) {
+    // チーム復元中は、空の自分側で1回・チーム反映後にもう1回という二重描画を避けるため
+    // 初回run()を保留する。teamが見つからない/失敗したときだけここでフォールバックする。
+    void pendingTeamApplied.then((applied) => { if (!applied) void run(); });
+    return;
+  }
   void run();
 }

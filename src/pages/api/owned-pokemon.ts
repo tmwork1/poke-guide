@@ -6,7 +6,6 @@
 // 詳細は src/lib/owned-pokemon.ts 冒頭のコメント参照)。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
-import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { validateOwnedPokemonRequestBody } from '../../lib/owned-pokemon-validation';
 import { createOwnedPokemon, listOwnedPokemon, type OwnedPokemonSort } from '../../lib/owned-pokemon';
@@ -27,8 +26,8 @@ function parseNonNegativeInteger(value: string | null): number | undefined | nul
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
-export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, url }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const sort = parseSort(url.searchParams.get('sort'));
@@ -54,8 +53,8 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   return jsonResponse({ data: result.data, hasMore: result.hasMore ?? false }, 200);
 }
 
-export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function POST({ request, locals }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
   if (user.isAnonymous) return jsonResponse({ error: 'Anonymous users cannot create pokemon' }, 403);
 

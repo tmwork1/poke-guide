@@ -8,7 +8,6 @@
 // 他人データ露出を防ぐための設計、詳細は src/lib/opponent-notes.ts 冒頭のコメント参照)。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from './_shared';
-import { getSessionUser } from '../../lib/user-session';
 import { getSupabaseAdminClient } from '../../lib/supabase';
 import { validateOpponentNoteRequestBody } from '../../lib/opponent-notes-validation';
 import { createOpponentNote, listOpponentNotes } from '../../lib/opponent-notes';
@@ -18,8 +17,8 @@ import { recordOpponentNoteAnonymized } from '../../lib/opponent-note-secondary-
 
 export const prerender = false;
 
-export async function GET({ request, cookies, url }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, url }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const ownedPokemonId = url.searchParams.get('owned_pokemon_id');
@@ -38,8 +37,8 @@ export async function GET({ request, cookies, url }: APIContext): Promise<Respon
   return jsonResponse({ data: result.data }, 200);
 }
 
-export async function POST({ request, cookies }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function POST({ request, locals }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {

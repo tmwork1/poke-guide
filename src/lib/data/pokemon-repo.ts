@@ -3,6 +3,7 @@
 
 import type { OwnedPokemonRecord } from '../owned-pokemon';
 import type { OwnedPokemonRequestBody } from '../owned-pokemon-validation';
+import { bumpUserDataRevision } from '../shared/reload-on-bfcache-restore';
 
 export interface ListOwnedPokemonPageOptions {
   limit: number;
@@ -37,6 +38,7 @@ export async function deleteOwnedPokemon(id: string): Promise<void> {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `削除に失敗しました (status=${response.status})`);
   }
+  bumpUserDataRevision();
 }
 
 /** Create a Pokémon in the active account. Anonymous users are rejected by the API. */
@@ -51,6 +53,7 @@ export async function createOwnedPokemon(payload: OwnedPokemonRequestBody): Prom
   if (!response.ok || !body.data?.id) {
     throw new Error(body.error ?? `登録に失敗しました (status=${response.status})`);
   }
+  bumpUserDataRevision();
   return { id: body.data.id };
 }
 
@@ -66,4 +69,5 @@ export async function updateOwnedPokemon(id: string, payload: OwnedPokemonReques
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `更新に失敗しました (status=${response.status})`);
   }
+  bumpUserDataRevision();
 }

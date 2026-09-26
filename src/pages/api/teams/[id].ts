@@ -6,7 +6,6 @@
 // 対象が存在しない場合と他人の所有物である場合はいずれも同じ404を返し、存在の有無を漏らさない。
 import type { APIContext } from 'astro';
 import { badRequest, isSameOrigin, isValidUuid, jsonResponse, methodNotAllowed, readRequiredJsonBody } from '../_shared';
-import { getSessionUser } from '../../../lib/user-session';
 import { getSupabaseAdminClient } from '../../../lib/supabase';
 import { validateTeamRequestBody, validateTeamComposition, type TeamCompositionViolation } from '../../../lib/team-validation';
 import { deleteTeam, getTeam, replaceTeam, updateTeamPinStatus } from '../../../lib/team';
@@ -24,8 +23,8 @@ const COMPOSITION_VIOLATION_MESSAGES: Record<TeamCompositionViolation, string> =
   'over-capacity': 'チームには6体まで編成できます',
 };
 
-export async function GET({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function GET({ locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   const id = params.id;
@@ -39,8 +38,8 @@ export async function GET({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ team: result.data }, 200);
 }
 
-export async function PUT({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PUT({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {
@@ -87,8 +86,8 @@ export async function PUT({ request, cookies, params }: APIContext): Promise<Res
   return jsonResponse({ team: result.data }, 200);
 }
 
-export async function DELETE({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function DELETE({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
   if (user.isAnonymous) return jsonResponse({ error: 'Anonymous users cannot delete teams' }, 403);
 
@@ -114,8 +113,8 @@ export async function DELETE({ request, cookies, params }: APIContext): Promise<
 
 // PATCH /api/teams/:id: is_pinnedのみを更新する軽量経路(owned-pokemon.tsのPATCH
 // /api/owned-pokemon/:idと同じ設計。src/pages/api/owned-pokemon/[id].ts参照)。
-export async function PATCH({ request, cookies, params }: APIContext): Promise<Response> {
-  const user = await getSessionUser(request, cookies);
+export async function PATCH({ request, locals, params }: APIContext): Promise<Response> {
+  const user = locals.user ?? null;
   if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
   if (!isSameOrigin(request)) {

@@ -421,13 +421,15 @@ if (!isGuestNewMode) {
 					selectedOverviewSlot = null;
 					selectedFormationSlot = null;
 					selectedCandidatePokemon = null;
-				}
-				layoutRoot.dataset.mobileTab = tab;
-				for (const button of mobileTabButtons) {
-					const active = button.dataset.mobileTab === tab;
-					button.dataset.active = active ? "true" : "false";
-					if (active) button.setAttribute("aria-current", "page");
-					else button.removeAttribute("aria-current");
+					// SSR済みと同値の初期化呼び出しでは属性を書き換えない
+					// (無駄なDOM mutationを増やさないため)。値が実際に変わる場合だけ書く。
+					layoutRoot.dataset.mobileTab = tab;
+					for (const button of mobileTabButtons) {
+						const active = button.dataset.mobileTab === tab;
+						button.dataset.active = active ? "true" : "false";
+						if (active) button.setAttribute("aria-current", "page");
+						else button.removeAttribute("aria-current");
+					}
 				}
 				if (tab === "matchup" && tabChanged) {
 					// 初期URLの適用は相性DOM参照の初期化より前に行われるため、計算開始だけを
@@ -440,6 +442,11 @@ if (!isGuestNewMode) {
 					// おすすめ欄は編成タブ専用になったため、タブを開いた時点でも読み込みを
 					// 開始する。同じ編成はloadSuggestions()側で抑止されるので再フェッチしない。
 					void loadSuggestions();
+				}
+				if (tab === "data" && tabChanged && mobileTabsInitialized) {
+					// 類似チームタブを開いた時点で、非表示中にメンバーが変わっていれば
+					// (dirty)取得する。変わっていなければ再フェッチしない。
+					ensureSimilarBuildsLoaded();
 				}
 				if (tabChanged && mobileTabsInitialized) {
 					renderOverviewGrid();
@@ -1083,6 +1090,12 @@ if (!isGuestNewMode) {
 				const key = memberIds.slice().sort().join(",");
 				if (key === lastSuggestKey) return;
 				lastSuggestKey = key;
+				if (memberIds.length === 0) {
+					// メンバー0体はおすすめを出せないため取得しない。表示は
+					// shouldShowFormationSuggestions=false の通常経路と同じ空表示にする。
+					void renderSuggestions([], "cooccurrence");
+					return;
+				}
 
 				const requestId = (suggestRequestId += 1);
 				try {
@@ -1100,6 +1113,9 @@ if (!isGuestNewMode) {
 			// 編成の変更に追随する。自動保存(scheduleSave)と同じ700msのデバウンスにして、
 			// 6枠を続けて操作したときに毎回APIを叩かないようにする。
 			function scheduleSuggestions(): void {
+				// 編成タブが非表示の間は取得しない。表示時にsetMobileTab側が
+				// loadSuggestions()を呼ぶ(同じ編成なら再フェッチしない)。
+				if (layoutRoot.dataset.mobileTab !== "formation") return;
 				window.clearTimeout(suggestTimer);
 				suggestTimer = window.setTimeout(() => {
 					void loadSuggestions();
@@ -1209,6 +1225,10 @@ if (!isGuestNewMode) {
 			let rankedTeamsHasMore = false;
 			let rankedTeamsLoadGeneration = 0;
 			let rankedTeamsLoadingGeneration: number | null = null;
+			// 類似チームタブが非表示の間にメンバーが変わったら(scheduleSimilarBuilds)
+			// 取得はせずここを立てるだけにし、タブを開いた時にensureSimilarBuildsLoaded()で
+			// まとめて取得する。初期値trueは「まだ一度も読み込んでいない」を表す。
+			let similarBuildsDirty = true;
 			async function loadRankedTeams(reset = false): Promise<void> {
 				if (!selectedSimilarSeason) return;
 				if (reset) {
@@ -1314,8 +1334,17 @@ if (!isGuestNewMode) {
 				onCardExpand: () => renderSimilarBuilds(rankedTeams),
 			});
 			async function loadSimilarBuilds(): Promise<void> {
+				similarBuildsDirty = false;
 				const requestId = (similarBuildsRequestId += 1);
 				window.cancelAnimationFrame(similarBuildsAutoLoadFrame ?? 0);
+				// メンバー0体は類似度を計算できないため取得しない。即「見つからない」
+				// 相当の空状態にする(renderSimilarBuilds([])が出す文言は既存のまま)。
+				if (membersBySlot.size === 0) {
+					rankedTeams = [];
+					rankedTeamsHasMore = false;
+					renderSimilarBuilds(rankedTeams);
+					return;
+				}
 				setSimilarBuildsStatus("類似構築を計算中…", "loading");
 				try {
 					await loadRankedTeams(true);
@@ -1326,6 +1355,13 @@ if (!isGuestNewMode) {
 					if (requestId !== similarBuildsRequestId) return;
 					setSimilarBuildsStatus("類似構築を読み込めませんでした。", "error");
 				}
+			}
+
+			// 類似チームタブを表示した時にだけ、非表示中の変更分(dirty)をまとめて
+			// 取得する。dirtyでなければ(既に最新を読み込み済みなら)再フェッチしない。
+			function ensureSimilarBuildsLoaded(): void {
+				if (!similarBuildsDirty) return;
+				void loadSimilarBuilds();
 			}
 
 			async function loadMoreSimilarBuilds(): Promise<void> {
@@ -1342,6 +1378,12 @@ if (!isGuestNewMode) {
 
 			let similarBuildsTimer: number | undefined;
 			function scheduleSimilarBuilds(): void {
+				// 類似チームタブが非表示の間は取得しない。dirty化しておき、
+				// タブを開いた時にensureSimilarBuildsLoaded()がまとめて取得する。
+				if (layoutRoot.dataset.mobileTab !== "data") {
+					similarBuildsDirty = true;
+					return;
+				}
 				window.clearTimeout(similarBuildsTimer);
 				similarBuildsTimer = window.setTimeout(() => {
 					void loadSimilarBuilds();
@@ -1709,7 +1751,11 @@ if (!isGuestNewMode) {
 				if (membersBySlot.has(slot)) removeMemberFromSlot(slot);
 			}
 
-			function renderFormationMobile(): void {
+			// チーム枠(編成・相性・類似チームの3タブ共通)だけを描き直す。候補一覧
+			// (ボックス側の選択バー)はallPokemon側の変化でしか変わらないため分離した
+			// (loadAllOwnedPokemon側で、チーム枠は署名が変わった時だけ・候補一覧は毎回
+			// 呼び分けられるようにする)。
+			function renderFormationTeamSlots(): void {
 				const shouldShowFormationSuggestions = membersBySlot.size >= 1 && membersBySlot.size <= 6;
 				if (!shouldShowFormationSuggestions) suggestionSpeciesRanks.clear();
 				renderTeamMateSlots({
@@ -1739,7 +1785,10 @@ if (!isGuestNewMode) {
 					onSlotTap: onFormationSlotTap,
 					onSlotLongPress: onFormationSlotLongPress,
 				});
+			}
 
+			// 候補一覧(ボックス側の選択バー)だけを描き直す。
+			function renderFormationCandidateList(): void {
 				formationMobileBoxGrid.replaceChildren();
 				const term = formationMobileSearchInput.value.trim();
 				const candidates = sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)));
@@ -1791,6 +1840,11 @@ if (!isGuestNewMode) {
 				}
 				formationMobileBoxGrid.appendChild(formationMobileAddButton);
 				updateAutoBuildButtonState();
+			}
+
+			function renderFormationMobile(): void {
+				renderFormationTeamSlots();
+				renderFormationCandidateList();
 			}
 
 			// おすすめ(suggestionSpeciesRanks)の反映だけを行う軽量再描画。renderFormationMobile()を
@@ -2221,15 +2275,45 @@ if (!isGuestNewMode) {
 			formationMobileAddButton.addEventListener("click", () => void createFormationMobilePokemon());
 			formationAutoBuildButton.addEventListener("click", () => void autoBuildFormation());
 
+			// fetch前後で編成メンバーの表示・計算に関わる全フィールドが同じなら、
+			// 概要グリッド・3タブのチーム枠(renderFormationTeamSlots)は作り直さない
+			// (初期ロード中に内容が同じまま複数回丸ごと再構築されるのを防ぐ)。IDだけの
+			// 比較では個体編集後の変更(技・持ち物・努力値など)を見逃すため、表示・計算に
+			// 使う全フィールドと updated_at を含める。item_overrideはfetchで変わることはないが、
+			// 「編成中メンバーの全フィールド」に含めて署名の意味を明確にする。
+			function formationDisplaySignature(): string {
+				return Array.from(membersBySlot.entries())
+					.sort((a, b) => a[0] - b[0])
+					.map(([slot, p]) => JSON.stringify([
+						slot,
+						p.species_name,
+						p.ability_name,
+						p.item_name,
+						p.tera_type,
+						p.move_names,
+						p.level,
+						p.nature,
+						p.evs,
+						p.ivs,
+						itemOverridesBySlot.get(slot) ?? null,
+						p.updated_at,
+					]))
+					.join("|");
+			}
+
 			// --- 初期化 ---
 			// SSR取得済みのメンバーは fetch を待たずに即描画する(6枠が空でも一瞬も待たせない)。
 			mobileTabsInitialized = true;
 			renderOverviewGrid();
 			renderFormationMobile();
-			void loadSuggestions();
-			void loadSimilarBuilds();
+			// おすすめ(編成タブ)・類似チーム(類似チームタブ)は、表示中のタブの分だけ
+			// 初期ロードで取得する。非表示のタブ分は、そのタブを初めて開いた時に
+			// setMobileTab側(loadSuggestions / ensureSimilarBuildsLoaded)が取得する。
+			if (layoutRoot.dataset.mobileTab === "formation") void loadSuggestions();
+			if (layoutRoot.dataset.mobileTab === "data") ensureSimilarBuildsLoaded();
 
 			async function loadAllOwnedPokemon(): Promise<void> {
+				const signatureBeforeFetch = formationDisplaySignature();
 				let offset = 0;
 				const pokemon: OwnedPokemonRecord[] = [];
 				while (true) {
@@ -2243,10 +2327,16 @@ if (!isGuestNewMode) {
 					const fresh = allPokemon.find((x) => x.id === p.id);
 					if (fresh) membersBySlot.set(slot, fresh);
 				}
-				// 個体編集画面から戻ったときの再取得でも使うため、編成6枠を表示している
-				// ポケモンタブ側も必ず描き直す(もちもの・技などの変更を取りこぼさない)。
-				renderOverviewGrid();
-				renderFormationMobile();
+				// 個体編集画面から戻ったときの再取得でも使うため、編成メンバーの表示・計算に
+				// 関わるフィールドが変わっていれば、概要グリッド・3タブのチーム枠を必ず
+				// 描き直す(もちもの・技などの変更を取りこぼさない)。変わっていなければ
+				// (=多くの場合の初期ロード)作り直さない。候補一覧(ボックス側の
+				// 選択バー)はallPokemon自体が今届いたばかりで内容が変わるため、常に描き直す。
+				if (formationDisplaySignature() !== signatureBeforeFetch) {
+					renderOverviewGrid();
+					renderFormationTeamSlots();
+				}
+				renderFormationCandidateList();
 				// サジェストの操作ボタンは「手持ちに一致する個体があるか」で文言が変わる
 				// (findOwnedMatch)。その判定材料である allPokemon が今届いたので、
 				// 既に描画済みの結果があれば同じデータのまま描き直す(再fetchはしない)。
