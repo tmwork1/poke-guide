@@ -52,7 +52,7 @@ function searchCategory(category: SearchCategory, query: string): { hits: NamedR
   return { hits: allHits.slice(0, MAX_RESULTS_PER_CATEGORY), hitCount: allHits.length };
 }
 
-export async function POST({ request, cookies }: APIContext): Promise<Response> {
+export async function POST({ request, cookies, locals }: APIContext): Promise<Response> {
   const body = await readRequiredJsonBody<unknown>(request);
   if (body.response) return body.response;
 
@@ -108,34 +108,49 @@ export async function POST({ request, cookies }: APIContext): Promise<Response> 
     return jsonResponse({ data: { query, category: category ?? null, hitCount, results } }, 200);
   }
 
-  const supabase = await getSupabaseAdminClient();
-
   // searches / events への記録はどちらも集計用の副次的な記録であり、検索結果自体は
   // マスタデータ(バンドル済みJSON)からDB非依存で既に計算できているため、
   // 記録が失敗してもユーザーへのレスポンス(results)は返す
   // (damage-calcs.ts / builds.ts で修正した「主目的の達成をログ書き込み失敗で
   // 台無しにしない」方針と同じ。検索の主目的は検索結果を返すことであり、
   // searchesテーブルへの記録はdamage_calcs/buildsのように結果そのものではない)。
-  const { error } = await supabase.from('searches').insert({
-    query,
-    category: category ?? null,
-    hit_count: hitCount,
-    session_hash: sessionHash,
-  });
+  const loggingPromise = (async () => {
+    const supabase = await getSupabaseAdminClient();
+    const [{ error }, { error: eventError }] = await Promise.all([
+      supabase.from('searches').insert({
+        query,
+        category: category ?? null,
+        hit_count: hitCount,
+        session_hash: sessionHash,
+      }),
+      supabase.from('events').insert({
+        event_type: 'search',
+        payload: { query, category: category ?? null, hit_count: hitCount },
+        session_hash: sessionHash,
+      }),
+    ]);
 
-  if (error) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to insert searches:', error);
-  }
-  const { error: eventError } = await supabase.from('events').insert({
-    event_type: 'search',
-    payload: { query, category: category ?? null, hit_count: hitCount },
-    session_hash: sessionHash,
-  });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to insert searches:', error);
+    }
+    if (eventError) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to insert events (search):', eventError);
+    }
+  })();
 
-  if (eventError) {
-    // eslint-disable-next-line no-console
-    console.error('Failed to insert events (search):', eventError);
+  if (locals.cfContext?.waitUntil) {
+    // waitUntil 登録後の失敗はレスポンスへ反映できないため、未処理拒否を避けてログだけ残す。
+    locals.cfContext.waitUntil(
+      loggingPromise.catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to write search logs:', error);
+      }),
+    );
+  } else {
+    // astro dev など ExecutionContext が無い環境では、書き込みを完了させてから返す。
+    await loggingPromise;
   }
 
   return jsonResponse({ data: { query, category: category ?? null, hitCount, results } }, 200);
