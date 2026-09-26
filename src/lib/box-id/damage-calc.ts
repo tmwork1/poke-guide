@@ -666,11 +666,7 @@ if (opponentNotesSection) {
 	// 起きた後になる)。
 	registerDamageCalcBridge({
 		recalcRow: (row) => recalcRow(row),
-		recalcAllRows: () => {
-			rows.forEach((row) => {
-				void recalcRow(row);
-			});
-		},
+		recalcAllRows: () => void recalcAllRows(),
 		saveRow: (row) => saveRow(row),
 		setRowSaveStatus: (row, state, text) => setRowSaveStatus(row, state, text),
 		renderConditionChipsInto: (container, attack, row) => renderConditionChipsInto(container, attack, row),
@@ -1538,8 +1534,11 @@ if (opponentNotesSection) {
 	// 実数値グリッド + ダメージ計算(攻撃列の加算ダメージ・累計致死率)をまとめて再計算する。
 	// エンジン未初期化・相手名未入力の場合は計算せず、保存済みのclientResult(あれば)を
 	// そのまま表示し続ける。
-	async function recalcRow(row: DamageRowState): Promise<void> {
+	async function recalcRow(row: DamageRowState, isRequestCurrent: () => boolean = () => true): Promise<void> {
+		const calcGeneration = (rowCalcGenerations.get(row) ?? 0) + 1;
+		rowCalcGenerations.set(row, calcGeneration);
 		await recalcRowStatsOnly(row);
+		if (rowCalcGenerations.get(row) !== calcGeneration || !isRequestCurrent()) return;
 		// 壁on/off・攻守ランクのスカラー値から、実際にエンジンへ渡す配列
 		// (attackerBoosts/defenderBoosts/defenderSideFields)を技名の物理/特殊分類にもとづいて
 		// 算出し直す(resolveColumnDerivedFields参照)。
@@ -1586,6 +1585,9 @@ if (opponentNotesSection) {
 					);
 				})),
 			]);
+			// 計算中に同じ行の新しい再計算が始まった場合、古い入力にもとづく結果で
+			// 新しい表示・保存値を上書きしない。
+			if (rowCalcGenerations.get(row) !== calcGeneration || !isRequestCurrent()) return;
 			const perAttackLethal = [...seqResult.perAttackLethal];
 			chargedRepeatResults.forEach((repeatResult, resultIndex) => {
 				const attackIndex = chargedAttackIndexes[resultIndex];
@@ -1639,6 +1641,7 @@ if (opponentNotesSection) {
 				scheduleRowSave(row);
 			}
 		} catch (err) {
+			if (rowCalcGenerations.get(row) !== calcGeneration || !isRequestCurrent()) return;
 			console.error(err);
 			const failureTargets = [...row.columnResultEls, row.totalResultEl];
 			for (const elx of failureTargets) {
@@ -3252,6 +3255,27 @@ if (opponentNotesSection) {
 
 	// --- 行一覧の状態・取得・追加 ---
 	let rows: DamageRowState[] = [];
+	const rowCalcGenerations = new WeakMap<DamageRowState, number>();
+	let allRowsCalcGeneration = 0;
+
+	// /damage-calc の matchup-card.ts と同じマクロタスク境界を使う。
+	// Pyodideの計算関数はasyncでも実体が同期処理なので、Promiseのawaitだけでは
+	// ブラウザへ描画機会を返せない。
+	function yieldToBrowser(): Promise<void> {
+		return new Promise((resolve) => setTimeout(resolve, 0));
+	}
+
+	async function recalcAllRows(refreshAutomaticMoves = false): Promise<void> {
+		const calcGeneration = ++allRowsCalcGeneration;
+		for (const row of rows) {
+			if (calcGeneration !== allRowsCalcGeneration) return;
+			if (refreshAutomaticMoves) refreshOpponentAutomaticMoves(row);
+			await recalcRow(row, () => calcGeneration === allRowsCalcGeneration);
+			if (calcGeneration !== allRowsCalcGeneration) return;
+			// 先頭から計算結果を描画しつつ、行ごとにブラウザへ制御を返す。
+			await yieldToBrowser();
+		}
+	}
 	// 初期描画時に技マスターが未到着なら従来どおり両分類を表示し、到着時だけ分類に応じて絞る。
 	void loadMoveDetailMap().then(() => rows.forEach((row) => opponentStatVisibilityRefreshers.get(row)?.()));
 	readDamageRowsForShare = () => rows.flatMap((row) => {
@@ -3625,10 +3649,7 @@ if (opponentNotesSection) {
 		renderEngineStatus(progress);
 		if (progress.status === "ready") {
 			void recalcStats();
-			for (const row of rows) {
-				void recalcRow(row);
-				refreshOpponentAutomaticMoves(row);
-			}
+			void recalcAllRows(true);
 		}
 	}
 
