@@ -830,10 +830,11 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   top: calc(100% + var(--space-1));
   left: 50%;
   display: grid;
-  grid-template-columns: repeat(7, minmax(2.5rem, 1fr));
+  /* 努力値 0〜32 を10列で並べる。412px帯に収まるよう列の下限を 2.125rem(34px)にしている。 */
+  grid-template-columns: repeat(10, minmax(2.125rem, 1fr));
   gap: var(--space-1);
   width: max-content;
-  max-width: min(20rem, calc(var(--app-band-width) - var(--space-4)));
+  max-width: calc(var(--app-band-width) - var(--space-4));
   padding: var(--space-2);
   overflow: auto;
   color: var(--color-text);
@@ -845,7 +846,7 @@ input[type="range"]:focus-visible::-moz-range-thumb {
 .number-stepper-picker[hidden] { display: none; }
 
 .number-stepper-picker button {
-  min-width: 2.5rem;
+  min-width: 2.125rem;
   min-height: 2.5rem;
   padding: 0 var(--space-1);
   color: inherit;
