@@ -6,6 +6,40 @@ import type { RankedSeason } from './ranked-teams.ts';
 export const RANKED_TEAMS_PAGE_SIZE = 24;
 export const ALL_SEASONS_PARAM = 'all';
 
+export interface SimilarTeamMemberInput {
+  species_name: string;
+  ability_name: string | null;
+  item_name: string | null;
+  move_names: string[];
+}
+
+const MAX_SIMILAR_MEMBER_TEXT_LENGTH = 100;
+
+export function parseSimilarTeamMembers(value: string | null): SimilarTeamMemberInput[] | null {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!Array.isArray(parsed) || parsed.length < 1 || parsed.length > 6) return null;
+    const isOptionalText = (item: unknown): item is string | null =>
+      item === null || (typeof item === 'string' && item.length <= MAX_SIMILAR_MEMBER_TEXT_LENGTH);
+    if (!parsed.every((member): member is SimilarTeamMemberInput => {
+      if (!member || typeof member !== 'object') return false;
+      const candidate = member as Record<string, unknown>;
+      return typeof candidate.species_name === 'string'
+        && candidate.species_name.trim().length > 0
+        && candidate.species_name.length <= MAX_SIMILAR_MEMBER_TEXT_LENGTH
+        && isOptionalText(candidate.ability_name)
+        && isOptionalText(candidate.item_name)
+        && Array.isArray(candidate.move_names)
+        && candidate.move_names.length <= 4
+        && candidate.move_names.every((move) => typeof move === 'string' && move.length <= MAX_SIMILAR_MEMBER_TEXT_LENGTH);
+    })) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function normalizeSeasonParam(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();

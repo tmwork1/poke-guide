@@ -201,3 +201,41 @@ export async function listAllRankedTeams(
   if (error) throw new Error('上位構築を取得できませんでした', { cause: error });
   return toPage(toRankedTeams((data ?? []) as unknown as RawTeam[]), options?.limit);
 }
+
+/**
+ * 指定種族を1体以上含む上位構築だけを取得する。
+ *
+ * 絞り込みには別名で2回目に埋め込んだ `match:ranked_team_members!inner` を使う。
+ * `ranked_team_members` 側に直接 inner フィルタを掛けると埋め込みメンバーまで一致した
+ * 種族だけに削られ、類似度計算に必要な全メンバーが返らないため。候補IDを `in('id', …)` で
+ * 渡す2段構成は、人気種族で候補が数百件になるとURL長の上限に当たるので採らない。
+ * PostgREST の max-rows(既定1000件)で切られないよう、ページングして全件を集める。
+ */
+export async function listRankedTeamsBySpeciesKeys(
+  speciesKeys: readonly string[],
+  supabase: SupabaseClient,
+  season?: string,
+): Promise<RankedTeam[]> {
+  const keys = [...new Set(speciesKeys)];
+  if (keys.length === 0) return [];
+  const pageSize = 1000;
+  const rows: RawTeam[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    let query = supabase
+      .from('ranked_teams')
+      .select(`${TEAM_SELECT}, match:ranked_team_members!inner(species_key)`)
+      .in('match.species_key', keys);
+    if (season !== undefined) query = query.eq('season', season);
+    const { data, error } = await query
+      .order('season_number', { ascending: false })
+      .order('rank', { ascending: true })
+      .order('id', { ascending: true })
+      .order('slot', { foreignTable: 'ranked_team_members', ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw new Error('類似する上位構築を取得できませんでした', { cause: error });
+    const page = (data ?? []) as unknown as RawTeam[];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return toRankedTeams(rows);
+}

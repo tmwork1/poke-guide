@@ -58,3 +58,40 @@ export function calculateTeamSimilarity(
 			: score;
 	}, 0);
 }
+
+export interface SimilarTeamEntry<T> {
+	team: T;
+	similarity: number;
+	hasBuildMatch: boolean;
+}
+
+/**
+ * 類似チーム画面の既存順序を、クライアントとAPIで共有する。
+ * 育成内容一致を先頭にし、その中は類似度降順・順位昇順、種族のみ一致は順位昇順にする。
+ */
+export function rankSimilarTeams<T extends { rank: number; members: readonly TeamSimilarityTarget[] }>(
+	team: readonly TeamSimilaritySource[],
+	rankedTeams: readonly T[],
+): SimilarTeamEntry<T>[] {
+	const scored = rankedTeams
+		.map((rankedTeam, index) => ({
+			team: rankedTeam,
+			index,
+			similarity: calculateTeamSimilarity(team, rankedTeam.members),
+			hasBuildMatch: rankedTeam.members.some((rankedMember) =>
+				team.some((member) => !!rankedMember.speciesKey
+					&& rankedMember.speciesKey === member.species_name
+					&& calculateBuildSimilarity(member, rankedMember) > 0),
+			),
+		}))
+		.filter((entry) => entry.similarity > 0);
+
+	const exactBuilds = scored
+		.filter((entry) => entry.hasBuildMatch)
+		.sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank || a.index - b.index);
+	const speciesOnlyBuilds = scored
+		.filter((entry) => !entry.hasBuildMatch)
+		.sort((a, b) => a.team.rank - b.team.rank || b.similarity - a.similarity || a.index - b.index);
+
+	return [...exactBuilds, ...speciesOnlyBuilds].map(({ index: _index, ...entry }) => entry);
+}

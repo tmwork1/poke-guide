@@ -351,7 +351,6 @@ if (!isGuestNewMode) {
 		} from "../../lib/owned-pokemon-card";
 		import { splitBoxCardDisplayName } from "../../lib/box-card-display-name";
 		import { renderTeamMateSlots } from "../../lib/team-mate-card";
-		import { calculateBuildSimilarity, calculateTeamSimilarity } from "../../lib/build-similarity";
 		import { autosizeTextarea } from "../../lib/shared/autosize-textarea";
 		import type { RankedTeam } from "../../lib/ranked-teams";
 		import { matchesTopBuildSearch } from "../../lib/ranked-teams-validation";
@@ -1220,43 +1219,11 @@ if (!isGuestNewMode) {
 
 			const rankedSeason = layoutRoot.dataset.rankedSeason || null;
 			let selectedSimilarSeason = rankedSeason;
-			const SIMILAR_BUILDS_PAGE_SIZE = 24;
 			let rankedTeams: RankedTeam[] = [];
-			let rankedTeamsHasMore = false;
-			let rankedTeamsLoadGeneration = 0;
-			let rankedTeamsLoadingGeneration: number | null = null;
 			// 類似チームタブが非表示の間にメンバーが変わったら(scheduleSimilarBuilds)
 			// 取得はせずここを立てるだけにし、タブを開いた時にensureSimilarBuildsLoaded()で
 			// まとめて取得する。初期値trueは「まだ一度も読み込んでいない」を表す。
 			let similarBuildsDirty = true;
-			async function loadRankedTeams(reset = false): Promise<void> {
-				if (!selectedSimilarSeason) return;
-				if (reset) {
-					rankedTeamsLoadGeneration += 1;
-					rankedTeams = [];
-					rankedTeamsHasMore = false;
-					similarCardRenderer.resetTapExpandedTeams();
-				}
-				const generation = rankedTeamsLoadGeneration;
-				if (rankedTeamsLoadingGeneration === generation) return;
-				rankedTeamsLoadingGeneration = generation;
-				const offset = rankedTeams.length;
-				const requestedSeason = selectedSimilarSeason;
-				try {
-					const res = await fetch(`/api/ranked-teams?season=${encodeURIComponent(requestedSeason)}&limit=${SIMILAR_BUILDS_PAGE_SIZE}&offset=${offset}`, { credentials: "same-origin" });
-					if (!res.ok) throw new Error(`類似構築の取得に失敗しました (status=${res.status})`);
-					const body = (await res.json()) as { teams: RankedTeam[]; hasMore: boolean };
-					if (generation !== rankedTeamsLoadGeneration || requestedSeason !== selectedSimilarSeason) return;
-					rankedTeams = [...rankedTeams, ...(body.teams ?? [])];
-					rankedTeamsHasMore = body.hasMore;
-				} catch (error) {
-					if (generation !== rankedTeamsLoadGeneration || requestedSeason !== selectedSimilarSeason) return;
-					throw error;
-				} finally {
-					if (rankedTeamsLoadingGeneration === generation) rankedTeamsLoadingGeneration = null;
-				}
-			}
-
 			function setSimilarBuildsStatus(message: string, state?: "loading" | "error"): void {
 				teamDataMobileSimilarRoot.innerHTML = "";
 				const p = document.createElement("p");
@@ -1269,54 +1236,32 @@ if (!isGuestNewMode) {
 			function renderSimilarBuilds(teams: RankedTeam[]): void {
 				const team = Array.from(membersBySlot.values());
 				const currentSpecies = new Set(team.map((member) => member.species_name));
-				const hasBuildMatch = (ranked: RankedTeam): boolean => ranked.members.some((rankedMember) =>
-					team.some((member) => !!rankedMember.speciesKey && rankedMember.speciesKey === member.species_name
-						&& calculateBuildSimilarity(member, rankedMember) > 0),
+				const results = teams.filter((rankedTeam) =>
+					matchesTopBuildSearch(rankedTeam.members, similarHeader.getSearchValue()),
 				);
-				const scored = teams
-					.map((t) => ({ team: t, similarity: calculateTeamSimilarity(team, t.members) }))
-					.filter((entry) => entry.similarity > 0)
-					.sort((a, b) => b.similarity - a.similarity || a.team.rank - b.team.rank);
-				// 型一致を先に並べ、その後にも種族だけ一致する構築を省かずに続ける。
-				const exactBuilds = scored.filter((entry) => hasBuildMatch(entry.team));
-				const speciesOnlyBuilds = scored
-					.filter((entry) => !hasBuildMatch(entry.team))
-					.sort((a, b) => a.team.rank - b.team.rank);
-				const results = [...exactBuilds, ...speciesOnlyBuilds]
-					.filter((entry) => matchesTopBuildSearch(entry.team.members, similarHeader.getSearchValue()));
 				if (results.length === 0) {
 					teamDataMobileSimilarRoot.innerHTML = "";
 					const empty = document.createElement("p");
 					empty.className = "team-data-similar-status status-text";
-					empty.textContent = rankedTeamsHasMore
-						? "類似チームを続けて読み込んでいます…"
-						: similarHeader.getSearchValue().trim()
-							? "条件に一致するチームがありません。"
-							: "チームが見つかりません。";
+					empty.textContent = similarHeader.getSearchValue().trim()
+						? "条件に一致するチームがありません。"
+						: "チームが見つかりません。";
 					teamDataMobileSimilarRoot.appendChild(empty);
-					if (rankedTeamsHasMore) scheduleMoreSimilarBuilds();
 					return;
 				}
 				const list = document.createElement("div");
 				list.className = "team-grid";
-				for (const entry of results) {
-					const highlightSlots = entry.team.members
+				for (const rankedTeam of results) {
+					const highlightSlots = rankedTeam.members
 						.filter((member) => !!member.speciesKey && currentSpecies.has(member.speciesKey))
 						.map((member) => member.slot);
-					list.appendChild(similarCardRenderer.renderCard(entry.team, { highlightSlots }));
+					list.appendChild(similarCardRenderer.renderCard(rankedTeam, { highlightSlots }));
 				}
 				teamDataMobileSimilarRoot.innerHTML = "";
 				teamDataMobileSimilarRoot.appendChild(list);
-				if (rankedTeamsHasMore) scheduleMoreSimilarBuilds();
 			}
 
 			let similarBuildsRequestId = 0;
-			let similarBuildsAutoLoadFrame: number | undefined;
-			function scheduleMoreSimilarBuilds(): void {
-				window.cancelAnimationFrame(similarBuildsAutoLoadFrame ?? 0);
-				// 24件を描画したあとに次の24件を続けて取得する。
-				similarBuildsAutoLoadFrame = window.requestAnimationFrame(() => void loadMoreSimilarBuilds());
-			}
 			const similarHeader = setupRankedTeamsSearchHeader({
 				idPrefix: "team-similar",
 				onSearchChange: () => renderSimilarBuilds(rankedTeams),
@@ -1336,19 +1281,30 @@ if (!isGuestNewMode) {
 			async function loadSimilarBuilds(): Promise<void> {
 				similarBuildsDirty = false;
 				const requestId = (similarBuildsRequestId += 1);
-				window.cancelAnimationFrame(similarBuildsAutoLoadFrame ?? 0);
 				// メンバー0体は類似度を計算できないため取得しない。即「見つからない」
 				// 相当の空状態にする(renderSimilarBuilds([])が出す文言は既存のまま)。
 				if (membersBySlot.size === 0) {
 					rankedTeams = [];
-					rankedTeamsHasMore = false;
 					renderSimilarBuilds(rankedTeams);
 					return;
 				}
 				setSimilarBuildsStatus("類似構築を計算中…", "loading");
 				try {
-					await loadRankedTeams(true);
-					if (requestId !== similarBuildsRequestId) return;
+					const requestedSeason = selectedSimilarSeason;
+					if (!requestedSeason) return;
+					const members = Array.from(membersBySlot.values()).map((member) => ({
+						species_name: member.species_name,
+						ability_name: member.ability_name,
+						item_name: member.item_name,
+						move_names: member.move_names,
+					}));
+					const params = new URLSearchParams({ season: requestedSeason, members: JSON.stringify(members) });
+					const res = await fetch(`/api/ranked-teams/similar?${params}`, { credentials: "same-origin" });
+					if (!res.ok) throw new Error(`類似構築の取得に失敗しました (status=${res.status})`);
+					const body = (await res.json()) as { teams: RankedTeam[] };
+					if (requestId !== similarBuildsRequestId || requestedSeason !== selectedSimilarSeason) return;
+					rankedTeams = body.teams ?? [];
+					similarCardRenderer.resetTapExpandedTeams();
 					renderSimilarBuilds(rankedTeams);
 				} catch (err) {
 					console.error(err);
@@ -1362,18 +1318,6 @@ if (!isGuestNewMode) {
 			function ensureSimilarBuildsLoaded(): void {
 				if (!similarBuildsDirty) return;
 				void loadSimilarBuilds();
-			}
-
-			async function loadMoreSimilarBuilds(): Promise<void> {
-				const generation = rankedTeamsLoadGeneration;
-				try {
-					await loadRankedTeams();
-					if (generation !== rankedTeamsLoadGeneration) return;
-					renderSimilarBuilds(rankedTeams);
-				} catch (err) {
-					console.error(err);
-					setSimilarBuildsStatus("類似構築を読み込めませんでした。", "error");
-				}
 			}
 
 			let similarBuildsTimer: number | undefined;

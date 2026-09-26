@@ -405,7 +405,7 @@ test("もちもの入替ダイアログの枠タップで選択状態になる",
   }
 });
 
-test("データタブで類似チームの最初の24件を表示する", async ({ page }, testInfo) => {
+test("データタブで類似チームを1回で表示する", async ({ page }, testInfo) => {
   const { teamId, ownedPokemonId } = await createDisposableTeamWithRankedMember(page);
   let firstPageSize = 0;
   let resolveFirstPage: (() => void) | undefined;
@@ -418,7 +418,7 @@ test("データタブで類似チームの最初の24件を表示する", async 
     json(): Promise<unknown>;
     finished(): Promise<Error | null>;
   }) => {
-    if (response.request().method() !== "GET" || !response.url().includes("/api/ranked-teams?")) return;
+    if (response.request().method() !== "GET" || !response.url().includes("/api/ranked-teams/similar?")) return;
     if (firstPageSize !== 0) return;
     // response.json() は本文が破棄済みだと Protocol error (Network.getResponseBody) を投げる。
     // finished() を待ってから読み、それでも取れなかった分は終点判定に使わず次のレスポンスへ譲る。
@@ -439,7 +439,7 @@ test("データタブで類似チームの最初の24件を表示する", async 
       testInfo,
       {
         id: "team-data-first-page",
-        label: "データタブ: 類似チームの最初の24件を表示",
+        label: "データタブ: 類似チームを1回で表示",
         category: "page-load",
         targetMs: 1500,
         note: "初期表示の体感を測る。通常の画面遷移としてRAILのpage-load目安1500msを目標にする。",
@@ -447,11 +447,9 @@ test("データタブで類似チームの最初の24件を表示する", async 
       () =>
         timeNav(page, `/team/${encodeURIComponent(teamId)}?tab=data`, async (target) => {
           await firstPage;
-          // 1ページ=24件はAPI側の上限であって下限ではない。ローカルDBのranked_teamsが
-          // 24件未満なら1回で全件が返るため、件数そのものではなく「1件以上返った」ことだけを主張する。
+          // APIは類似度が正のチームを全件返す。フィクスチャ作成時に実在種族を選んでいるため1件以上になる。
           expect(firstPageSize).toBeGreaterThan(0);
-          // 類似度で絞る画面なので、24件すべてがカードになるとは限らない。最初の24件の
-          // レスポンスを受け、カードまたは明示的な空状態が描画された時点を表示完了とする。
+          // 1回のレスポンスを受け、カードまたは明示的な空状態が描画された時点を表示完了とする。
           await target.waitForFunction(() => {
             const root = document.getElementById("team-data-mobile-similar");
             return !!root && (root.querySelector(".team-grid") !== null || root.querySelector(".team-data-similar-status:not([data-state='loading'])") !== null);
@@ -478,19 +476,17 @@ test("データタブの類似チーム自動継続読み込みを完了する",
     json(): Promise<unknown>;
     finished(): Promise<Error | null>;
   }) => {
-    if (response.request().method() !== "GET" || !response.url().includes("/api/ranked-teams?")) return;
+    if (response.request().method() !== "GET" || !response.url().includes("/api/ranked-teams/similar?")) return;
     rankedRequestCount += 1;
     // response.json() は本文が破棄済みだと Protocol error (Network.getResponseBody) を投げる。
-    // finished() を待ってから読み、取れなかった分は hasMore の判定に使わない
-    // (最終ページを取り逃すとタイムアウトするが、誤って早期に完了扱いにするよりは安全)。
-    let body: RankedTeamsResponse;
+    // finished() を待ってから読み、本文まで取得できた1回のレスポンスを完了条件にする。
     try {
       await response.finished();
-      body = (await response.json()) as RankedTeamsResponse;
+      await response.json();
     } catch {
       return;
     }
-    if (!body.hasMore) resolveComplete?.();
+    resolveComplete?.();
   };
   page.on("response", onResponse);
 
@@ -502,7 +498,7 @@ test("データタブの類似チーム自動継続読み込みを完了する",
         label: "データタブ: 類似チームの自動継続読み込みを完了",
         category: "page-load",
         targetMs: 5000,
-        note: "最初の表示ではなく、24件ずつの自動継続取得・全件描画が終わるまでのネットワーク総コストを示す指標。",
+        note: "自動継続読み込みは新APIの1往復に統合済み。旧シナリオIDを維持し、全類似チームの取得・描画完了までを測る。",
       },
       () =>
         timeNav(page, `/team/${encodeURIComponent(teamId)}?tab=data`, async (target) => {
@@ -512,10 +508,7 @@ test("データタブの類似チーム自動継続読み込みを完了する",
         }),
     );
 
-    // 回数は時間ではないので recordPerf に混ぜない。発見Cの「24件ずつ40回超」を
-    // 監視しつつ、将来のページング方針を縛りすぎない上限として60回を主張する。
-    // 実測値は失敗時のexpect出力で確認でき、dashboardのms列を異種の数値で汚さない。
-    expect(rankedRequestCount).toBeLessThanOrEqual(60);
+    expect(rankedRequestCount).toBe(1);
   } finally {
     page.off("response", onResponse);
     await deleteDisposableTeamAndVerify(page, teamId);

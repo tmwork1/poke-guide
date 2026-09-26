@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   calculateBuildSimilarity,
   calculateTeamSimilarity,
+  rankSimilarTeams,
   type BuildSimilaritySource,
   type BuildSimilarityTarget,
   type TeamSimilaritySource,
@@ -46,6 +47,32 @@ describe('calculateBuildSimilarity', () => {
       { ability_name: '特性A', item_name: 'アイテムA', move_names: ['技1'] },
       { ability: '特性B', itemName: 'アイテムB', moveNames: [] },
     ), 0);
+  });
+});
+
+describe('rankSimilarTeams', () => {
+  const source: TeamSimilaritySource[] = [{
+    species_name: 'ピカチュウ', ability_name: 'せいでんき', item_name: 'でんきだま', move_names: ['10まんボルト'],
+  }];
+  const member = (rank: number, buildMatch: boolean) => ({
+    id: String(rank), rank, members: [{
+      speciesName: 'ピカチュウ', speciesKey: 'ピカチュウ',
+      ability: buildMatch ? 'せいでんき' : 'ひらいしん',
+      itemName: null, moveNames: [],
+    }],
+  });
+
+  it('育成内容一致を先頭にし、種族のみ一致は順位順を維持する', () => {
+    const results = rankSimilarTeams(source, [member(3, false), member(2, true), member(1, false)]);
+    assert.deepEqual(results.map((entry) => entry.team.id), ['2', '1', '3']);
+    assert.deepEqual(results.map((entry) => entry.similarity), [2, 1, 1]);
+  });
+
+  it('類似度0のチームを返さない', () => {
+    const unrelated = { id: 'x', rank: 1, members: [{
+      speciesName: 'イーブイ', speciesKey: 'イーブイ', ability: null, itemName: null, moveNames: [],
+    }] };
+    assert.deepEqual(rankSimilarTeams(source, [unrelated]), []);
   });
 });
 

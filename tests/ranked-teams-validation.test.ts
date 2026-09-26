@@ -5,9 +5,24 @@ import {
   matchesTopBuildSearch,
   matchesTopBuildMemberSearch,
   normalizeSeasonParam,
+  parseSimilarTeamMembers,
   resolveDefaultSeason,
   RANKED_TEAMS_PAGE_SIZE,
 } from '../src/lib/ranked-teams-validation.ts';
+
+describe('parseSimilarTeamMembers', () => {
+  it('1〜6体の育成内容を受け付ける', () => {
+    const members = [{ species_name: 'ピカチュウ', ability_name: null, item_name: 'でんきだま', move_names: ['10まんボルト'] }];
+    assert.deepEqual(parseSimilarTeamMembers(JSON.stringify(members)), members);
+  });
+
+  it('空配列・7体・不正なフィールドを拒否する', () => {
+    assert.equal(parseSimilarTeamMembers('[]'), null);
+    assert.equal(parseSimilarTeamMembers(JSON.stringify(Array(7).fill({ species_name: 'ピカチュウ', ability_name: null, item_name: null, move_names: [] }))), null);
+    assert.equal(parseSimilarTeamMembers(JSON.stringify([{ species_name: '', ability_name: null, item_name: null, move_names: [] }])), null);
+    assert.equal(parseSimilarTeamMembers('{'), null);
+  });
+});
 
 describe('normalizeSeasonParam', () => {
   it('文字列の前後空白を除去する', () => assert.equal(normalizeSeasonParam('  M-3  '), 'M-3'));
