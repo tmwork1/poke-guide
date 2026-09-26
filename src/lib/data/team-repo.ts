@@ -36,7 +36,7 @@ export async function deleteTeam(id: string): Promise<void> {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Failed to delete team (status=${response.status})`);
   }
-  bumpUserDataRevision();
+  bumpUserDataRevision('team');
 }
 
 export async function createTeam(): Promise<{ id: string }> {
@@ -48,7 +48,7 @@ export async function createTeam(): Promise<{ id: string }> {
   if (!response.ok || !body.team?.id) {
     throw new Error(body.error ?? `Failed to create team (status=${response.status})`);
   }
-  bumpUserDataRevision();
+  bumpUserDataRevision('team');
   return { id: body.team.id };
 }
 
@@ -63,5 +63,5 @@ export async function updateTeam(id: string, payload: TeamRequestBody): Promise<
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Failed to update team (status=${response.status})`);
   }
-  bumpUserDataRevision();
+  bumpUserDataRevision('team');
 }

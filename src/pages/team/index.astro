@@ -377,7 +377,7 @@ import SecondHeader from '../../components/SecondHeader.astro';
 
 			updateDensityToggleUi();
 			void loadList();
-			reloadOnBfcacheRestore(() => void loadList());
+			reloadOnBfcacheRestore(() => void loadList(), ["owned", "team"]);
 		}
 	</script>
 </AppLayout>

@@ -39,15 +39,15 @@ describe('reloadOnBfcacheRestore', () => {
 
   it('データが変わっていないbfcache復帰では reload しない', () => {
     let calls = 0;
-    reloadOnBfcacheRestore(() => { calls += 1; });
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned']);
     pageshow(true);
     assert.equal(calls, 0);
   });
 
   it('離れている間に書き込みがあれば1回だけ reload する', () => {
     let calls = 0;
-    reloadOnBfcacheRestore(() => { calls += 1; });
-    bumpUserDataRevision();
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned']);
+    bumpUserDataRevision('owned');
     pageshow(true);
     pageshow(true);
     assert.equal(calls, 1);
@@ -55,8 +55,8 @@ describe('reloadOnBfcacheRestore', () => {
 
   it('通常ロード(persisted=false)では reload しない', () => {
     let calls = 0;
-    reloadOnBfcacheRestore(() => { calls += 1; });
-    bumpUserDataRevision();
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned']);
+    bumpUserDataRevision('owned');
     pageshow(false);
     assert.equal(calls, 0);
   });
@@ -64,9 +64,25 @@ describe('reloadOnBfcacheRestore', () => {
   it('localStorage が使えない環境では従来どおり毎回 reload する', () => {
     storage = null;
     let calls = 0;
-    reloadOnBfcacheRestore(() => { calls += 1; });
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned']);
     pageshow(true);
     pageshow(true);
     assert.equal(calls, 2);
+  });
+
+  it('チームだけ変わったとき、owned だけを監視する /box は reload しない', () => {
+    let calls = 0;
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned']);
+    bumpUserDataRevision('team');
+    pageshow(true);
+    assert.equal(calls, 0);
+  });
+
+  it('チームだけ変わったとき、owned と team を監視する /team は reload する', () => {
+    let calls = 0;
+    reloadOnBfcacheRestore(() => { calls += 1; }, ['owned', 'team']);
+    bumpUserDataRevision('team');
+    pageshow(true);
+    assert.equal(calls, 1);
   });
 });

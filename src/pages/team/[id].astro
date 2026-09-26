@@ -2363,7 +2363,7 @@ if (!isGuestNewMode) {
 					.catch((err) => {
 						console.error(err);
 					});
-			});
+			}, ["owned", "team"]);
 		}
 	</script>
 </AppLayout>

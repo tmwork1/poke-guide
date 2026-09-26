@@ -475,7 +475,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       button.disabled = false;
       return;
     }
-    bumpUserDataRevision();
+    bumpUserDataRevision('owned');
 
     // 通常表示では従来どおり個体編集画面へ戻る。個体編集モーダル内(iframe)では親へ
     // 保存完了を通知して親画面を更新させる。iframe自身を /box/:id へ遷移させない。
