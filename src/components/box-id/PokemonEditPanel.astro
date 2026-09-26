@@ -3,8 +3,8 @@
 // コンポーネント。呼び出し元(box/[id].astro)は pokemon(SSRで取得済み、存在確認済み=非null)
 // だけをpropsで渡す。
 //
-// スクリプト本体は src/lib/box-id/pokemon-edit-panel.ts に切り出してあり、下の<script>から
-// 副作用importする(共有コア関数は src/lib/box-id/shared-core.ts 経由で pokemon-edit-panel.ts が使う)。
+// スクリプト本体は src/lib/box-id/pokemon-edit-panel.ts に切り出してある。下の<script>は
+// 表示中のフォームでは直ちに、閲覧タブの非表示フォームでは設定モーダルを初めて開いた時に読み込む。
 import type { OwnedPokemonRecord } from '../../lib/owned-pokemon';
 import { TERA_TYPES } from '../../lib/tera-types';
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
@@ -372,8 +372,10 @@ function statAt(values: number[] | undefined, index: number, fallback: number): 
 {/* 選択モーダルは編集フォームの外に置く。閲覧ページでフォーム本体だけを非表示にしても、
     プレビューから同じモーダルをその場で開ける。 */}
 <script>
-	import "../../lib/box-id/pokemon-edit-panel";
+	import { initializePokemonEditPanelLoader } from "../../lib/box-id/pokemon-edit-panel-loader";
 	import { requestSettingsModal } from "../../lib/box-id/settings-modal";
+
+	initializePokemonEditPanelLoader();
 
 	const moveToggle = document.querySelector<HTMLButtonElement>(".mobile-move-toggle");
 	moveToggle?.addEventListener("click", () => {

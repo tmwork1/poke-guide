@@ -167,16 +167,27 @@ export function attachKanaTypeAhead(input: HTMLInputElement, datalist: HTMLDataL
 }
 
 // --- 汎用ユーティリティ層(元は <script> 冒頭・if (form) より外側で定義)。
-//     画像用データの一覧はページ表示直後に一度だけfetchしておき、以後は同じPromiseを使い回す。
+//     画像用データの一覧は最初に必要になった時だけfetchし、以後は同じPromiseを使い回す。
 //     imageIdMapPromise/megaStoneMapPromise/itemNameSetPromiseは共有コア関数(applySprite/
 //     applyItemImage/resolveMegaStoneItem)だけが使うためこのファイルに集約する。
 //     baseStatsMapPromiseは育成パネル(applyBaseStats)・共有コア(recalcStats)・ダメージ計算
 //     (recalcRowStatsOnly)の3箇所から使われるため、同じくここに集約し全箇所からimportする。 ---
 
-export const imageIdMapPromise = loadImageIdMap();
-export const baseStatsMapPromise = loadBaseStatsMap();
-const megaStoneMapPromise = loadMegaStoneMap();
-const itemNameSetPromise = loadItemNameSet();
+function lazyPromise<T>(load: () => Promise<T>): Promise<T> {
+	let promise: Promise<T> | null = null;
+	const get = (): Promise<T> => promise ??= load();
+	return {
+		then: (onfulfilled, onrejected) => get().then(onfulfilled, onrejected),
+		catch: (onrejected) => get().catch(onrejected),
+		finally: (onfinally) => get().finally(onfinally),
+		[Symbol.toStringTag]: "Promise",
+	} as Promise<T>;
+}
+
+export const imageIdMapPromise = lazyPromise(loadImageIdMap);
+export const baseStatsMapPromise = lazyPromise(loadBaseStatsMap);
+const megaStoneMapPromise = lazyPromise(loadMegaStoneMap);
+const itemNameSetPromise = lazyPromise(loadItemNameSet);
 
 // メガシンカ種族が確定したとき、対応するメガストーン名を返す(該当しなければnull)。
 // ⚠️ loadMegaStoneMap()自体は「メガレックウザ」等メガストーン不要の種族を含まず、
