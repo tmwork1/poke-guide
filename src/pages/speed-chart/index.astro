@@ -28,7 +28,7 @@ if (ownedId && Astro.locals.user) {
 const hasOwnedPanel = ownedRecord !== null;
 const chart = await loadSpeedChartSsr(env.OPGG_USAGE, Astro.url.searchParams.get('season'), embedded);
 ---
-<AppLayout title="すばやさ" description="使用率上位のすばやさ実数値早見表" current="speed-chart" bodyClass="speed-chart-page" chrome={embedded ? "public" : "app"}>
+<AppLayout title="すばやさ" description="使用率上位のすばやさ実数値早見表" current="speed-chart" bodyClass="speed-chart-page" chrome={embedded ? "public" : "app"} preloadPokemonMaster>
 	{embedded && <div class="speed-chart-embed-toolbar"><strong class="speed-chart-embed-title">すばやさ調整</strong><button type="button" class="btn-ghost speed-chart-embed-close" aria-label="すばやさ調整を閉じる">×</button></div>}
 	{!embedded && <>
 		<AppHeader><h1 class="app-header-title">すばやさ</h1></AppHeader>

@@ -15,9 +15,11 @@ interface Props {
 	 * 利用できないナビゲーションを表示しない。
 	 */
 	chrome?: "app" | "public";
+	/** 初期描画で autocomplete/pokemon.json を読むページだけ先行取得する。 */
+	preloadPokemonMaster?: boolean;
 }
 
-const { title, description, current, bodyClass, chrome = "app" } = Astro.props;
+const { title, description, current, bodyClass, chrome = "app", preloadPokemonMaster = false } = Astro.props;
 const isPublicChrome = chrome === "public";
 const isGuestMode = Astro.locals.user?.isAnonymous === true;
 
@@ -35,7 +37,7 @@ const pageTitle = title === "ポケガイド" ? title : `${title} | ポケガイ
 		    (/box の実測で 取得完了381ms → 最初の画像リクエスト506ms、初回描画は360ms。
 		    つまり画面が出てから150ms以上、アイコンが枠だけの状態が続いていた)。
 		    JSの起動を待たずにHTMLの解析時点で取りにいかせる。 */}
-		<link rel="preload" as="fetch" href="/master-data/autocomplete/pokemon.json" />
+		{preloadPokemonMaster && <link rel="preload" as="fetch" href="/master-data/autocomplete/pokemon.json" />}
 		{/* 初回描画後に必要な unicode-range 分割フォントを待つと字幅が変わるため、画面に出る
 		    文字を集めたコアサブセットを先に取得する。フォント取得は CORS モードなので、同一
 		    オリジンでも crossorigin を付けて CSS 側の取得と共有し、二重取得を防ぐ。 */}

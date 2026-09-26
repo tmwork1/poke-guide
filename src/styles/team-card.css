@@ -10,8 +10,8 @@
      (2) src/styles/team-page.css のモバイル用上書き(!important つき)
    どちらも /team ページにしか読み込まれないため、同じ6枠グリッド(renderTeamMemberGrid、
    src/lib/team-card.ts)を使う /team/[id] の上位構築カードには一切効かず、
-   カード外枠・ヘッダー・カード間隔が別実装(.card.card-ranked-team +
-   ranked-team-card.css)になっていた。両者を1ファイルに統合し、2段重ねだった
+   カード外枠・ヘッダー・カード間隔が別実装(.card.card-ranked-team)になっていた。
+   両者を1ファイルに統合し、2段重ねだった
    基底+上書きを**計算後の実効値1段**に解いたのがこのファイル。
 
    JSがdocument.createElement()で生成する要素に当てるため、ページのscoped styleでは
@@ -23,7 +23,6 @@
    ============================================================================ */
 
 @import "./owned-pokemon-card.css";
-@import "./ranked-team-card.css";
 
 /* --------------------------------------------------------------------------
    チューニング変数

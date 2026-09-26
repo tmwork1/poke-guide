@@ -28,8 +28,11 @@ function createRankStepper(label: string, ariaSideLabel: string, onChange: (valu
   const incrementButton = document.createElement("button"); incrementButton.type = "button"; incrementButton.textContent = "+"; incrementButton.ariaLabel = `${ariaSideLabel}の${label}ランクを上げる`;
   const pickerButton = document.createElement("button"); pickerButton.type = "button"; pickerButton.className = "number-stepper-value tnum"; pickerButton.setAttribute("aria-haspopup", "dialog"); pickerButton.setAttribute("aria-expanded", "false"); pickerButton.ariaLabel = `${ariaSideLabel}の${label}ランク`;
   let current = 0;
+  let renderedValue: number | null = null;
   const rankPicker = createRankPicker({ pickerButton, placement: "above", formatValue: formatRank, onSelect: (value) => commit(value) });
   const refresh = () => {
+    if (renderedValue === current) return;
+    renderedValue = current;
     pickerButton.textContent = formatRank(current);
     pickerButton.classList.toggle("is-nonzero", current !== 0);
     decrementButton.disabled = current <= -6; incrementButton.disabled = current >= 6;

@@ -121,7 +121,7 @@ const bodyClass = pokemon ? "box-edit-page" : undefined;
 // このロジックは<script>側(src/lib/box-id/pokemon-edit-panel.ts)のPATCH成功時レスポンス反映でも
 // 同じ計算式(ミリ秒差をceilして日数化)を使うので、変更する場合は両方揃えること。
 ---
-<AppLayout title={pageTitle} current="box" bodyClass={bodyClass}>
+<AppLayout title={pageTitle} current="box" bodyClass={bodyClass} preloadPokemonMaster>
 	{/* /box のポケモン読み取りモーダルが sessionStorage に置いたOCR結果を、/box/new の登録フォームへ反映する。
 	    Astro の <script> は条件式で囲っても常に束ねられるので、new モード判定はモジュール側で行う。 */}
 	<script>

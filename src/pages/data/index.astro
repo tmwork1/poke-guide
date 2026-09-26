@@ -90,7 +90,7 @@ for (const item of battleDataList) {
 const BATTLE_DATA_SSR_CARD_COUNT = 8;
 ---
 
-<AppLayout title="データ" current="data" bodyClass="data-hub-page">
+<AppLayout title="データ" current="data" bodyClass="data-hub-page" preloadPokemonMaster>
 	<AppHeader ariaLabel="データページの表示切り替え">
 		<DataHubTabs active={isTopBuilds ? 'top-builds' : 'battle-data'} />
 	</AppHeader>

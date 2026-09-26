@@ -8,10 +8,10 @@
 import AppLayout from '../../layouts/AppLayout.astro';
 import { getSupabasePublicClient } from '../../lib/supabase';
 import { getPublicOwnedPokemonBySlug, type PublicOwnedPokemonRecord } from '../../lib/owned-pokemon';
-// pokemon/[name].astro と同じく public/master-data/detail/pokemon.json をビルド時 import する
+// pokemon/[name].astro と同じく public/master-data/detail/pokemon-core.json をビルド時 import する
 // (ビルド時に確定する静的データなのでfetchではなくESM importで読める)。
-import pokemonDetailRaw from '../../../public/master-data/detail/pokemon.json';
-// detail/pokemon.json は types は持つが imageId(公式絵のPokeAPI ID)を持たないため、
+import pokemonDetailRaw from '../../../public/master-data/detail/pokemon-core.json';
+// detail/pokemon-core.json は types は持つが imageId(公式絵のPokeAPI ID)を持たないため、
 // pokemon/[name].astro が使っているのと同じ autocomplete/pokemon.json
 // (dexNo+imageId+types を name で引ける軽量データ)をこちらもビルド時 import で読む。
 import pokemonMasterRaw from '../../../public/master-data/autocomplete/pokemon.json';
@@ -119,7 +119,7 @@ const masterEntry = pokemon ? pokemonMasterMap.get(pokemon.species_name) ?? null
 const artworkUrl = masterEntry ? championSpriteMediumUrl(masterEntry.imageId) : null;
 const artworkFallbackUrl = masterEntry ? officialArtworkUrl(masterEntry.imageId) : null;
 
-// baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon.json 由来なので、
+// baseStatsMap は /pokemon/[name].astro の getStaticPaths() と同じ detail/pokemon-core.json 由来なので、
 // ここに無い名前は静的パスも生成されておらず、リンクにすると必ず404になる。
 // A-1: 未使用だった description props を実際に渡す(公開ページなのに meta description が
 // 無かった)。
