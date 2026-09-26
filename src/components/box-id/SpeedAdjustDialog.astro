@@ -36,6 +36,10 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		if (!dialog || !backdrop || !frame) return;
 		dialog.hidden = true;
 		backdrop.hidden = true;
+		// 表の全差し替えを伴う表示専用コントロールの初期化は、次に開いた直後ではなく
+		// iframe が見えなくなった時点で済ませる。表示直後のタップ中にボタンが置き換わったり、
+		// リセット由来の smooth スクロールがタップを消費したりするのを防ぐ。
+		if (frameLoaded) frame.contentWindow?.postMessage({ type: "speed-chart:reset-controls" }, window.location.origin);
 		opener?.focus();
 	}
 
@@ -47,7 +51,6 @@ const speedChartSrc = `/speed-chart?owned=${encodeURIComponent(pokemonId)}&embed
 		backdrop.hidden = false;
 		dialog.hidden = false;
 		dialog.focus();
-		if (frameLoaded) frame.contentWindow?.postMessage({ type: "speed-chart:reset-controls" }, window.location.origin);
 		// 表示されて初めてiframe内でスクロールが効くようになる。保留されている初回スクロール
 		// (現在値への移動)をiframeに実行させる。
 		notifyShownAfterLayout();

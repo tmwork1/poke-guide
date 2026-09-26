@@ -300,13 +300,13 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
     updateRankControls(rankStages);
     recalculate();
   };
-  const recalculate = (): void => {
+  const recalculate = (navigate = true): void => {
     combos = buildCombos();
     currentValue = computeCurrentValue();
     updateSummary();
     for (const [value, cell] of renderedCells) paintCell(value, cell);
     dispatchReachableValuesChanged();
-    dispatchCurrentValueChanged(true);
+    dispatchCurrentValueChanged(navigate);
   };
 	 rankPicker?.addEventListener('click', () => rankOptions?.hidden ? openRankPicker() : closeRankPicker(), { signal: listeners.signal });
 	 rankOptions?.addEventListener('click', (event) => {
@@ -518,6 +518,7 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
   return {
     getCurrentValue: () => currentValue,
     resetControls(): void {
+      const changed = rankStages !== 0 || considerAbility || considerItem !== itemHasSpeedContribution;
       rankStages = 0;
       considerAbility = false;
       considerItem = itemHasSpeedContribution;
@@ -526,7 +527,9 @@ export function initOwnedPanel(ctx: OwnedPanelContext): OwnedPanelController {
       if (itemToggle) itemToggle.checked = itemHasSpeedContribution;
       closeRankPicker();
       updateRankControls(0);
-      recalculate();
+      // 親モーダルが閉じている間の初期化なので、状態が変わる場合だけ再描画する。
+      // navigate=false にして smooth スクロールは開始せず、次回表示時の auto スクロールに任せる。
+      if (changed) recalculate(false);
     },
     renderCell(rowValue: number): HTMLElement {
       const el = document.createElement('div');
