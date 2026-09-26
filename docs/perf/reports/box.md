@@ -140,7 +140,7 @@ const { data: inserted, error: insertError } = await supabase
 
 ---
 
-### 発見C(box一覧・大量保有時のみ顕在化・未修正): `renderList()`がページング取得のたびに一覧全体を`innerHTML = ""`で破棄して再構築する
+### 発見C(box一覧・大量保有時のみ顕在化・対応済み 2026-09-26: 並べ替え機能を廃止して常に更新順に固定し、自動継続読み込みは次のバッチを末尾へ追記する): `renderList()`がページング取得のたびに一覧全体を`innerHTML = ""`で破棄して再構築する
 
 **機序。** `/box`の一覧取得は48件ずつのページングで、取得後に毎回`renderList()`を呼ぶ。
 
@@ -184,7 +184,7 @@ function renderList(): void {
 
 ---
 
-### 発見D(軽微〜中・box一覧限定・未修正): `species-dex.ts`の静的importが、既定オフの並べ替え機能のために148KBのマスターデータを`/box`のJSバンドルへ毎回同梱している
+### 発見D(軽微〜中・box一覧限定・対応済み 2026-09-26: 並べ替え廃止により `/box` 一覧は `species-dex.ts` を import しなくなった): `species-dex.ts`の静的importが、既定オフの並べ替え機能のために148KBのマスターデータを`/box`のJSバンドルへ毎回同梱している
 
 **機序。** `/box`のクライアントスクリプトは並べ替え(番号順・タイプ順)のために`resolveDexNo`/`resolveSpeciesTypes`を使う。
 

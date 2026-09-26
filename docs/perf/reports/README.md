@@ -38,6 +38,7 @@
 | Pyodide の Web Worker 化 | まず設計調査だけ行い、報告を見て着手を判断 | 調査済み → [pyodide-worker.md](pyodide-worker.md)。初回表示6202msの主因は3秒のプリフェッチ待ち+初期化で、Worker化単独では縮まない |
 | P3〜P6 の SSR 寄せ | すばやさ表(P3)1画面で型を作り、効果と二重管理の重さを見てから横展開を決める | P3 実装中 |
 | 自動継続読み込み + 全体再構築の共通設計(横断課題2の残り: `/box`・`/team`・`/box/ranked`・`loadAllOwnedPokemon`) | 見送り(計測はすべて 🟢) | — |
+| `/box` 一覧の並べ替え(box.md 発見C・D) | 並べ替え機能を廃止し常に更新順(APIの返す順)に固定。自動継続読み込みは次のバッチを末尾へ追記するだけにする | 済(2026-09-26) |
 | `updateOwnedPokemon()` の認証/archetype 並列化 | 見送り(🟢、効果1往復分に対し未認証書き込みの再設計が要る) | — |
 | `getSupabasePublicClient()` の使い回し | モジュール単位で使い回す | 済 `05af1904` |
 | `@font-face` 378個の削減 | 先に体感への寄与を計測してから判断 | 計測済み → [webfont-cost.md](webfont-cost.md)。高速回線では差なし、Fast 3G+4x CPUでは378宣言のCSSが初回描画を数秒止める(preview非圧縮のため本番では縮む)。コア3ウェイト約667KBの全ページpreloadも重い |
@@ -164,7 +165,7 @@
   24件ずつ**40回超**逐次フェッチする(team.md 発見C)
 - `/box/ranked`: 24件ごとの自動継続読み込みが、1バッチごとに `/api/ranked-teams` を叩く(box-insight.md 発見B)
 - `/team` 一覧の `loadList()`、`/team/[id]` の `loadAllOwnedPokemon()`(team.md 発見B/D)
-- `/box` 一覧の `renderList()` は48件バッチごとに `innerHTML=""` で全破棄・再構築(box.md 発見C)
+- ~~`/box` 一覧の `renderList()` は48件バッチごとに `innerHTML=""` で全破棄・再構築(box.md 発見C)~~ → 並べ替え廃止と差分追記で対応済み(2026-09-26)
 
 いずれも(a)前バッチ完了を待つ**逐次**フェッチなのでRTTに線形比例、(b)毎回リスト全体を作り直すので
 **O(N²)のDOM構築**、という同じ2つの欠点を持つ。1画面ずつ場当たり的に直すより、**共通の設計方針

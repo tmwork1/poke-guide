@@ -61,21 +61,6 @@
 }
 
 
-.second-header-sort #sort-select {
-	width: 7.25em; /* 並べ替えセレクトの幅を固定し、選択肢の切り替えでレイアウトを動かさない。 */
-	padding-left: 2.4em;
-	padding-right: var(--space-2);
-	text-align: left;
-	background-image: none;
-}
-
-/* form-controls.css の共通ホバー矢印を、この一覧専用のソートセレクトには出さない。 */
-.second-header-sort #sort-select:hover,
-.second-header-sort #sort-select:focus,
-.second-header-sort #sort-select:focus-visible {
-	background-image: none;
-}
-
 /* 昇降切り替えは⇅のテキストだけを表示する。selectの上に重ね、選択操作を妨げない。 */
 .second-header-sort .box-sort-select-wrap .sort-dir-toggle {
 	position: absolute;

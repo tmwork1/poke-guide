@@ -1,9 +1,9 @@
 ﻿---
 // 個体一覧ページ(ボックス)。
-// docs/ui_proposal/Box.png のワイヤーフレーム(上部に検索/絞り込み/並べ替えの横一列ツールバー、
+// docs/ui_proposal/Box.png のワイヤーフレーム(上部に検索/絞り込みの横一列ツールバー、
 // その下にカードグリッド。グリッド先頭セルは「追加」タイル)に準拠する。
 // ログイン時は GET /api/owned-pokemon から取得した一覧をクライアント側で描画する
-// (並び替え・タグフィルタ・文字列検索はいずれも初回取得後にクライアント側で完結させ、
+// (タグフィルタ・文字列検索はいずれも初回取得後にクライアント側で完結させ、
 // 操作のたびに追加のAPI呼び出しを発生させない設計。育成データ管理計画.md §6.1が文字列検索の
 // クライアント側フィルタを明示的に許容しているため、他の絞り込みも同じ方針に揃えている)。
 // 未ログイン時は強制リダイレクトしない。
@@ -30,17 +30,19 @@ import '../../styles/app-header.css';
 import '../../styles/second-header.css';
 import '../../styles/guest-login-dialog.css';
 ---
-<AppLayout title="ボックス" description="ポケモンの一覧・検索・並べ替え" current="box" preloadPokemonMaster>
+<AppLayout title="ボックス" description="ポケモンの一覧・検索" current="box" preloadPokemonMaster>
 	<GameScreenOcr />
 
 	<div class="page box-shell floating-list-page">
 		<AppHeader showGuestLogin={true}>
 						<h1 class="app-header-title">ボックス</h1>
 					</AppHeader>
-					{/* app-headerの直下に置く検索・並べ替え帯(SecondHeader、他画面でも再利用する
-					    独立コンポーネント)。検索・並べ替え以外の表示(件数バッジ)はここには置かず、
+					{/* app-headerの直下に置く検索帯(SecondHeader、他画面でも再利用する
+					    独立コンポーネント)。並べ替えは置かず、一覧は常に更新順(新しい順)に並べる
+					    (逐次読み込みの追加分を末尾へ追記するだけで済ませるため)。
+					    検索以外の表示(件数バッジ)はここには置かず、
 					    #box-filter-rowへ分離する。 */}
-					<SecondHeader ariaLabel="検索・並べ替え" class="box-second-header">
+					<SecondHeader ariaLabel="検索" class="box-second-header">
 						<div class="second-header-search toolbar-item toolbar-search">
 							{/* 可視の「検索」ラベルは置かない。このプロジェクトで確立済みの
 							    「ラベル要素を廃止しplaceholder+aria-labelに統一」パターンに合わせ、
@@ -61,17 +63,6 @@ import '../../styles/guest-login-dialog.css';
 							</div>
 						</div>
 
-						<div class="second-header-sort toolbar-item toolbar-sort">
-							<div class="sort-select-wrap box-sort-select-wrap" id="sort-select-wrap" data-order="desc">
-								<button type="button" class="sort-dir-toggle" id="sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">⇅</button>
-								<select id="sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">更新順</option>
-									<option value="dex_no">番号順</option>
-									<option value="species_name">名前順</option>
-									<option value="type">タイプ順</option>
-								</select>
-							</div>
-						</div>
 						<div class="second-header-density toolbar-item toolbar-density">
 							<button
 								type="button"
@@ -93,8 +84,8 @@ import '../../styles/guest-login-dialog.css';
 					</SecondHeader>
 
 					<div class="box-content">
-						{/* 検索・並べ替え以外の絞り込み(件数バッジ)。
-						    second-header(検索・並べ替えのみ)とは切り離し、一覧グリッドと一緒に
+						{/* 検索以外の絞り込み(件数バッジ)。
+						    second-header(検索のみ)とは切り離し、一覧グリッドと一緒に
 						    スクロールする行として持つ。 */}
 						<div class="box-filter-row" id="box-filter-row">
 							{/* 件数バッジ(#pokemon-count-badge)。id/classは変更しない
@@ -164,13 +155,10 @@ import '../../styles/guest-login-dialog.css';
 		} from "../../lib/owned-pokemon-card";
 		import { kanaIncludes } from "../../lib/kana";
 		import { splitSearchTokens } from "../../lib/search-tokens";
-		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { initializeCardDeleteMode } from "../../lib/card-delete-mode";
 		import { deleteOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
 		import { isGuestMode } from "../../lib/data/guest-mode";
 		import { reloadOnBfcacheRestore } from "../../lib/shared/reload-on-bfcache-restore";
-		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
-		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
 		import {
 			BOX_DISPLAY_DENSITY_STORAGE_KEY,
 			loadDensityMode,
@@ -219,9 +207,6 @@ import '../../styles/guest-login-dialog.css';
 			const emptyMessage = el<HTMLElement>("empty-message");
 			const noMatchMessage = el<HTMLElement>("no-match-message");
 			const countBadge = el<HTMLElement>("pokemon-count-badge");
-			const sortSelect = el<HTMLSelectElement>("sort-select");
-			const sortSelectWrap = el<HTMLElement>("sort-select-wrap");
-			const sortDirToggle = el<HTMLButtonElement>("sort-dir-toggle");
 			const guestLoginDialog = el<HTMLDialogElement>("guest-login-dialog");
 			const guestLoginClose = el<HTMLButtonElement>("guest-login-close");
 			const searchInput = el<HTMLInputElement>("search-input");
@@ -231,9 +216,10 @@ import '../../styles/guest-login-dialog.css';
 			const densityToggle = el<HTMLButtonElement>("box-display-density-toggle");
 
 			let allPokemon: OwnedPokemon[] = [];
-			// 前回カードとして描画した内容の署名。検索・ソートの結果も各個体の内容も
+			// 前回カードとして描画した各個体の署名(表示順どおり)。検索の結果も各個体の内容も
 			// 変わらない限りDOMを差し替えず、ブラウザバック等で見えているカードを動かさない。
-			let renderedSignature = "";
+			// 自動継続読み込みの追記では、追記した分の署名だけを末尾に足す。
+			let renderedSignatures: string[] = [];
 			let hasMorePokemon = false;
 			let loadingMore = false;
 			const POKEMON_PAGE_SIZE = 48;
@@ -261,55 +247,6 @@ import '../../styles/guest-login-dialog.css';
 					.every((token) => kanaIncludes(haystack, token));
 			}
 
-			const sortDirectionToggle = initializeSortDirectionToggle({
-				select: sortSelect,
-				selectWrap: sortSelectWrap,
-				directionToggle: sortDirToggle,
-				defaultOrders: {
-					updated_at: "desc",
-					dex_no: "asc",
-					type: "asc",
-					species_name: "asc",
-				},
-				onChange: () => renderList(),
-			});
-
-			function sortPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
-				const sort = sortSelect.value;
-				const compareAscending = (a: OwnedPokemon, b: OwnedPokemon): number => {
-					if (sort === "species_name") {
-						return displayName(a).localeCompare(displayName(b), "ja");
-					}
-					if (sort === "dex_no") {
-						const ad = resolveDexNo(a.species_name);
-						const bd = resolveDexNo(b.species_name);
-						if (ad === null && bd !== null) return 1;
-						if (ad !== null && bd === null) return -1;
-						if (ad !== bd) return (ad ?? 0) - (bd ?? 0);
-						return displayName(a).localeCompare(displayName(b), "ja");
-					}
-					if (sort === "type") {
-						const aTypes = resolveSpeciesTypes(a.species_name);
-						const bTypes = resolveSpeciesTypes(b.species_name);
-						if (aTypes.length === 0 && bTypes.length > 0) return 1;
-						if (aTypes.length > 0 && bTypes.length === 0) return -1;
-						const typeResult = compareTypeListsByTeraOrder(aTypes, bTypes);
-						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
-					}
-					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-				};
-				return [...list].sort((a, b) => {
-					if (sort === "dex_no") {
-						const ad = resolveDexNo(a.species_name);
-						const bd = resolveDexNo(b.species_name);
-						if (ad === null && bd !== null) return 1;
-						if (ad !== null && bd === null) return -1;
-					}
-					const result = compareAscending(a, b);
-					return sortDirectionToggle.getSortOrder() === "desc" ? -result : result;
-				});
-			}
-
 			// UI刷新: カード全体を<a>にして丸ごとクリック可能にする(要件3、遷移先は/box/{id})。
 			// 削除のアイコンボタンは<a>の中の<button>として置くが、クリック時は必ず
 			// preventDefault/stopPropagationしてカード本体の遷移と競合しないようにする。
@@ -328,28 +265,55 @@ import '../../styles/guest-login-dialog.css';
 				});
 			}
 
-			function renderList(): void {
-				const filtered = allPokemon.filter((p) => matchesSearch(p, searchInput.value.trim()));
-				const sorted = sortPokemon(filtered);
-				// 並びだけでなく中身も含めた署名で比較する。IDの並びだけを見ると、
-				// 個体を編集して戻ってきたときに更新内容がカードへ反映されない。
-				const signature = JSON.stringify(sorted);
-				const cardsChanged = signature !== renderedSignature;
-				// 「本当に0件」と「絞り込みで0件」を区別する。#no-match-messageはグリッドの外に
-				// 置く(グリッド内だと縮んだ追加タイルの右横に宙に浮いて見えるため)。
-				// #empty-messageと同じ.empty-stateの見た目に揃える。
+			// 一覧はAPIの返す順(更新日時の新しい順)のまま並べ、クライアントでは並べ替えない。
+			function filterPokemon(list: OwnedPokemon[]): OwnedPokemon[] {
+				const term = searchInput.value.trim();
+				return list.filter((p) => matchesSearch(p, term));
+			}
+
+			// 「本当に0件」と「絞り込みで0件」を区別する。#no-match-messageはグリッドの外に
+			// 置く(グリッド内だと縮んだ追加タイルの右横に宙に浮いて見えるため)。
+			// #empty-messageと同じ.empty-stateの見た目に揃える。
+			function updateListStatus(visibleCount: number): void {
 				const isTrulyEmpty = allPokemon.length === 0;
 				boxContent?.classList.toggle("is-truly-empty", isTrulyEmpty);
 				emptyMessage.hidden = !isTrulyEmpty;
-				noMatchMessage.hidden = isTrulyEmpty || sorted.length > 0;
-				updateCountBadge(sorted.length);
+				noMatchMessage.hidden = isTrulyEmpty || visibleCount > 0;
+				updateCountBadge(visibleCount);
+			}
+
+			function renderList(): void {
+				const filtered = filterPokemon(allPokemon);
+				// 並びだけでなく中身も含めた署名で比較する。IDの並びだけを見ると、
+				// 個体を編集して戻ってきたときに更新内容がカードへ反映されない。
+				const signatures = filtered.map((p) => JSON.stringify(p));
+				const cardsChanged =
+					signatures.length !== renderedSignatures.length ||
+					signatures.some((signature, index) => signature !== renderedSignatures[index]);
+				updateListStatus(filtered.length);
 				if (!cardsChanged) return;
 				const cards = document.createDocumentFragment();
-				for (const p of sorted) {
+				for (const p of filtered) {
 					cards.appendChild(renderCard(p));
 				}
 				listRoot.replaceChildren(cards);
-				renderedSignature = signature;
+				renderedSignatures = signatures;
+			}
+
+			// 自動継続読み込みで取れた次のバッチを末尾へ追記する。APIは更新日時の新しい順で
+			// 返し、一覧もその順のまま並べるので、新しいバッチは常に既存表示の後ろに来る。
+			// 既存カードを作り直さないので、保有数が多くても描画量はバッチ分だけで済む。
+			function appendBatch(batch: OwnedPokemon[]): void {
+				const filtered = filterPokemon(batch);
+				if (filtered.length > 0) {
+					const cards = document.createDocumentFragment();
+					for (const p of filtered) {
+						cards.appendChild(renderCard(p));
+					}
+					listRoot.appendChild(cards);
+					renderedSignatures.push(...filtered.map((p) => JSON.stringify(p)));
+				}
+				updateListStatus(renderedSignatures.length);
 			}
 
 			async function deletePokemon(p: OwnedPokemon): Promise<void> {
@@ -382,11 +346,16 @@ import '../../styles/guest-login-dialog.css';
 						limit: POKEMON_PAGE_SIZE,
 						offset: allPokemon.length,
 					});
+					const isFirstBatch = allPokemon.length === 0;
 					allPokemon.push(...body.data);
 					hasMorePokemon = body.hasMore;
 					loadedNextBatch = body.data.length > 0;
 					loadingMessage.hidden = true;
-					renderList();
+					if (isFirstBatch) {
+						renderList();
+					} else {
+						appendBatch(body.data);
+					}
 				} catch (err) {
 					console.error(err);
 					loadingMessage.hidden = true;
