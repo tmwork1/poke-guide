@@ -35,7 +35,7 @@
 
 | 項目 | 決定 | 状態 |
 |---|---|---|
-| Pyodide の Web Worker 化 | まず設計調査だけ行い、報告を見て着手を判断 | 調査中 |
+| Pyodide の Web Worker 化 | まず設計調査だけ行い、報告を見て着手を判断 | 調査済み → [pyodide-worker.md](pyodide-worker.md)。初回表示6202msの主因は3秒のプリフェッチ待ち+初期化で、Worker化単独では縮まない |
 | P3〜P6 の SSR 寄せ | すばやさ表(P3)1画面で型を作り、効果と二重管理の重さを見てから横展開を決める | P3 実装中 |
 | 自動継続読み込み + 全体再構築の共通設計(横断課題2の残り: `/box`・`/team`・`/box/ranked`・`loadAllOwnedPokemon`) | 見送り(計測はすべて 🟢) | — |
 | `updateOwnedPokemon()` の認証/archetype 並列化 | 見送り(🟢、効果1往復分に対し未認証書き込みの再設計が要る) | — |
