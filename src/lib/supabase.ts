@@ -26,7 +26,19 @@ export async function getSupabaseAdminClient() {
 // 公開閲覧専用 (anon ロール)。RLS の *_public_read ポリシー (migrations/002_enable_rls.sql) を
 // 経由してのみ読み取れる、最小権限のクライアント。書き込みAPIと違い service_role は不要 -
 // 閲覧系エンドポイントで誤って書き込み権限を持たせないための最小権限の原則。
-export async function getSupabasePublicClient() {
+// 公開キー用でセッションを保持しない(persistSession: false)ため、リクエストをまたいで
+// 使い回しても利用者の状態は漏れない。管理者・ユーザー認証付きクライアントは対象外。
+let publicClientPromise: ReturnType<typeof createSupabasePublicClient> | null = null;
+
+export function getSupabasePublicClient() {
+	publicClientPromise ??= createSupabasePublicClient().catch((error) => {
+		publicClientPromise = null;
+		throw error;
+	});
+	return publicClientPromise;
+}
+
+async function createSupabasePublicClient() {
 	const SUPABASE_URL = readEnv('SUPABASE_URL');
 	const SUPABASE_PUBLISHABLE_KEY = readEnv('SUPABASE_PUBLISHABLE_KEY');
 
