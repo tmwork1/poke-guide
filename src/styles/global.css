@@ -296,8 +296,7 @@ textarea,
 }
 
 /* --- 一覧ページ共通ツールバー(/box・/team) --- */
-.search-input-wrap,
-.sort-select-wrap {
+.search-input-wrap {
   position: relative;
   display: flex;
   align-items: center;

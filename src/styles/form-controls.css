@@ -27,8 +27,8 @@ select {
   padding-right: 1.7em;
 }
 select:hover, select:focus, select:focus-visible { background-image: var(--select-arrow); }
-.search-input-wrap input, .sort-select-wrap select { padding-left: 2.1em; }
-.toolbar-item select.field-control, .sort-select-wrap select { width: auto; min-width: 0; flex: none; }
+.search-input-wrap input { padding-left: 2.1em; }
+.toolbar-item select.field-control { width: auto; min-width: 0; flex: none; }
 textarea { width: 100%; min-height: 4em; font-family: inherit; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; border-color: var(--color-primary); }
 input::placeholder { color: var(--color-text-muted); opacity: 0.8; }

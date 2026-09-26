@@ -238,39 +238,6 @@ body.team-edit-page {
 	width: auto;
 	gap: var(--space-1);
 }
-#team-formation-mobile-toolbar .sort-select-wrap {
-	flex: 0 0 auto;
-}
-/* box/index.astroの.second-header-sort .box-sort-select-wrapと同じ仕組み: 昇降切り替えは
-   ⇅テキストだけのボタンを選択ボックス左端に重ね、selectにその分の左余白を空ける。 */
-#team-formation-mobile-toolbar .sort-select-wrap select {
-	width: 7.25em;
-	padding-left: 2.4em;
-	padding-right: var(--space-2);
-	text-align: left;
-	background-image: none;
-}
-#team-formation-mobile-toolbar .sort-select-wrap select:hover,
-#team-formation-mobile-toolbar .sort-select-wrap select:focus,
-#team-formation-mobile-toolbar .sort-select-wrap select:focus-visible {
-	background-image: none;
-}
-#team-formation-mobile-toolbar .sort-dir-toggle {
-	position: absolute;
-	left: var(--space-1);
-	z-index: 1;
-	padding: var(--space-1) var(--space-2);
-	min-height: auto;
-	background: transparent;
-	border: 0;
-	color: var(--color-text-muted);
-	font: inherit;
-	line-height: 1;
-}
-#team-formation-mobile-toolbar .sort-dir-toggle:hover:not(:disabled) {
-	background: transparent;
-	color: var(--color-primary-strong);
-}
 	/* owned-pokemon-card.cssの.box-card は元々<a>を前提に書かれている。<a>はグリッド項目として
 		既定で軌道(track)いっぱいにストレッチされるが、<button>はフォームコントロールの
 		固有サイズ計算により明示的にwidthを指定しないとストレッチされず、内容(技名テキスト等)

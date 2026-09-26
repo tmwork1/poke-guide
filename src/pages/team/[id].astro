@@ -247,17 +247,6 @@ if (!isGuestNewMode) {
 								</div>
 							</div>
 							<div class="second-header-sort toolbar-item toolbar-sort">
-								{/* box/index.astroの並べ替え(ボタン配置と仕組み)に共通化: 昇降切り替えは
-								    選択ボックス左端に重ねる⇅ボタン1つに集約し、右端の別ボタンは廃止する。 */}
-								<div class="sort-select-wrap box-sort-select-wrap" id="team-formation-mobile-sort-select-wrap" data-order="desc">
-									<button type="button" class="sort-dir-toggle" id="team-formation-mobile-sort-dir-toggle" data-order="desc" aria-label="並べ替えの向き: 降順">⇅</button>
-									<select id="team-formation-mobile-sort-select" class="field-control" aria-label="並べ替え">
-									<option value="updated_at">更新順</option>
-									<option value="dex_no">番号順</option>
-									<option value="species_name">名前順</option>
-									<option value="type">タイプ順</option>
-									</select>
-								</div>
 								{/* 自動構築: 空き枠をおすすめ順(サジェストと同じ順)に手持ちで補填して6体に揃える。 */}
 								<button type="button" id="team-formation-auto-build" class="formation-auto-build-button" aria-label="おすすめで自動構築" title="おすすめで自動構築">
 									<svg class="formation-auto-build-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
@@ -338,7 +327,6 @@ if (!isGuestNewMode) {
 		import { loadBaseStatsMap, loadMoveDetailMap, loadMegaStoneMap } from "../../lib/pokemon-master-data";
 		import { applyCompactItemIcon, applyCompactPokemonSprite } from "../../lib/compact-pokemon-sprite";
 		import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from "../../lib/type-colors";
-		import { resolveDexNo, resolveSpeciesTypes } from "../../lib/species-dex";
 		import { selectionBlockReason, type SelectionCandidate, type TeamRequestBody } from "../../lib/team-validation";
 		import { createOwnedPokemon, listOwnedPokemonPage } from "../../lib/data/pokemon-repo";
 		import { createTeam, deleteTeam, updateTeam } from "../../lib/data/team-repo";
@@ -357,8 +345,6 @@ if (!isGuestNewMode) {
 		import { createRankedTeamCardRenderer, setupRankedTeamsSearchHeader } from "../../lib/ranked-teams/search-header";
 		import { kanaIncludes } from "../../lib/kana";
 		import { splitSearchTokens } from "../../lib/search-tokens";
-		import { initializeSortDirectionToggle } from "../../lib/shared/sort-direction-toggle";
-		import { compareTypeListsByTeraOrder } from "../../lib/tera-types";
 		import { createMatchupPanel } from "../../lib/matchup-panel";
 		import { setupAppHeaderSwipe } from "../../lib/app-header-swipe";
 		import { createItemSelectGrid, sortItemsByUsage, isMegaStoneItemName } from "../../lib/box-id/item-select-dialog";
@@ -510,9 +496,6 @@ if (!isGuestNewMode) {
 			const teamDataMobileSlotsRoot = el<HTMLElement>("team-data-mobile-slots");
 			const teamDataMobileSimilarRoot = el<HTMLElement>("team-data-mobile-similar");
 			const formationMobileSearchInput = el<HTMLInputElement>("team-formation-mobile-search");
-			const formationMobileSortSelect = el<HTMLSelectElement>("team-formation-mobile-sort-select");
-			const formationMobileSortSelectWrap = el<HTMLElement>("team-formation-mobile-sort-select-wrap");
-			const formationMobileSortDirToggle = el<HTMLButtonElement>("team-formation-mobile-sort-dir-toggle");
 			const formationAutoBuildButton = el<HTMLButtonElement>("team-formation-auto-build");
 			const formationMobileAddButton = el<HTMLButtonElement>("team-formation-mobile-add");
 			const formationMobileStatus = el<HTMLElement>("team-formation-mobile-status");
@@ -1175,9 +1158,7 @@ if (!isGuestNewMode) {
 				}
 				const candidates = currentCandidates();
 				const usedSpecies = new Set(Array.from(membersBySlot.values()).map((p) => p.species_name));
-				const rest = sortFormationMobilePokemon(
-					allPokemon.filter((p) => selectionBlockReason(candidateOf(p), candidates) === null),
-				);
+				const rest = allPokemon.filter((p) => selectionBlockReason(candidateOf(p), candidates) === null);
 				const eligible = prioritizeAutoBuildCandidates(rest, megaSpecies);
 				// 種族の重複自体は許可されている(team-validation.ts)が、自動で埋める分には
 				// まだ入っていない種族を優先する。
@@ -1735,7 +1716,8 @@ if (!isGuestNewMode) {
 			function renderFormationCandidateList(): void {
 				formationMobileBoxGrid.replaceChildren();
 				const term = formationMobileSearchInput.value.trim();
-				const candidates = sortFormationMobilePokemon(allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term)));
+				// 候補は手持ちの取得順(更新日時の新しい順)のまま並べる。並べ替え機能は持たない。
+				const candidates = allPokemon.filter((candidate) => !isCurrentMember(candidate.id) && matchesSearch(candidate, term));
 				for (const p of candidates) {
 					const card = document.createElement("button");
 					card.type = "button";
@@ -1954,55 +1936,6 @@ if (!isGuestNewMode) {
 					if (p.id === id) return true;
 				}
 				return false;
-			}
-
-			const formationMobileSortDirectionToggle = initializeSortDirectionToggle({
-				select: formationMobileSortSelect,
-				selectWrap: formationMobileSortSelectWrap,
-				directionToggle: formationMobileSortDirToggle,
-				defaultOrders: {
-					updated_at: "desc",
-					dex_no: "asc",
-					type: "asc",
-					species_name: "asc",
-				},
-				onChange: () => renderFormationMobile(),
-			});
-
-			function sortFormationMobilePokemon(list: OwnedPokemonRecord[]): OwnedPokemonRecord[] {
-				const sort = formationMobileSortSelect.value;
-				const compareAscending = (a: OwnedPokemonRecord, b: OwnedPokemonRecord): number => {
-					if (sort === "species_name") {
-						return displayName(a).localeCompare(displayName(b), "ja");
-					}
-					if (sort === "dex_no") {
-						const aDex = resolveDexNo(a.species_name);
-						const bDex = resolveDexNo(b.species_name);
-						if (aDex === null && bDex !== null) return 1;
-						if (aDex !== null && bDex === null) return -1;
-						if (aDex !== bDex) return (aDex ?? 0) - (bDex ?? 0);
-						return displayName(a).localeCompare(displayName(b), "ja");
-					}
-					if (sort === "type") {
-						const aTypes = resolveSpeciesTypes(a.species_name);
-						const bTypes = resolveSpeciesTypes(b.species_name);
-						if (aTypes.length === 0 && bTypes.length > 0) return 1;
-						if (aTypes.length > 0 && bTypes.length === 0) return -1;
-						const typeResult = compareTypeListsByTeraOrder(aTypes, bTypes);
-						return typeResult || displayName(a).localeCompare(displayName(b), "ja");
-					}
-					return new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
-				};
-				return [...list].sort((a, b) => {
-					if (sort === "dex_no") {
-						const aDex = resolveDexNo(a.species_name);
-						const bDex = resolveDexNo(b.species_name);
-						if (aDex === null && bDex !== null) return 1;
-						if (aDex !== null && bDex === null) return -1;
-					}
-					const result = compareAscending(a, b);
-					return formationMobileSortDirectionToggle.getSortOrder() === "desc" ? -result : result;
-				});
 			}
 
 			// --- 自動保存(box/[id].astroと同じデバウンス方式。保存ボタンは作らない) ---

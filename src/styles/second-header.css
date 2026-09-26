@@ -61,25 +61,6 @@
 }
 
 
-/* 昇降切り替えは⇅のテキストだけを表示する。selectの上に重ね、選択操作を妨げない。 */
-.second-header-sort .box-sort-select-wrap .sort-dir-toggle {
-	position: absolute;
-	left: var(--space-1);
-	z-index: 1;
-	padding: var(--space-1) var(--space-2);
-	min-height: auto;
-	background: transparent;
-	border: 0;
-	color: var(--color-text-muted);
-	font: inherit;
-	line-height: 1;
-}
-
-.second-header-sort .box-sort-select-wrap .sort-dir-toggle:hover:not(:disabled) {
-	background: transparent;
-	color: var(--color-primary-strong);
-}
-
 /* 表示密度スロット: 並べ替え・シーズン選択と同じく内容幅のまま右側に置く。
    /box・/team一覧と/data(上位チーム)、ダメ計の「ボックスから選択」「チームから選択」
    モーダルの固定ツールバー(.toolbar-density)で共有する(元は team-page.css にのみ定義されていた)。 */
