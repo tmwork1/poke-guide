@@ -340,57 +340,16 @@ function describeExtendedNoLethalVerdict(
 }
 
 /**
- * 累計ダメージ「31〜37 (20〜25%)」。優先順位は
- * cumulativeNetDamage(打点の合計＋ターン終了時の増減。0でクランプしないエンジンの厳密値)
- * → cumulativeDamage(打点の合計。エンジンの厳密値)+ endOfTurnRecovery の近似パッチ
+ * 累計ダメージ「31〜37 (20〜25%)」。表示するのは技の打点だけで、優先順位は
+ * cumulativeDamage(エンジンが求めた打点合計の厳密値)
  * → perAttackDamages の最小同士・最大同士の単純加算、の順。
+ * 回復やターン終了時のスリップを含む cumulativeNetDamage は表示には使わない。
  */
 /** 累計ダメージの表示文字列と、HP比(%)の生の数値。 */
 export interface CumulativeDamage {
 	text: string;
 	pctMin?: number;
 	pctMax?: number;
-}
-
-/**
- * 加算ダメージ表示にだけ反映する、各攻撃後の回復量。
- *
- * ⚠️ これは cumulativeNetDamage(エンジンがターン終了時処理まで含めて求めた累計)が
- * 無かった時代の、たべのこしだけをJS側で後から引く近似パッチ。
- * cumulativeNetDamage を持つ結果では二重計上になるため computeCumulativeDamage が
- * 無視する。古いスナップショットの表示にだけ効く。
- */
-export interface CumulativeDamageOptions {
-	endOfTurnRecovery?: number;
-}
-
-/**
- * 回復は各攻撃の「あと」のターン終了時に入り、残りHPが最大HPを超えない(=累計ダメージが
- * マイナスにならない)。したがって合計ダメージから回復量を一括で引くのではなく、
- * 最小乱数・最大乱数それぞれのターン進行を再現する。
- * 例: 5ダメージ→10回復→30ダメージなら、見かけの合計は20であって15ではない。
- * 最後の攻撃のあとの回復は数えない。倒れるかどうかはその攻撃の時点で決まり、
- * そこへ回復を足すと「あと1発耐える」と誤って見えるため。
- */
-function cumulativeDamageWithEndOfTurnRecovery(
-	validAttackCount: number,
-	perAttackDamages: number[][] | undefined,
-	endOfTurnRecovery: number,
-): { min: number; max: number } | null {
-	if (!Array.isArray(perAttackDamages) || perAttackDamages.length < validAttackCount) return null;
-	let min = 0;
-	let max = 0;
-	for (let i = 0; i < validAttackCount; i += 1) {
-		const damages = perAttackDamages[i];
-		if (!Array.isArray(damages) || damages.length === 0) return null;
-		if (i > 0) {
-			min = Math.max(0, min - endOfTurnRecovery);
-			max = Math.max(0, max - endOfTurnRecovery);
-		}
-		min += Math.min(...damages);
-		max += Math.max(...damages);
-	}
-	return { min, max };
 }
 
 /**
@@ -401,18 +360,10 @@ function cumulativeDamageWithEndOfTurnRecovery(
 export function computeCumulativeDamage(
 	validAttackCount: number,
 	result: OpponentClientResultInput,
-	options: CumulativeDamageOptions = {},
 ): CumulativeDamage {
-	// cumulativeNetDamage(エンジンが打点の合計＋ターン終了時の増減で求めた、0で
-	// クランプしない累計)があれば最優先で使う。すなあらし等のターン終了時スリップも、
-	// たべのこし等の回復も既に織り込み済みなので、下の endOfTurnRecovery(たべのこし
-	// ぶんをJS側で後から引く旧パッチ)は **二重計上になるため適用しない**。
-	// 倒しきる分岐ではオーバーキル(100%超)がそのまま出る(エンジン側で0クランプを
-	// 外したのがこのフィールドの要点。pyodide-engine.ts のコメント参照)。
-	const net = result.cumulativeNetDamage;
-	if (net && Number.isFinite(net.min) && Number.isFinite(net.max)) {
-		return formatCumulativeRange(Math.max(0, net.min), Math.max(0, net.max), result.defenderHp);
-	}
+	// 表示値は回復・スリップを含めず、エンジンが求めた打点合計を最優先する。
+	// cumulativeNetDamage はAPI・既存スナップショットとの互換性のため残るが、
+	// ターン終了時の増減を含むため、ここでは参照しない。
 	const exact = result.cumulativeDamage;
 	let min: number;
 	let max: number;
@@ -429,20 +380,6 @@ export function computeCumulativeDamage(
 			if (!Array.isArray(damages) || damages.length === 0) return { text: '' };
 			min += Math.min(...damages);
 			max += Math.max(...damages);
-		}
-	}
-	const endOfTurnRecovery = Math.max(0, Math.floor(options.endOfTurnRecovery ?? 0));
-	if (endOfTurnRecovery > 0) {
-		const recovered = cumulativeDamageWithEndOfTurnRecovery(validAttackCount, result.perAttackDamages, endOfTurnRecovery);
-		if (recovered) {
-			min = recovered.min;
-			max = recovered.max;
-		} else {
-			// 古いスナップショットなどで技ごとの乱数列が無い場合の安全なフォールバック。
-			// 回復が入るのは攻撃と攻撃の間だけなので、回数は攻撃数-1。
-			const totalRecovery = endOfTurnRecovery * Math.max(0, validAttackCount - 1);
-			min = Math.max(0, min - totalRecovery);
-			max = Math.max(0, max - totalRecovery);
 		}
 	}
 	return formatCumulativeRange(min, max, result.defenderHp);
