@@ -128,9 +128,28 @@
 }
 
 #pokemon-preview-species-name {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.2rem;
   flex: 0 1 auto;
   font-size: var(--font-size-sm1);
   color: var(--color-text);
+}
+
+.pokemon-preview-species-name-main,
+.pokemon-preview-species-name-suffix {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pokemon-preview-species-name-main {
+  min-width: 0;
+}
+
+.pokemon-preview-species-name-suffix {
+  flex: 0 1 auto;
+  font-size: 0.75em;
 }
 
 #pokemon-preview-ability {
@@ -216,6 +235,12 @@
   width: var(--pokemon-preview-item-icon-size);
   height: var(--pokemon-preview-item-icon-size);
   object-fit: contain;
+}
+
+/* applyItemImage() はアイテムなし・読込失敗時に hidden を戻す契約。display:block が
+   UA の [hidden] より強いため、プレビューでも明示的に非表示を保証する。 */
+.pokemon-preview-icon-text img[hidden] {
+  display: none;
 }
 
 .pokemon-preview-icon-text {

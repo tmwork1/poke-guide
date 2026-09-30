@@ -1,11 +1,31 @@
 import { DEFAULT_TYPE_COLOR, TYPE_COLORS } from '../type-colors';
 import { applyPreviewMoveTypeBar } from './preview-move-type-bar';
 import { STAT_KEYS, type PokemonPreviewViewModel } from './preview-view-model';
-import { applyItemIconWithFallback } from '../sprite-urls';
+import { splitBoxCardDisplayName } from '../box-card-display-name';
+import { applyItemImage } from './shared-core';
 
 function setText(id: string, value: string): void {
   const element = document.getElementById(id);
   if (element) element.textContent = value || '-';
+}
+
+/** ボックス一覧カードと同じ分割で、末尾のフォルム名だけを小さな補足表記にする。 */
+export function applyPreviewSpeciesName(value: string): void {
+  const element = document.getElementById('pokemon-preview-species-name');
+  if (!element) return;
+  const displayName = value || '-';
+  const { name, suffix } = splitBoxCardDisplayName(displayName);
+  const main = document.createElement('span');
+  main.className = 'pokemon-preview-species-name-main';
+  main.textContent = name;
+  if (!suffix) {
+    element.replaceChildren(main);
+    return;
+  }
+  const suffixElement = document.createElement('span');
+  suffixElement.className = 'pokemon-preview-species-name-suffix';
+  suffixElement.textContent = suffix;
+  element.replaceChildren(main, suffixElement);
 }
 
 function applyTypeIcons(container: HTMLElement | null, view: PokemonPreviewViewModel): void {
@@ -80,7 +100,7 @@ export function applyPokemonPreview(
     if (view.background) preview.style.setProperty('--pokemon-preview-background', view.background);
     else preview.style.removeProperty('--pokemon-preview-background');
 
-    setText('pokemon-preview-species-name', view.speciesName);
+    applyPreviewSpeciesName(view.speciesName);
     setText('pokemon-preview-ability', view.abilityName);
     view.moves.forEach((moveName, index) => {
       setText(`pokemon-preview-move-${index + 1}`, moveName);
@@ -93,10 +113,8 @@ export function applyPokemonPreview(
       item.dataset.empty = String(view.itemName === '');
       const itemImage = ensureItemImage(item, view.itemName);
       if (itemImage) {
-        if (view.itemName) applyItemIconWithFallback(itemImage, view.itemName, () => itemImage.style.setProperty('display', 'none'));
-        else itemImage.removeAttribute('src');
         itemImage.classList.toggle('pokemon-preview-item-image-hidden', view.itemName === '');
-        itemImage.style.removeProperty('display');
+        applyItemImage(itemImage, view.itemName);
       }
     }
 

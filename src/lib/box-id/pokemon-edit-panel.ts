@@ -13,7 +13,7 @@ import {
 	readEv,
 	readMoveNames,
 } from "../owned-pokemon-form";
-import { bindModalDismissal } from "../modal-dismiss";
+import { bindModalDismissal, markModalPortal } from "../modal-dismiss";
 import { clampToAppBand } from "../app-band";
 import {
 	loadTypesMap,
@@ -30,6 +30,7 @@ import { compareTypesByTeraOrder } from "../tera-types";
 import { renderTeamMateSlots } from "../team-mate-card";
 import { TYPE_COLORS, DEFAULT_TYPE_COLOR } from "../type-colors";
 import { applyPreviewMoveTypeBar } from "./preview-move-type-bar";
+import { applyPreviewSpeciesName } from "./preview-apply";
 import {
 	isPreviewFormToggleChangeEvent,
 	isMegaForm,
@@ -167,6 +168,9 @@ function pairEvSlider(numberId: string, rangeId: string, onSync: () => void): vo
 	const rangeInput = el<HTMLInputElement>(rangeId);
 	const pickerButton = document.getElementById(`${numberId}-picker`) as HTMLButtonElement | null;
 	const picker = document.getElementById(`${numberId}-options`);
+	// 開いたピッカーはbody直下へ移す。ステータス調整モーダルの操作遮断から
+	// モーダル自身のポータルとして除外するため、移動前に共通の印を付ける。
+	if (picker) markModalPortal(picker);
 	const syncPicker = (): void => {
 		if (!pickerButton || !picker) return;
 		pickerButton.textContent = rangeInput.value;
@@ -632,23 +636,17 @@ if (form) {
 		}
 
 		const ability = document.getElementById("ability") as HTMLSelectElement | null;
-		setText("pokemon-preview-species-name", inputValue("species-name"));
+		applyPreviewSpeciesName(inputValue("species-name"));
 		setText("pokemon-preview-ability", ability?.selectedOptions[0]?.textContent?.trim() || ability?.value.trim() || "-");
 		const itemName = inputValue("item");
 		setText("pokemon-preview-item", itemName || document.getElementById("item-dropdown-placeholder")?.textContent?.trim() || "もちものなし");
 		const previewItem = document.getElementById("pokemon-preview-item");
 		if (previewItem) previewItem.dataset.empty = String(itemName === "");
-		const mirrorImage = (sourceId: string, targetId: string): void => {
-			const source = document.getElementById(sourceId) as HTMLImageElement | null;
-			const target = document.getElementById(targetId) as HTMLImageElement | null;
-			if (!source || !target) return;
-			const visible = source.style.display !== "none" && !source.hidden && source.src !== "";
-			target.src = source.src;
-			target.alt = source.alt;
-			target.title = source.title;
-			target.style.display = visible ? "" : "none";
-		};
-		mirrorImage("item-dropdown-image", "pokemon-preview-item-image");
+		const previewItemImage = document.getElementById("pokemon-preview-item-image") as HTMLImageElement | null;
+		if (previewItemImage) {
+			previewItemImage.classList.toggle("pokemon-preview-item-image-hidden", itemName === "");
+			applyItemImage(previewItemImage, itemName);
+		}
 		for (let slot = 1; slot <= 4; slot++) {
 			const moveName = inputValue(`move-${slot}`);
 			setText(`pokemon-preview-move-${slot}`, moveName);

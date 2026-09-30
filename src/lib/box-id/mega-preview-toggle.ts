@@ -63,7 +63,11 @@ export function setupMegaPreviewToggle(): void {
   if (!preview || !spriteWrap) return;
 
   let sourceSpecies = sourceSpeciesInput?.value.trim() || preview.dataset.speciesName?.trim() || '';
-  let sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
+  // #item が存在するときは空文字も「もちものなし」という確定値。datasetへ
+  // フォールバックすると、クリア直後に以前のアイテムをプレビューへ再適用してしまう。
+  let sourceItem = sourceItemInput
+    ? sourceItemInput.value.trim()
+    : preview.dataset.itemName?.trim() || '';
 
   void Promise.all([
     loadPokemonMasterList(),
@@ -120,13 +124,17 @@ export function setupMegaPreviewToggle(): void {
       sourceSpecies = sourceSpeciesInput
         ? sourceSpeciesInput.value.trim()
         : preview.dataset.speciesName?.trim() || sourceSpecies;
-      sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
+      sourceItem = sourceItemInput
+        ? sourceItemInput.value.trim()
+        : preview.dataset.itemName?.trim() || '';
       void renderSpecies(sourceSpecies);
       renderToggle(targetFor(sourceSpecies, sourceItem));
     };
     const syncToggleOnly = (): void => {
       sourceSpecies = sourceSpeciesInput?.value.trim() || preview.dataset.speciesName?.trim() || sourceSpecies;
-      sourceItem = sourceItemInput?.value.trim() || preview.dataset.itemName?.trim() || '';
+      sourceItem = sourceItemInput
+        ? sourceItemInput.value.trim()
+        : preview.dataset.itemName?.trim() || '';
       renderToggle(targetFor(sourceSpecies, sourceItem));
     };
     const toggleSpecies = (): void => {

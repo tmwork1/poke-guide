@@ -630,6 +630,13 @@ input[type="range"]:focus-visible::-moz-range-thumb {
   color: var(--color-primary-strong);
 }
 
+/* カードが1枚もないときに出す追加導線。通常一覧内の追加タイルはカードと同じ角を保ち、
+   空状態の主操作だけを全ページで同じ丸角にする。 */
+.empty-state-add-button,
+.damage-empty-add-tile {
+  border-radius: var(--radius-md);
+}
+
 /* --- 空状態 --- */
 .empty-state {
   max-width: 34rem;

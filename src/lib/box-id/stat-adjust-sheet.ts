@@ -10,6 +10,7 @@
 // 独立した三角ボタンは置かない。実数値はラベルの直下に小さく添える。
 // 展開中のシートは、外側をタップすると閉じる。
 import { createEvStepper } from "./ev-stepper";
+import { MODAL_PORTAL_SELECTOR } from "../modal-dismiss";
 
 const sheet = document.getElementById("stat-adjust-sheet");
 const toggle = document.getElementById("stat-adjust-sheet-toggle") as HTMLButtonElement | null;
@@ -150,6 +151,9 @@ document.addEventListener("pointerdown", (event) => {
 	const target = event.target;
 	if (!(target instanceof Node)) return;
 	if (sheet.contains(target)) return;
+	// 努力値ピッカーは表示位置のためbody直下へポータルされるが、シート自身のUI。
+	// DOM上の外側クリックとして扱ってシートごと閉じない。
+	if (target instanceof Element && target.closest(MODAL_PORTAL_SELECTOR)) return;
 	if (document.getElementById("bulk-adjust-dialog")?.contains(target)) return;
 	if (document.getElementById("bulk-adjust-backdrop")?.contains(target)) return;
 	resetStatAdjustSheet();
