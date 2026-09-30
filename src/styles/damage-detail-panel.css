@@ -697,16 +697,13 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-grid {
 		row-gap: var(--damage-detail-space-xs);
 	}
-	#damage-detail-panel-body .damage-build-detail-identity-row {
-		/* 1段目は攻守と自分のフォルム、2段目は相手ポケモンを全幅で置く。 */
-		grid-column: 1 / -1;
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: center;
-		gap: var(--damage-detail-space-xs);
+	#damage-detail-panel-body .damage-build-detail-identity-row,
+	#damage-detail-panel-body .damage-build-detail-fields > .damage-build-detail-grid {
+		/* 攻守|自分のフォルム、相手ポケモン|特性、もちもの|テラスタル の2列x3段で、
+			親(.damage-build-detail-fields)の2列グリッドへ直接流し込む。 */
+		display: contents;
 	}
 	#damage-detail-panel-body .damage-build-detail-name-field {
-		grid-column: 1 / -1;
 		min-width: 0;
 	}
 	#damage-detail-panel-body .damage-build-detail-self-form-select {
