@@ -2664,6 +2664,7 @@ if (opponentNotesSection) {
 		selfFormSelect.addEventListener("change", () => {
 			row.selfFormName = selfFormSelect.value;
 			selfFormSelect.classList.toggle("is-empty", row.selfFormName === "");
+			syncDetailPanelTotal(row);
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
 		});

@@ -80,6 +80,7 @@ let detailPanelTotalEl: HTMLElement;
 let detailPanelTotalResultEl: HTMLElement;
 const opponentPreviewStatEls = new WeakMap<DamageRowState, Partial<Record<StatKey, HTMLElement>>>();
 const opponentPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement }>();
+const selfPreviewIconEls = new WeakMap<DamageRowState, { icon: HTMLImageElement; fallback: HTMLElement; speciesName: string }>();
 type PreviewItemIcon = {
 	icon: HTMLImageElement;
 	slot: HTMLElement;
@@ -272,7 +273,7 @@ function appendDetailPanelActions(): void {
 function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): void {
 	detailPanelTabsEl.replaceChildren();
 	detailPanelTabsEl.hidden = false;
-	const tabs = ["相手ポケモン", ...row.attacks.map((_, index) => `わざ${index + 1}`)];
+	const tabs = ["ポケモン",...row.attacks.map((_, index) => `わざ${index + 1}`)];
 	const selectTab = (index: number): void => {
 		if (index === 0) {
 			selectBuild(row);
@@ -362,6 +363,21 @@ function syncOpponentPreviewIcon(row: DamageRowState): void {
 	void applySprite(iconEls.icon, iconEls.fallback, row.name.trim(), "icon");
 }
 
+// 自分側は育成タブの種族ではなく、この行で選んだ対戦中フォルム(ポケモンタブ)を表示する。
+function previewSelfSpeciesName(row: DamageRowState): string {
+	return row.selfFormName || el<HTMLInputElement>("species-name").value.trim();
+}
+
+// フォルム変更は再計算経由でsyncDetailPanelTotalに届くため、変わったときだけ描き直す。
+function syncSelfPreviewIcon(row: DamageRowState): void {
+	const iconEls = selfPreviewIconEls.get(row);
+	if (!iconEls) return;
+	const speciesName = previewSelfSpeciesName(row);
+	if (iconEls.speciesName === speciesName) return;
+	iconEls.speciesName = speciesName;
+	void applySprite(iconEls.icon, iconEls.fallback, speciesName, "icon");
+}
+
 // 共通プレビューは固定フッターなので、相手ビルド・育成タブのいずれを編集しても
 // syncDetailPanelTotalの既存再計算経路から持ち物アイコンまで追随させる。
 function syncPreviewItemIcon(entry: PreviewItemIcon, itemName: string): void {
@@ -382,7 +398,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const heading = document.createElement("div");
 	heading.className = "damage-detail-selection-heading";
 	const opponentName = row.name.trim() || "(相手未設定)";
-	const selfSpeciesName = el<HTMLInputElement>("species-name").value.trim();
+	const selfSpeciesName = previewSelfSpeciesName(row);
 	const selfName = selfSpeciesName || "(自分未設定)";
 	const isSelfAttacking = row.direction !== "defense";
 
@@ -395,6 +411,7 @@ function buildSelectionHeadingRow(row: DamageRowState): HTMLElement {
 	const selfIconFallback = document.createElement("span");
 	selfIconFallback.className = "damage-detail-selection-icon-fallback";
 	void applySprite(selfIcon, selfIconFallback, selfSpeciesName, "icon");
+	selfPreviewIconEls.set(row, { icon: selfIcon, fallback: selfIconFallback, speciesName: selfSpeciesName });
 	const selfItemIcon = document.createElement("img");
 	selfItemIcon.className = "damage-detail-selection-item-icon";
 	selfItemIcon.alt = "";
@@ -504,6 +521,7 @@ export function syncDetailPanelTotal(row: DamageRowState): void {
 	if (detailPanelMoveNamesEl) detailPanelMoveNamesEl.textContent = buildMoveNamesText(row);
 	syncOpponentPreviewStats(row);
 	syncOpponentPreviewIcon(row);
+	syncSelfPreviewIcon(row);
 	syncPreviewItemIcons(row);
 	const source = row.totalResultEl;
 	if (!source) return;
