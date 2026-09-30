@@ -59,10 +59,12 @@ function model(spec: PokemonSpec, attacks: ModelAttack[]): CalcLethalSequenceRes
 
 class FakeEngine implements SolverEngine {
   calls = 0;
+  readonly attackSequences: string[][] = [];
   private readonly onCall?: (count: number) => void;
   constructor(onCall?: (count: number) => void) { this.onCall = onCall; }
   async calcLethalSequence(_attacker: PokemonSpec, defender: PokemonSpec, attacks: SequenceAttack[]) {
     this.calls++;
+    this.attackSequences.push(attacks.map((a) => a.moveName));
     this.onCall?.(this.calls);
     return model(defender, attacks as ModelAttack[]);
   }
@@ -70,7 +72,7 @@ class FakeEngine implements SolverEngine {
   async resetEngine() {}
 }
 
-// n はセット数(技列1巡=1セット)。既定の1セットは技列を1回ずつ当てる意味。
+// n は技列を先頭から循環させたときの発動回数。
 function requirement(rowId: string, attacks: ModelAttack[], n = 1, m = 100): DurabilityRequirement {
   return { rowId, attackerSpec: { name: 'fake-attacker' }, attacks, n, m };
 }
@@ -89,7 +91,7 @@ function options(engine: SolverEngine, extra: Partial<SolveOptions> = {}): Solve
 
 function passes(req: DurabilityRequirement, nature: string, hp: number, def: number, spd: number): boolean {
   const spec = { name: 'fake-defender', nature, evs: [hp, 0, def, 0, spd, 0] };
-  const attackCount = req.n * req.attacks.length;
+	const attackCount = req.n;
   const attacks = Array.from({ length: attackCount }, (_, i) => req.attacks[i % req.attacks.length]) as ModelAttack[];
   const probability = model(spec, attacks).lethal[attackCount - 1].probability;
   return 1 - probability >= req.m / 100 - 1e-9;
@@ -136,8 +138,8 @@ async function agrees(name: string, requirements: DurabilityRequirement[], limit
   const engine = new FakeEngine();
   const result = await solveDurability(requirements, options(engine));
   assert.ok(result.candidates.length > 0, `${name}: candidates must not be empty`);
-  assert.ok(result.candidates.some((candidate) => candidate.evs[boundaryStat] === 0), `${name}: expected an ${boundaryStat}=0 candidate`);
-  assert.ok(result.candidates.some((candidate) => candidate.evs[boundaryStat] !== 0), `${name}: expected an ${boundaryStat}>0 candidate`);
+  assert.ok(result.candidates.some((candidate) => candidate.evs[boundaryStat] === 0), `${name}: expected an ${boundaryStat}=0 candidate; ${JSON.stringify(compact(result.candidates))}`);
+  assert.ok(result.candidates.some((candidate) => candidate.evs[boundaryStat] !== 0), `${name}: expected an ${boundaryStat}>0 candidate; ${JSON.stringify(compact(result.candidates))}`);
   // 同一searchedEvTotal内の順序は契約外なので、候補集合として正規化して比較する。
   assert.deepEqual(canonical(compact(result.candidates)), canonical(reference(requirements)), name);
   assert.equal(result.truncated, false);
@@ -148,6 +150,19 @@ async function agrees(name: string, requirements: DurabilityRequirement[], limit
 }
 
 describe('solveDurability: 総当たりとの一致', () => {
+  it('加算行のnは巡数ではなく発動回数としてA→B→Aの順に展開する', async () => {
+    const engine = new FakeEngine();
+    const attacks = [attack('physical', 8000), attack('special', 7000)];
+    await solveDurability([requirement('sequence', attacks, 3)], options(engine));
+    assert.ok(engine.attackSequences.length > 0);
+    assert.ok(engine.attackSequences.every((sequence) => sequence.length === 3));
+    assert.ok(engine.attackSequences.every((sequence) => sequence.join('|') === [
+      attacks[0].moveName,
+      attacks[1].moveName,
+      attacks[0].moveName,
+    ].join('|')));
+  });
+
   it('現在の性格以外の候補を返さない', async () => {
     const currentNature = 'ずぶとい';
     const reqs = [requirement('p', [attack('physical', 17000)])];
@@ -164,7 +179,7 @@ describe('solveDurability: 総当たりとの一致', () => {
   });
   it('物理技と特殊技が同じカードにあるフォールバック経路', async () => {
     // 旧探索は約7×33×66≒15,000回のため、支配メモ込みで2,000回未満を要求する。
-    await agrees('mixed', [requirement('mix', [attack('physical', 8500), attack('special', 8000)])], 2000, 'spd');
+    await agrees('mixed', [requirement('mix', [attack('physical', 8500), attack('special', 8000)], 2)], 2000, 'spd');
   });
   it('フォールバック経路でB努力値の上界がHP段ごとに下がる', async () => {
     // 上の'mixed'は全HP段で最小B努力値が0になるため、フォールバック経路の
@@ -175,7 +190,7 @@ describe('solveDurability: 総当たりとの一致', () => {
     // となる。D努力値を上限(32→D=132)まで積んでも floor(6000/132)=45 残るため、
     // 補正なし性格では evH=0 で B>=119(=evB 19)が必要、evH=32 では B=100(=evB 0)で足りる。
     // → def=0 の候補と def>0 の候補が同居し、evBUpper の降下が実際に走る。
-    await agrees('mixed-b-descends', [requirement('mix2', [attack('physical', 13000), attack('special', 6000)])], 2000, 'def');
+    await agrees('mixed-b-descends', [requirement('mix2', [attack('physical', 13000), attack('special', 6000)], 2)], 2000, 'def');
   });
   it('B/Dに依存しない固定ダメージカードを含む', async () => {
     await agrees('fixed', [requirement('fixed', [attack('fixed', 160)]), requirement('p', [attack('physical', 17000)])], 300, 'def');

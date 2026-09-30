@@ -116,25 +116,45 @@
       "min": 26,
       "max": 33
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 8,
         "probability": 0.17449685651808977
       },
       {
-        "setCount": 5,
+        "attackCount": 9,
+        "probability": 0.9977457577962718
+      },
+      {
+        "attackCount": 10,
         "probability": 1.0
       }
     ]
@@ -193,25 +213,25 @@
       "min": 24,
       "max": 30
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 3.552713678800501e-15
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 1.0
       }
     ]
@@ -338,30 +358,46 @@
       "min": 42,
       "max": 50
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 8,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 9,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 10,
         "probability": 0.028088508077416918
-      },
-      {
-        "setCount": 6,
-        "probability": 1.0
       }
     ]
   },
@@ -430,9 +466,13 @@
       "min": 132,
       "max": 158
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 2,
         "probability": 1.0
       }
     ]
@@ -557,30 +597,46 @@
       "min": 42,
       "max": 48
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 8,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 9,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 10,
         "probability": 1.571703251102008e-06
-      },
-      {
-        "setCount": 6,
-        "probability": 1.0
       }
     ]
   },
@@ -680,17 +736,29 @@
       "min": 99,
       "max": 107
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 4,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 5,
+        "probability": 0.1895294189453125
+      },
+      {
+        "attackCount": 6,
         "probability": 1.0
       }
     ]
@@ -811,30 +879,46 @@
       "min": 22,
       "max": 28
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 8,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 9,
+        "probability": 1.0622898116707802e-09
+      },
+      {
+        "attackCount": 10,
         "probability": 0.9936689281949543
-      },
-      {
-        "setCount": 6,
-        "probability": 1.0
       }
     ]
   },
@@ -960,30 +1044,46 @@
       "min": 22,
       "max": 27
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 8,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 9,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 10,
         "probability": 2.450542524456978e-08
-      },
-      {
-        "setCount": 6,
-        "probability": 1.0
       }
     ]
   },
@@ -1138,9 +1238,13 @@
       "min": 116,
       "max": 138
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 2,
         "probability": 1.0
       }
     ]
@@ -1212,41 +1316,41 @@
       "min": 13,
       "max": 16
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 0.0
       },
       {
-        "setCount": 6,
+        "attackCount": 6,
         "probability": 0.0
       },
       {
-        "setCount": 7,
+        "attackCount": 7,
         "probability": 0.02513333037495613
       },
       {
-        "setCount": 8,
+        "attackCount": 8,
         "probability": 0.9999984355354555
       },
       {
-        "setCount": 9,
+        "attackCount": 9,
         "probability": 1.0
       }
     ]
@@ -1322,45 +1426,45 @@
       "min": 14,
       "max": 17
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 0.0
       },
       {
-        "setCount": 6,
+        "attackCount": 6,
         "probability": 0.0
       },
       {
-        "setCount": 7,
+        "attackCount": 7,
         "probability": 0.0
       },
       {
-        "setCount": 8,
+        "attackCount": 8,
         "probability": 0.0
       },
       {
-        "setCount": 9,
+        "attackCount": 9,
         "probability": 0.0
       },
       {
-        "setCount": 10,
+        "attackCount": 10,
         "probability": 0.0
       }
     ]
@@ -1425,33 +1529,33 @@
       "min": 17,
       "max": 21
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 9.5367431640625e-07
       },
       {
-        "setCount": 6,
+        "attackCount": 6,
         "probability": 0.9999740123516432
       },
       {
-        "setCount": 7,
+        "attackCount": 7,
         "probability": 1.0
       }
     ]
@@ -1578,46 +1682,46 @@
       "min": 21,
       "max": 25
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 0.0
       },
       {
-        "setCount": 6,
+        "attackCount": 6,
         "probability": 0.0
       },
       {
-        "setCount": 7,
+        "attackCount": 7,
         "probability": 0.0
       },
       {
-        "setCount": 8,
+        "attackCount": 8,
         "probability": 0.0
       },
       {
-        "setCount": 9,
+        "attackCount": 9,
         "probability": 0.0
       },
       {
-        "setCount": 10,
-        "probability": 0.0027766566415272326
+        "attackCount": 10,
+        "probability": 0.0
       }
     ]
   },
@@ -1734,25 +1838,41 @@
       "min": 27,
       "max": 34
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 5,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 6,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 7,
+        "probability": 0.00027795881032943726
+      },
+      {
+        "attackCount": 8,
         "probability": 0.7597622551288369
       },
       {
-        "setCount": 5,
+        "attackCount": 9,
         "probability": 1.0
       }
     ]
@@ -1880,46 +2000,46 @@
       "min": 21,
       "max": 26
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
         "probability": 0.0
       },
       {
-        "setCount": 3,
+        "attackCount": 3,
         "probability": 0.0
       },
       {
-        "setCount": 4,
+        "attackCount": 4,
         "probability": 0.0
       },
       {
-        "setCount": 5,
+        "attackCount": 5,
         "probability": 0.0
       },
       {
-        "setCount": 6,
+        "attackCount": 6,
         "probability": 0.0
       },
       {
-        "setCount": 7,
+        "attackCount": 7,
         "probability": 0.0
       },
       {
-        "setCount": 8,
+        "attackCount": 8,
         "probability": 0.0
       },
       {
-        "setCount": 9,
+        "attackCount": 9,
         "probability": 0.0
       },
       {
-        "setCount": 10,
-        "probability": 0.08315697212560415
+        "attackCount": 10,
+        "probability": 0.0
       }
     ]
   },
@@ -2018,17 +2138,25 @@
       "min": 55,
       "max": 67
     },
-    "setLethal": [
+    "sequenceLethal": [
       {
-        "setCount": 1,
+        "attackCount": 1,
         "probability": 0.0
       },
       {
-        "setCount": 2,
+        "attackCount": 2,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 3,
+        "probability": 0.0
+      },
+      {
+        "attackCount": 4,
         "probability": 0.5372314453125
       },
       {
-        "setCount": 3,
+        "attackCount": 5,
         "probability": 1.0
       }
     ]

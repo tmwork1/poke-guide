@@ -22,7 +22,7 @@ import {
 	TEN_OR_MORE_LABEL,
 	ZERO_DAMAGE_LABEL,
 	hasOnlyZeroDamages,
-	toSetLethalSeries,
+	readSequenceLethalSeries,
 } from "../damage-summary.ts";
 
 /** 確N判定の重み。severity-bar[data-severity](global.css)の値と対応する。 */
@@ -143,7 +143,7 @@ export function describeStandaloneLethal(damages: number[] | undefined, defender
 /**
  * 技列を繰り返し当て続けた場合の確定数ラベルとseverity。
  * validAttackCount は技名が設定済みの攻撃列の件数(呼び出し側が数えて渡す)。
- * 2件以上なら確定数はセット(技列1巡)単位になる。
+ * 2件以上でも、A→B→A→B…の各技発動を1発として数える。
  *
  * severityも返すのは、これがdescribeSeriesVerdictのnoLethalLabel(=技列1巡では
  * 落ちなかったときのラベル)として使われるため。呼び出し側のdescribeSeriesVerdictは
@@ -164,27 +164,26 @@ export function describeExtendedTotalVerdict(
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
 		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
-	// 技が2枚以上の行は、エンジンが返す setLethal(技列を実際に最大10巡させ、
-	// 各巡の終了時点の致死率を resume_from で繋いだ厳密値)をそのまま使う。
+	// 技が2枚以上の行は、エンジンが返す sequenceLethal(技列を循環させて最大10発当て、
+	// 各発動後の致死率を resume_from で繋いだ厳密値)をそのまま使う。
 	// すなあらし等のターン終了時スリップ・たべのこし等の回復が正しく積み上がるため、
 	// 下の「打点だけを繰り返し当てる」近似より常に優先する。
 	// (damage-summary.ts の describeExtendedNoLethalVerdict と同じ優先順位)
-	const setSeries = toSetLethalSeries(result);
-	if (setSeries) return describeSeriesVerdict(setSeries, TEN_OR_MORE_LABEL);
+	const sequenceSeries = readSequenceLethalSeries(result);
+	if (sequenceSeries) return describeSeriesVerdict(sequenceSeries, TEN_OR_MORE_LABEL);
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) {
 		return { label: TEN_OR_MORE_LABEL, severity: "safe" };
 	}
-	// ここから下は setLethal を持たない古いスナップショット専用のフォールバック。
-	// 複数技の確定数はセット(技列1巡=per.length発)単位で数える(damage-summary.ts の
-	// toSetSeries と同じ取り決め)。最大 MAX_STANDALONE_ATTACKS セットまで、各セットの
-	// 最後の技を当て終えた時点の致死率を系列にする。
+	// ここから下は sequenceLethal を持たない古いスナップショット専用のフォールバック。
+	// 技列を先頭から循環させ、最大 MAX_STANDALONE_ATTACKS 発まで各発動後の致死率を
+	// 系列にする。
 	// ⚠️ この近似はエンジンを呼ばずJS側で打点だけを外挿するため、ターン終了時効果
 	// (すなあらし・どく・たべのこし等)が一切反映されない。
 	const extendedSeries: LethalResult[] = [];
 	let dist = new Map<number, number>([[hp, 1]]);
-	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS * per.length; attack += 1) {
+	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
 		const damages = per[(attack - 1) % per.length];
 		if (Array.isArray(damages) && damages.length > 0) {
 			const next = new Map<number, number>();
@@ -196,11 +195,10 @@ export function describeExtendedTotalVerdict(
 			}
 			dist = next;
 		}
-		if (attack % per.length !== 0) continue;
 		let total = 0;
 		for (const freq of dist.values()) total += freq;
 		const zero = dist.get(0) ?? 0;
-		extendedSeries.push({ attackCount: attack / per.length, probability: total > 0 ? zero / total : 0 });
+		extendedSeries.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
 	}
 	return describeSeriesVerdict(extendedSeries, TEN_OR_MORE_LABEL);
 }

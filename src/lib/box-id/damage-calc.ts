@@ -141,7 +141,6 @@ import {
 	computeCumulativeDamage,
 	hasOnlyZeroDamages,
 	isUnsupportedLethalMove,
-	toSetSeries,
 	type CumulativeDamage,
 } from "../damage-summary";
 // #opponent-notes-sectionのブロック内クロージャに閉じていた純粋関数を切り出したもの。
@@ -1368,10 +1367,10 @@ if (opponentNotesSection) {
 		// "safe"固定になる。技が1枚だけの行の「確2」などがこの経路に入るため、
 		// fallbackのラベルを採用したときはextended側で算出したseverityを使う
 		// (そうしないと確2が3発以上と同じ通常文字色になり、ダークテーマでほぼ白く見える)。
-		// 技が2枚以上の行(加算計算)の確定数はセット(技列1巡)単位で数えるため、
-		// result.lethal は toSetSeries でセット1件ぶんに丸めてから渡す(extended側も同じ単位)。
+		// 加算計算でも、result.lethal は技列の各発動後を1発として数える。
+		// 1巡で倒れない場合はextended側のsequenceLethal(最大10発)へフォールバックする。
 		const extended = describeExtendedTotalVerdict(validAttacks.length, result);
-		const primary = describeSeriesVerdict(toSetSeries(result.lethal, validAttacks.length), extended.label);
+		const primary = describeSeriesVerdict(result.lethal, extended.label);
 		const label = extended.label === ZERO_DAMAGE_LABEL ? extended.label : primary.label;
 		const severity = label === extended.label ? extended.severity : primary.severity;
 		if (hasUnsupported) {
@@ -1614,13 +1613,13 @@ if (opponentNotesSection) {
 				lethal: seqResult.lethal,
 				perAttackLethal,
 				cumulativeDamage: seqResult.cumulativeDamage,
-				// ターン終了時効果込みの累計ダメージと、技列を最大10巡させたときの
-				// セットごとの致死率。どちらもエンジンの厳密値。表示する打点合計には
-				// cumulativeDamageを使い、確定数にはsetLethalを使う。
+				// ターン終了時効果込みの累計ダメージと、技列を循環させて最大10発
+				// 当てた各発動後の致死率。どちらもエンジンの厳密値。表示する打点合計には
+				// cumulativeDamageを使い、確定数にはsequenceLethalを使う。
 				// perAttackLethalと同じ理由でスナップショットに載せる
 				// (ページ再読み込み直後・Pyodide初期化前にも同じ確定数を出すため)。
 				cumulativeNetDamage: seqResult.cumulativeNetDamage,
-				setLethal: seqResult.setLethal,
+				sequenceLethal: seqResult.sequenceLethal,
 				// 技名の右に出す技固有の基礎威力。表示専用だが、ダメージ値と同じく
 				// 再読み込み直後から出せるようスナップショットに含める。
 				perAttackBasePower: seqResult.perAttackBasePower,

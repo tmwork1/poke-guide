@@ -231,49 +231,22 @@ export function formatNoteConditionLine(
 }
 
 /**
- * 攻撃1件ごとの累計致死率系列を「セット」(技列1巡=setSize件)単位に丸める。
- * 加算計算(技が2つ以上)の確定数は「技の総発動回数」ではなく「技列を何巡したか」で
- * 数える取り決めのため、セットの最後の攻撃を当て終えた時点の致死率だけを残し、
- * attackCount をセット番号(1始まり)に振り直す。setSize が 1 ならそのまま返す。
+ * エンジンが返す sequenceLethal(A→B→A…の順に最大10発当てた累計致死率)を、
+ * 保存済みスナップショットから安全に読み出す。
  *
- * エンジンの lethal は確率100%に達した時点で打ち切られ setSize の倍数より短くなり得る
- * (pyodide-engine.ts の CalcLethalSequenceResult.lethal 参照)。その場合、最後の
- * セットは打ち切り位置の値(=100%)で代表させる(セットの途中で確定致死になった=
- * そのセットで確定致死、という意味になる)。damage-calc-helpers.ts もこれを使う。
+ * sequenceLethal を持たない古いスナップショットや、sequentialOnly で計算を
+ * スキップした結果では undefined を返す。呼び出し側はその場合だけ、技ごとの
+ * 打点を同じ順序で最大10発まで繰り返す旧近似へフォールバックする。
  */
-export function toSetSeries<T extends { attackCount: number; probability: number }>(
-	series: T[] | undefined,
-	setSize: number,
-): T[] | undefined {
-	if (!Array.isArray(series) || setSize <= 1) return series;
-	const sets: T[] = [];
-	for (let start = 0; start < series.length; start += setSize) {
-		const last = series[Math.min(start + setSize, series.length) - 1];
-		sets.push({ ...last, attackCount: sets.length + 1 });
-	}
-	return sets;
-}
-
-/**
- * エンジンが返す setLethal(技列1巡=1セットとして最大10セット繰り返したときの、セット
- * ごとの累計致死率。pyodide-engine.ts の CalcLethalSequenceResult.setLethal 参照)を、
- * describeSeriesVerdict がそのまま読める {attackCount, probability} の系列に直す。
- * setCount をそのまま attackCount に移すだけ(複数技の行の確定数はセット単位で数える
- * 取り決めのため、toSetSeries を通した lethal と同じ土俵に乗る)。
- *
- * setLethal を持たない古いスナップショット(サーバに保存済みの client_result)や、
- * sequentialOnly で計算をスキップした結果では undefined を返す。呼び出し側は
- * その場合だけ従来のJS外挿へフォールバックする。
- */
-export function toSetLethalSeries(
+export function readSequenceLethalSeries(
 	result: OpponentClientResultInput,
 ): Array<{ attackCount: number; probability: number }> | undefined {
-	const series = result.setLethal;
+	const series = result.sequenceLethal;
 	if (!Array.isArray(series) || series.length === 0) return undefined;
 	const converted: Array<{ attackCount: number; probability: number }> = [];
 	for (const entry of series) {
-		if (!entry || !Number.isFinite(entry.setCount) || !Number.isFinite(entry.probability)) return undefined;
-		converted.push({ attackCount: entry.setCount, probability: entry.probability });
+		if (!entry || !Number.isFinite(entry.attackCount) || !Number.isFinite(entry.probability)) return undefined;
+		converted.push({ attackCount: entry.attackCount, probability: entry.probability });
 	}
 	return converted;
 }
@@ -296,12 +269,11 @@ function describeSeriesVerdict(
  * 攻撃列の範囲内で確殺に届かなかったときの延長見積り。
  * 優先順位は damage-calc-helpers.ts の describeExtendedTotalVerdict と完全に同じ:
  *   1. 有効な攻撃列が1件だけなら perAttackLethal[0](エンジンの厳密値)。
- *   2. setLethal(エンジンが技列を実際に最大10巡させた厳密値。すなあらし等の
+ *   2. sequenceLethal(エンジンが技列を循環させて最大10発当てた厳密値。すなあらし等の
  *      ターン終了時効果も積み上がる)。
  *   3. どちらも無い古いスナップショットだけ、perAttackDamages を先頭から繰り返し
  *      当てたHP分布での近似(ターン終了時効果が一切入らない)。
- * 複数技のときの確定数はセット(技列1巡)単位(toSetSeries 参照)。最大
- * MAX_STANDALONE_ATTACKS セットまで見る。
+ * 複数技でも確定数は技の発動回数単位。最大 MAX_STANDALONE_ATTACKS 発まで見る。
  */
 function describeExtendedNoLethalVerdict(
 	validAttackCount: number,
@@ -311,14 +283,14 @@ function describeExtendedNoLethalVerdict(
 	if (validAttackCount === 1 && Array.isArray(result.perAttackLethal?.[0])) {
 		return describeSeriesVerdict(result.perAttackLethal[0], TEN_OR_MORE_LABEL);
 	}
-	const setSeries = toSetLethalSeries(result);
-	if (setSeries) return describeSeriesVerdict(setSeries, TEN_OR_MORE_LABEL);
+	const sequenceSeries = readSequenceLethalSeries(result);
+	if (sequenceSeries) return describeSeriesVerdict(sequenceSeries, TEN_OR_MORE_LABEL);
 	const per = result.perAttackDamages;
 	const hp = result.defenderHp;
 	if (!Array.isArray(per) || per.length === 0 || !hp || hp <= 0) return { label: TEN_OR_MORE_LABEL, severity: 'safe' };
 	const extended: Array<{ attackCount: number; probability: number }> = [];
 	let dist = new Map<number, number>([[hp, 1]]);
-	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS * per.length; attack += 1) {
+	for (let attack = 1; attack <= MAX_STANDALONE_ATTACKS; attack += 1) {
 		const damages = per[(attack - 1) % per.length];
 		if (Array.isArray(damages) && damages.length > 0) {
 			const next = new Map<number, number>();
@@ -330,11 +302,10 @@ function describeExtendedNoLethalVerdict(
 			}
 			dist = next;
 		}
-		if (attack % per.length !== 0) continue;
 		let total = 0;
 		for (const freq of dist.values()) total += freq;
 		const zero = dist.get(0) ?? 0;
-		extended.push({ attackCount: attack / per.length, probability: total > 0 ? zero / total : 0 });
+		extended.push({ attackCount: attack, probability: total > 0 ? zero / total : 0 });
 	}
 	return describeSeriesVerdict(extended, TEN_OR_MORE_LABEL);
 }
@@ -440,11 +411,9 @@ export function describeNoteVerdict(
 
 	const damageText = formatCumulativeDamage(valid.length, result);
 	const extended = describeExtendedNoLethalVerdict(valid.length, result);
-	// 複数技の行は lethal(技列1巡ぶん)をセット1件に丸めてから判定する(toSetSeries)。
-	const seriesVerdict = describeSeriesVerdict(
-		toSetSeries(result.lethal, valid.length),
-		extended.label,
-	);
+	// lethal は技列の各発動後を発数単位で持つ。1巡で倒れない場合だけ extended の
+	// sequenceLethal(最大10発)または旧スナップショット向け近似へフォールバックする。
+	const seriesVerdict = describeSeriesVerdict(result.lethal, extended.label);
 	const label = seriesVerdict.label === '-' && extended.label === ZERO_DAMAGE_LABEL
 		? ZERO_DAMAGE_LABEL
 		: seriesVerdict.label;

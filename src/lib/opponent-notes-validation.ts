@@ -152,12 +152,12 @@ export interface OpponentClientResultInput {
   // 倒しきる分岐のオーバーキル(100%超)もそのまま出る。
   // pyodide-engine.tsのCalcLethalSequenceResult.cumulativeNetDamage参照。
   cumulativeNetDamage?: { min: number; max: number };
-  // 技列を1巡=1セットとして最大10セット繰り返したときの、セットごとの累計致死率。
-  // 技列1巡で倒しきれない行の「延長見積り」(あと何巡で倒せるか)に使う。
+  // 技列をA→B→A→B…の順に最大10発まで繰り返したときの、各発動後の累計致死率。
+  // 技列1巡で倒しきれない行の「延長見積り」(あと何発で倒せるか)に使う。
   // 保存する理由はperAttackLethalと同じで、ページ再読み込み直後(Pyodide初期化前)にも
   // スナップショットのまま確定数を表示できるようにするため。
-  // pyodide-engine.tsのCalcLethalSequenceResult.setLethal参照。
-  setLethal?: Array<{ setCount: number; probability: number }>;
+  // pyodide-engine.tsのCalcLethalSequenceResult.sequenceLethal参照。
+  sequenceLethal?: Array<{ attackCount: number; probability: number }>;
   // 攻撃列ごとの技固有の基礎威力(perAttackDamagesと同じく有効な攻撃列の並び順)。
   // 表示専用(ダメージ計算には使わない)だが、ページ再読み込み直後・Pyodide初期化前にも
   // 技名の右へ威力を出せるよう、ダメージ値と一緒にスナップショットへ載せる。

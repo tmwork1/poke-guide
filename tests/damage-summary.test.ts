@@ -356,9 +356,9 @@ test('describeNoteVerdict: 複数技で確殺しない場合は perAttackDamages
 	const v = describeNoteVerdict(attacks, NOTE_KAIRYU.client_result, categoryOf);
 	// 攻撃列(スケイルショット→フレアドライブ)を先頭から繰り返し当てると、
 	// 残りHPは 73〜91 → 51〜72 と減り、3発目(スケイルショット75〜93)で全分岐が致死。
-	// 複数技の確定数はセット(技列1巡=2発)単位なので、3発目=2セット目 → 確2。
-	assert.equal(v.label, '確2');
-	assert.equal(v.severity, 'risky');
+	// 複数技でも技の発動回数で数えるため、A→B→Aの3発目 → 確3。
+	assert.equal(v.label, '確3');
+	assert.equal(v.severity, 'safe');
 	assert.equal(v.detail, '113〜138 (68.1〜83.1%)');
 });
 
@@ -429,11 +429,11 @@ test('describeNoteVerdict: 一撃必殺技には命中率の断りを添える',
 	assert.ok(v.note.includes('命中率30%'));
 });
 
-// --- 延長見積り(setLethal)と打点合計表示 ----------------------------------
+// --- 延長見積り(sequenceLethal)と打点合計表示 -----------------------------
 //
 // すなあらし等のターン終了時効果は jpoke 側の hp_dist にしか現れないため、JS側で
 // perAttackDamages を繰り返し当てる旧近似では一切反映されなかった。エンジンが
-// 技列を実際に最大10巡させた厳密値(setLethal)を致死判定に使う取り決めをここで固定する。
+// 技列を循環させて実際に最大10発当てた厳密値(sequenceLethal)を致死判定に使う。
 //
 // cumulativeNetDamage は「打点の合計 ＋ ターン終了時の増減」であって、HP分布から
 // 引いた「実際に減ったHP」(旧 cumulativeHpLoss)ではない。倒しきる分岐にはターン終了時
@@ -441,54 +441,56 @@ test('describeNoteVerdict: 一撃必殺技には命中率の断りを添える',
 //
 // 一方、表示するダメージ値は回復・スリップを除いた打点合計(cumulativeDamage)を使う。
 
-// 技2枚・1巡では倒れない行。打点だけを外挿する旧近似だと5セット必要だが、
-// すなあらしのスリップまで含めたエンジンの厳密値では3セットで確定する、という想定。
-const RESULT_WITH_SET_LETHAL = {
+// 技2枚・1巡では倒れない行。すなあらしのスリップまで含めたエンジンの厳密値では
+// A→B→A→B→A→Bの6発目で確定する、という想定。
+const RESULT_WITH_SEQUENCE_LETHAL = {
 	defenderHp: 200,
 	lethal: [{ attackCount: 1, probability: 0 }, { attackCount: 2, probability: 0 }],
 	perAttackDamages: [[20, 22], [20, 22]],
 	cumulativeDamage: { min: 40, max: 44 },
 	// 打点40〜44 + すなあらしのスリップ2ターンぶん25 = 65〜69(0でクランプしない累計)。
 	cumulativeNetDamage: { min: 65, max: 69 },
-	setLethal: [
-		{ setCount: 1, probability: 0 },
-		{ setCount: 2, probability: 0 },
-		{ setCount: 3, probability: 1 },
+	sequenceLethal: [
+		{ attackCount: 1, probability: 0 },
+		{ attackCount: 2, probability: 0 },
+		{ attackCount: 3, probability: 0 },
+		{ attackCount: 4, probability: 0 },
+		{ attackCount: 5, probability: 0 },
+		{ attackCount: 6, probability: 1 },
 	],
 };
 
-test('describeNoteVerdict: setLethal があれば旧近似ではなくエンジンの厳密値を使う', () => {
+test('describeNoteVerdict: sequenceLethal があれば旧近似ではなくエンジンの厳密値を使う', () => {
 	const attacks = normalizeNoteAttacks(
 		{ attacks: [{ moveName: 'フレアドライブ' }, { moveName: 'スケイルショット' }] },
 		null,
 	);
-	const v = describeNoteVerdict(attacks, RESULT_WITH_SET_LETHAL, categoryOf);
-	// 打点だけの外挿(20〜22 × 2技)なら200HPを削り切るのに5セットかかるが、
-	// setLethal は3セット目で probability=1 → 確3。
-	assert.equal(v.label, '確3');
-	// 致死判定にはスリップ込みのsetLethalを使うが、表示値は打点だけにする。
+	const v = describeNoteVerdict(attacks, RESULT_WITH_SEQUENCE_LETHAL, categoryOf);
+	// sequenceLethal は6発目で probability=1 → 確6。
+	assert.equal(v.label, '確6');
+	// 致死判定にはスリップ込みのsequenceLethalを使うが、表示値は打点だけにする。
 	assert.equal(v.detail, '40〜44 (20.0〜22.0%)');
 });
 
-test('describeExtendedTotalVerdict: 個体編集画面側も同じ setLethal を同じ優先順位で使う', () => {
-	assert.deepEqual(describeExtendedTotalVerdict(2, RESULT_WITH_SET_LETHAL), {
-		label: '確3',
+test('describeExtendedTotalVerdict: 個体編集画面側も同じ sequenceLethal を同じ優先順位で使う', () => {
+	assert.deepEqual(describeExtendedTotalVerdict(2, RESULT_WITH_SEQUENCE_LETHAL), {
+		label: '確6',
 		severity: 'safe',
 	});
-	// setLethal が無い古いスナップショットだけ、従来のJS外挿へフォールバックする
-	// (200HP ÷ 20〜22 の2技セット = 5セット目で全分岐が致死)。
-	const legacy = { ...RESULT_WITH_SET_LETHAL, setLethal: undefined, cumulativeNetDamage: undefined };
-	assert.deepEqual(describeExtendedTotalVerdict(2, legacy), { label: '確5', severity: 'safe' });
+	// sequenceLethal が無い古いスナップショットだけ、従来のJS外挿へフォールバックする
+	// (200HP ÷ 最小20ダメージ = 10発目で全分岐が致死)。
+	const legacy = { ...RESULT_WITH_SEQUENCE_LETHAL, sequenceLethal: undefined, cumulativeNetDamage: undefined };
+	assert.deepEqual(describeExtendedTotalVerdict(2, legacy), { label: '確10', severity: 'safe' });
 	// 圧縮表示側も同じ結論になること(両者が食い違わないことの固定)。
 	const attacks = normalizeNoteAttacks(
 		{ attacks: [{ moveName: 'フレアドライブ' }, { moveName: 'スケイルショット' }] },
 		null,
 	);
-	assert.equal(describeNoteVerdict(attacks, legacy, categoryOf).label, '確5');
+	assert.equal(describeNoteVerdict(attacks, legacy, categoryOf).label, '確10');
 });
 
 test('formatCumulativeDamage: cumulativeNetDamage があっても打点だけの cumulativeDamage を使う', () => {
-	assert.equal(formatCumulativeDamage(2, RESULT_WITH_SET_LETHAL), '40〜44 (20.0〜22.0%)');
+	assert.equal(formatCumulativeDamage(2, RESULT_WITH_SEQUENCE_LETHAL), '40〜44 (20.0〜22.0%)');
 });
 
 test('formatCumulativeDamage: cumulativeDamage のオーバーキルをHPで頭打ちにしない', () => {
@@ -499,19 +501,19 @@ test('formatCumulativeDamage: cumulativeDamage のオーバーキルをHPで頭�
 		perAttackDamages: [[254, 300]],
 		cumulativeDamage: { min: 254, max: 300 },
 		cumulativeNetDamage: { min: 254, max: 300 },
-		setLethal: [{ setCount: 1, probability: 1 }],
+		sequenceLethal: [{ attackCount: 1, probability: 1 }],
 	};
 	assert.equal(formatCumulativeDamage(1, overkill), '254〜300 (137.3〜162.2%)');
 });
 
 test('computeCumulativeDamage: 回復が打点を上回る cumulativeNetDamage も表示には使わない', () => {
 	// 回復込みの値が負でも、表示するのは回復を除いたcumulativeDamage。
-	const healed = { ...RESULT_WITH_SET_LETHAL, cumulativeNetDamage: { min: -8, max: 4 } };
+	const healed = { ...RESULT_WITH_SEQUENCE_LETHAL, cumulativeNetDamage: { min: -8, max: 4 } };
 	assert.equal(computeCumulativeDamage(2, healed).text, '40〜44 (20.0〜22.0%)');
 });
 
 test('computeCumulativeDamage: cumulativeDamage が無ければ net 値を無視して技の打点を単純加算する', () => {
-	const legacy = { ...RESULT_WITH_SET_LETHAL, cumulativeDamage: undefined };
+	const legacy = { ...RESULT_WITH_SEQUENCE_LETHAL, cumulativeDamage: undefined };
 	assert.equal(computeCumulativeDamage(2, legacy).text, '40〜44 (20.0〜22.0%)');
 });
 
