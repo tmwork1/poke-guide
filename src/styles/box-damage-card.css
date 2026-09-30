@@ -1654,6 +1654,7 @@ body.box-edit-page {
 }
 
 #damage-detail-panel-body .damage-detail-self-item-field {
+  margin-top: var(--damage-detail-space-sm); /* 上の技欄(連続技のヒット数入力)との間隔 */
   margin-bottom: var(--damage-detail-space-xs);
   padding-inline: var(--damage-detail-space-sm); /* パネル端から少し内側へ寄せる */
 }
