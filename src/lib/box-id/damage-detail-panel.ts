@@ -56,6 +56,7 @@ import {
 	DAMAGE_DEFENDER_VOLATILES,
 	clampInt,
 	addAttackColumn,
+	currentMaxColumnsToAdd,
 	buildTeraDropdown,
 } from "./damage-calc";
 // F: 「わざ」タブの相手側テラスタル欄の表示可否は、「相手ポケモン」タブに
@@ -319,7 +320,7 @@ function setSlideDetailPanelTitle(row: DamageRowState, positionIndex: number): v
 		}
 		detailPanelTabsEl.appendChild(tabWrap);
 	});
-	if (row.attacks.length === 1) {
+	if (row.attacks.length < currentMaxColumnsToAdd()) {
 		const addTabWrap = document.createElement("div");
 		addTabWrap.className = "damage-detail-panel-tab-wrap damage-detail-panel-add-tab-wrap";
 		const addTab = document.createElement("button");

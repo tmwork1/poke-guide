@@ -621,9 +621,14 @@ function buildItemDropdown(initialValue: string): ItemDropdownHandle {
 }
 
 let addAttackColumnForRow: ((row: DamageRowState) => void) | null = null;
+let maxColumnsToAddForRow: (() => number) | null = null;
 
 export function addAttackColumn(row: DamageRowState): void {
 	addAttackColumnForRow?.(row);
+}
+
+export function currentMaxColumnsToAdd(): number {
+	return maxColumnsToAddForRow?.() ?? 0;
 }
 
 const opponentNotesSection = document.getElementById("opponent-notes-section");
@@ -773,17 +778,15 @@ if (opponentNotesSection) {
 	const TOTAL_RESULT_HINT =
 		"自分が防御側でたべのこしを持つ場合、ダメージ量から各ターン終了時の回復を差し引いています。" +
 		"どく・やけどなどの継続ダメージは含みません。確Nの判定はそれらも反映した実際の致死率です。";
-	// 技列(加算条件)は最大2つまでしか追加できない(以前は3つまでだったが、3本目の
-	// 加算はほぼ使われないため廃止)。この上限は「追加」操作にのみ効く上限であり、
-	// 既存データを削らない: 過去に保存されたメモが3件以上のattacksを持っていても
+	// 技列(加算条件)は最大3つまで追加できる。以前は2つまでに絞っていたが3つに戻した。
+	// この上限は「追加」操作にのみ効く上限であり、既存データを削らない:
+	// 過去に保存されたメモが4件以上のattacksを持っていても
 	// (サーバ側 opponent-notes-validation.ts のMAX_ATTACK_COUNT=6までは元々許容されている)、
 	// renderColumnsはrow.attacksを全件そのまま描画する(=表示はする)。追加操作を
-	// row.attacks.length>=2で止めるだけなので、3件以上の既存行はカードが少し縦に
+	// row.attacks.length>=3で止めるだけなので、4件以上の既存行はカードが少し縦に
 	// 伸びるが、データが消えたり保存が壊れたりすることはない。
-	const MAX_COLUMNS_TO_ADD_NARROW = 2;
-	function currentMaxColumnsToAdd(): number {
-		return MAX_COLUMNS_TO_ADD_NARROW;
-	}
+	const MAX_COLUMNS_TO_ADD_NARROW = 3;
+	maxColumnsToAddForRow = () => MAX_COLUMNS_TO_ADD_NARROW;
 
 	// 1列 = 技カード1枚。天候・地形・壁・急所・ランク補正・状態異常・テラスタル発動は
 	// すべてこのDamageColumnState(技カードごと)に持たせる。エンジン側は攻撃1件ごとに
@@ -2324,8 +2327,8 @@ if (opponentNotesSection) {
 
 			row.columnsEl!.appendChild(col);
 		});
-		// 技の追加導線は詳細パネルの「＋」(技が1本のときだけ表示)のみ。カード内に
-		// 3本目用の「次の技を追加」ボタンを置いていた時期があったが廃止した。
+		// 技の追加導線は詳細パネルの「＋」(技数が追加上限未満のときだけ表示)のみ。
+		// カード内に「次の技を追加」ボタンを置いていた時期があったが廃止した。
 
 		renderColumnDisplays(row);
 		// 列を作り直すと条件チップの器(.damage-row-condition-chips)も作り直されるため、
