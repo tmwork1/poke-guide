@@ -2644,7 +2644,16 @@ if (opponentNotesSection) {
 			const unchangedOption = document.createElement("option");
 			unchangedOption.value = "";
 			unchangedOption.textContent = "フォルム";
+			// 「フォルム」は未選択時の表示専用。選択肢の一覧にはポケモン名だけを並べ、
+			// 育成画面の現在種族を選ぶと未選択(フォルム変更なし)に戻す。
+			unchangedOption.hidden = true;
 			selfFormSelect.appendChild(unchangedOption);
+			if (alternatives.length > 0) {
+				const currentOption = document.createElement("option");
+				currentOption.value = selfSpeciesName;
+				currentOption.textContent = selfSpeciesName;
+				selfFormSelect.appendChild(currentOption);
+			}
 			for (const entry of alternatives) {
 				const option = document.createElement("option");
 				option.value = entry.name;
@@ -2662,7 +2671,9 @@ if (opponentNotesSection) {
 			}
 		}
 		selfFormSelect.addEventListener("change", () => {
-			row.selfFormName = selfFormSelect.value;
+			const selfSpeciesName = el<HTMLInputElement>("species-name").value.trim();
+			row.selfFormName = selfFormSelect.value === selfSpeciesName ? "" : selfFormSelect.value;
+			selfFormSelect.value = row.selfFormName;
 			selfFormSelect.classList.toggle("is-empty", row.selfFormName === "");
 			syncDetailPanelTotal(row);
 			scheduleRowCalc(row);

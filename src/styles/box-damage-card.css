@@ -1655,6 +1655,7 @@ body.box-edit-page {
 
 #damage-detail-panel-body .damage-detail-self-item-field {
   margin-bottom: var(--damage-detail-space-xs);
+  padding-inline: var(--damage-detail-space-sm); /* パネル端から少し内側へ寄せる */
 }
 
 #damage-detail-panel-body .damage-detail-move-combo {
