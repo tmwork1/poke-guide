@@ -713,6 +713,13 @@ body.box-edit-page {
 		min-height: var(--damage-detail-build-control-height);
 		font-size: var(--damage-detail-font-size-md);
 	}
+	/* 未選択(=育成画面の種族のまま)は他の入力欄のプレースホルダーと同じ淡色にする。 */
+	#damage-detail-panel-body .damage-build-detail-self-form-select.is-empty {
+		color: var(--color-text-muted);
+	}
+	#damage-detail-panel-body .damage-build-detail-self-form-select[hidden] {
+		display: none;
+	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
 		/* C: 旧来の固定幅(4.4em)は「攻撃」「防御」2文字ラベル2つ分には狭すぎ、
 			折り返して縦2つの丸ボタンに見える不具合があった。中央カード側の

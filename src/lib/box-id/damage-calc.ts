@@ -2643,7 +2643,7 @@ if (opponentNotesSection) {
 			selfFormSelect.replaceChildren();
 			const unchangedOption = document.createElement("option");
 			unchangedOption.value = "";
-			unchangedOption.textContent = "変更なし";
+			unchangedOption.textContent = "フォルム";
 			selfFormSelect.appendChild(unchangedOption);
 			for (const entry of alternatives) {
 				const option = document.createElement("option");
@@ -2652,10 +2652,10 @@ if (opponentNotesSection) {
 				selfFormSelect.appendChild(option);
 			}
 			selfFormSelect.value = row.selfFormName;
-			selfFormSelect.disabled = alternatives.length === 0;
-			selfFormSelect.title = alternatives.length === 0
-				? "対戦中に変更できるフォルムはありません"
-				: "この相手との計算で使う自分のフォルム";
+			selfFormSelect.classList.toggle("is-empty", row.selfFormName === "");
+			// 対戦中に変更できるフォルムが無い種族では欄ごと出さない。
+			selfFormSelect.hidden = alternatives.length === 0;
+			selfFormSelect.title = "この相手との計算で使う自分のフォルム";
 			if (hadInvalidSelection) {
 				scheduleRowCalc(row);
 				scheduleRowSave(row);
@@ -2663,6 +2663,7 @@ if (opponentNotesSection) {
 		}
 		selfFormSelect.addEventListener("change", () => {
 			row.selfFormName = selfFormSelect.value;
+			selfFormSelect.classList.toggle("is-empty", row.selfFormName === "");
 			scheduleRowCalc(row);
 			scheduleRowSave(row);
 		});

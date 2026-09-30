@@ -97,6 +97,13 @@ export function getBattleFormOptions(
 		return isCompatibleBattleForm(current, candidate);
 	});
 
+	// 保存種族がメガシンカ(メガガブリアスZ等)なら、メガシンカ前の基本フォルムへ戻せるようにする。
+	if (isMegaForme(current.forme)) {
+		const base = master.find((candidate) => candidate.dexNo === current.dexNo && candidate.forme === null)
+			?? master.find((candidate) => candidate.dexNo === current.dexNo && !isBattleSwitchableForm(candidate));
+		if (base) alternatives.unshift(base);
+	}
+
 	// 保存種族自体が戦闘中フォルムだった場合も、その変化元へ戻して比較できるようにする。
 	if (!isMegaForme(current.forme) && current.forme && BATTLE_FORMES.has(current.forme)) {
 		const sourceForme = sourceFormeFor(current.forme);

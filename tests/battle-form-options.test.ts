@@ -42,6 +42,11 @@ describe('getBattleFormOptions', () => {
     assert.deepEqual(options.map((o) => o.name), ['リザードン', 'メガリザードンY']);
   });
 
+  it('保存種族がメガシンカの場合は、メガシンカ前の基本フォルムを候補に含める', () => {
+    const options = getBattleFormOptions('メガリザードンX', 'リザードナイトX', MASTER, MEGA_STONE_BY_SPECIES);
+    assert.deepEqual(options.map((o) => o.name), ['メガリザードンX', 'リザードン']);
+  });
+
   it('ギルガルドはシールド/ブレードを相互に候補として持つ', () => {
     const fromShield = getBattleFormOptions('ギルガルド(シールド)', '', MASTER, new Map());
     assert.deepEqual(fromShield.map((o) => o.name), ['ギルガルド(シールド)', 'ギルガルド(ブレード)']);
