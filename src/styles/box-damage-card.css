@@ -1642,7 +1642,8 @@ body.box-edit-page {
 
 /* D: 急所固定は、このアプリの標準チェックボックス(global.cssのinput[type="checkbox"])
    +ラベルに変更した(旧: ピル型トグルボタン)。 */
-#damage-detail-panel-body .damage-detail-critical-field {
+#damage-detail-panel-body .damage-detail-critical-field,
+#damage-detail-panel-body .damage-detail-self-item-field {
   display: flex;
   align-items: center;
   gap: var(--damage-detail-space-xs);
@@ -1650,6 +1651,10 @@ body.box-edit-page {
   white-space: nowrap;
   font-size: var(--font-size-sm2);
   cursor: pointer;
+}
+
+#damage-detail-panel-body .damage-detail-self-item-field {
+  margin-bottom: var(--damage-detail-space-xs);
 }
 
 #damage-detail-panel-body .damage-detail-move-combo {

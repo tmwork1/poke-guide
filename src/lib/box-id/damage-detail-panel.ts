@@ -2009,6 +2009,38 @@ export function renderColumnLevelDetailPanel(row: DamageRowState, column: Damage
 	moveEditorGroup.append(moveControls);
 	contentWrap.appendChild(moveEditorGroup);
 
+	// 「自分のもちものなし」: この技だけの条件として保存する(急所と同じトグルスイッチ規格)。
+	// 攻守どちらの向きでも「自分(所持ポケモン)」側のもちものだけを無効化するため、
+	// エンジンへ渡す直前(buildSequenceInputs)で attacker/defenderItemDisabled へ振り分ける。
+	function buildSelfItemDisabledField(): HTMLLabelElement {
+		const field = document.createElement("label");
+		field.className = "damage-detail-self-item-field";
+		const switchWrap = document.createElement("span");
+		switchWrap.className = "toggle-switch";
+		const checkbox = document.createElement("input");
+		checkbox.type = "checkbox";
+		checkbox.className = "toggle-switch-input";
+		checkbox.checked = column.selfItemDisabled;
+		const title = "この技の計算で自分のもちものを無いものとして扱う";
+		checkbox.title = title;
+		checkbox.setAttribute("aria-label", title);
+		checkbox.addEventListener("change", () => {
+			applyToColumnField(() => { column.selfItemDisabled = checkbox.checked; });
+		});
+		const track = document.createElement("span");
+		track.className = "toggle-switch-track";
+		track.setAttribute("aria-hidden", "true");
+		const thumb = document.createElement("span");
+		thumb.className = "toggle-switch-thumb";
+		track.appendChild(thumb);
+		switchWrap.append(checkbox, track);
+		const text = document.createElement("span");
+		text.textContent = "自分のもちものなし";
+		field.append(switchWrap, text);
+		return field;
+	}
+	contentWrap.appendChild(buildSelfItemDisabledField());
+
 	const sidesWrap = document.createElement("div");
 	sidesWrap.className = "damage-detail-sides";
 	const attackerSide = document.createElement("div");

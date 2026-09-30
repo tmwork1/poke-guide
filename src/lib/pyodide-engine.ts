@@ -206,6 +206,10 @@ export interface SequenceAttack {
   moveName: string;
   /** 連続で当てる回数(1〜10。範囲外はPython側でクランプする)。省略時は1 */
   hitCount?: number;
+  /** この攻撃だけ攻撃側のもちものを無効化する。省略時は false */
+  attackerItemDisabled?: boolean;
+  /** この攻撃だけ防御側のもちものを無効化する。省略時は false */
+  defenderItemDisabled?: boolean;
   /** この攻撃だけ急所固定で計算するか。省略時は options.critical にフォールバックする */
   critical?: boolean;
   /** 防御側がステルスロックを1回踏んだ初期HPで計算するか */
@@ -878,7 +882,7 @@ def _resolve_attack_override(card_common_value, per_attack_value):
     return per_attack_value if per_attack_value is not None else card_common_value
 
 
-def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, tera_type_key, types_key, attack):
+def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatiles_key, tera_type_key, types_key, item_disabled_key, attack):
     """base_spec(攻撃側/防御側どちらかのカード共通PokemonSpec dict)に、attack(1攻撃分の
     dict)側のper-attackキー(boosts_key/ailment_key/tera_key/volatiles_key/tera_type_key/types_key。
     呼び出し側が'attackerBoosts'/'attackerAilment'/'attackerTerastallized'/
@@ -894,6 +898,8 @@ def _build_per_attack_spec(base_spec, boosts_key, ailment_key, tera_key, volatil
     spec["volatiles"] = _resolve_attack_override(base_spec.get("volatiles"), attack.get(volatiles_key))
     spec["teraType"] = _resolve_attack_override(base_spec.get("teraType"), attack.get(tera_type_key))
     spec["types"] = attack.get(types_key)
+    if attack.get(item_disabled_key, False):
+        spec["itemName"] = None
     return spec
 
 
@@ -1058,11 +1064,11 @@ def calc_lethal_sequence_json(attacker_spec, defender_spec, attacks, seed, criti
 
             attacker_spec_for_attack = _build_per_attack_spec(
                 attacker_spec, "attackerBoosts", "attackerAilment", "attackerTerastallized",
-                "attackerVolatiles", "attackerTeraType", "attackerTypes", attack
+                "attackerVolatiles", "attackerTeraType", "attackerTypes", "attackerItemDisabled", attack
             )
             defender_spec_for_attack = _build_per_attack_spec(
                 defender_spec, "defenderBoosts", "defenderAilment", "defenderTerastallized",
-                "defenderVolatiles", "defenderTeraType", "defenderTypes", attack
+                "defenderVolatiles", "defenderTeraType", "defenderTypes", "defenderItemDisabled", attack
             )
             # field_spec(カード共通)にattack側のper-attack上書きをマージする。
             # weather/terrain/defenderSideFieldsのいずれも、このBattle専用の

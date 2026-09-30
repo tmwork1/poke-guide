@@ -73,6 +73,9 @@ export function wrapToRange(value: number, min: number, max: number): number {
 export interface DamageColumnState {
 	moveName: string;
 	hitCount: number;
+	// この技の計算中だけ、育成中の「自分」が持つもちものを無いものとして扱う。
+	// 攻守の向きに依存せず「自分」を指すため、エンジンへ渡す直前に attacker/defender へ振り分ける。
+	selfItemDisabled: boolean;
 	critical: boolean;
 	weather: string;
 	terrain: string;
@@ -114,6 +117,8 @@ export interface DamageColumnState {
 export interface DamageRowState {
 	id: string | null;
 	direction: "attack" | "defense";
+	// この相手との計算だけで使う自分の対戦中フォルム。空文字列は育成画面の種族そのまま。
+	selfFormName: string;
 	name: string;
 	nature: string;
 	natureUp: StatKey | null;

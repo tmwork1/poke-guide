@@ -36,12 +36,15 @@ import {
 	loadAbilitiesMap,
 	loadMoveDetailMap,
 	loadPokemonMasterList,
+	loadPokemonCoreDetailMap,
+	loadMegaStoneMap,
 	loadTypesMap,
 	loadTypeChart,
 	type MoveDetail,
 	type MoveCategory,
 	type TypeChart,
 } from "../pokemon-master-data";
+import { getBattleFormOptions } from "./battle-form-options";
 // メガシンカ種族の状態でメガストーン以外のもちものを選んだ際に基本フォルムへ戻す補正
 // (下のapplyRowMegaStoneAutofill周辺)で、育成パネル(pokemon-edit-panel.ts)と同じ
 // 判定・解決ロジックを共用するため、mega-preview-toggle.tsからexportされた関数を使う。
@@ -636,7 +639,18 @@ if (opponentNotesSection) {
 	// 種族確定時の既存イベントを動かす。行の再描画で入力欄が差し替わるため、DOM検索結果を
 	// 持ち続けず WeakMap を更新することで、遅いレスポンスでも古い入力欄を書き換えない。
 	const rowOpponentNameInputs = new WeakMap<DamageRowState, HTMLInputElement>();
+	const rowSelfFormRefreshers = new WeakMap<DamageRowState, () => void>();
 	const rowReadonlyNatureLabelEls = new WeakMap<DamageRowState, Partial<Record<string, HTMLElement>>>();
+	let selfFormData: Awaited<ReturnType<typeof loadSelfFormData>> | null = null;
+	function loadSelfFormData() {
+		return Promise.all([loadPokemonMasterList(), loadMegaStoneMap(), loadPokemonCoreDetailMap()]);
+	}
+	const selfFormDataPromise = loadSelfFormData().then((data) => {
+		selfFormData = data;
+		// 読み込み前に走った計算はフォルム指定を反映できていないため、指定のある行だけ再計算する。
+		for (const row of rows) if (row.selfFormName) scheduleRowCalc(row);
+		return data;
+	});
 	// 相性パネルと同じページ内キャッシュを先に温める。失敗はカード追加の可否に影響させず、
 	// addNewRowAndFocus 側で従来どおり空のカードを残すため、ここでは表示を伴わず握りつぶす。
 	void loadMatchupTargets().catch(() => undefined);
@@ -788,6 +802,7 @@ if (opponentNotesSection) {
 		return {
 			moveName: "",
 			hitCount: 1,
+			selfItemDisabled: false,
 			critical: false,
 			weather: "",
 			terrain: "",
@@ -824,6 +839,7 @@ if (opponentNotesSection) {
 	// 渡す形にする(createEmptyColumnの引数自体は増やさない)。
 	function inheritedColumnDetailDefaults(previous: DamageColumnState): Partial<DamageColumnState> {
 		return {
+			selfItemDisabled: previous.selfItemDisabled,
 			critical: previous.critical,
 			weather: previous.weather,
 			terrain: previous.terrain,
@@ -881,6 +897,7 @@ if (opponentNotesSection) {
 		return {
 			id: null,
 			direction: "attack",
+			selfFormName: "",
 			name: "",
 			nature: "まじめ",
 			natureUp: null,
@@ -980,6 +997,7 @@ if (opponentNotesSection) {
 		const field = (note.field ?? {}) as unknown as OpponentFieldInput;
 		// direction未指定の既存メモは、従来の解釈どおり「この所持ポケモンが攻撃側」とみなす。
 		row.direction = field.direction === "defense" ? "defense" : "attack";
+		row.selfFormName = field.selfFormName ?? "";
 		row.name = build.name ?? "";
 		// 保存済みの性格名からnatureUp/natureDownを正引きして復元する
 		// (いじっぱり→atk上昇/spa下降、等)。
@@ -1032,6 +1050,7 @@ if (opponentNotesSection) {
 			const column = createEmptyColumn(legacyConditions);
 			column.moveName = attack.moveName;
 			column.hitCount = attack.hitCount ?? 1;
+			column.selfItemDisabled = attack.selfItemDisabled ?? false;
 			if (attack.critical !== undefined) column.critical = attack.critical;
 			if (attack.weather !== undefined) column.weather = attack.weather;
 			if (attack.terrain !== undefined) column.terrain = attack.terrain;
@@ -1091,6 +1110,7 @@ if (opponentNotesSection) {
 			.map((a) => ({
 				moveName: a.moveName.trim(),
 				hitCount: a.hitCount,
+				selfItemDisabled: a.selfItemDisabled,
 				critical: a.critical,
 				weather: a.weather,
 				terrain: a.terrain,
@@ -1490,7 +1510,19 @@ if (opponentNotesSection) {
 		// _resolve_move()が技リストに無い技名からMoveを新規生成するため計算できる
 		// (pyodide-engine.tsの_resolve_move参照)。
 		const selfIsAttacker = row.direction !== "defense";
-		const selfSpec = withoutIgnoredBoxDamageItem(buildAttackerSpec());
+		let selfSpec = withoutIgnoredBoxDamageItem(buildAttackerSpec());
+		if (selfFormData) {
+			const [master, megaStoneBySpecies, coreDetails] = selfFormData;
+			const formOptions = getBattleFormOptions(selfSpec.name, selfSpec.itemName ?? "", master, megaStoneBySpecies);
+			const selectedForm = formOptions.find((entry) => entry.name === row.selfFormName);
+			if (selectedForm && selectedForm.name !== selfSpec.name) {
+				selfSpec = {
+					...selfSpec,
+					name: selectedForm.name,
+					abilityName: coreDetails.get(selectedForm.name)?.abilities[0] || undefined,
+				};
+			}
+		}
 		const opponentSpec = withoutIgnoredBoxDamageItem(buildDefenderStatsSpec(row));
 		const attackerSpec = selfIsAttacker ? selfSpec : opponentSpec;
 		const defenderSpec = selfIsAttacker ? opponentSpec : selfSpec;
@@ -1516,6 +1548,8 @@ if (opponentNotesSection) {
 			const defenderTeraAvailable = !!(defenderTeraType || defenderSpec.teraType);
 			return {
 				...a,
+				attackerItemDisabled: a.selfItemDisabled && selfIsAttacker,
+				defenderItemDisabled: a.selfItemDisabled && !selfIsAttacker,
 				attackerTeraType,
 				defenderTeraType,
 				attackerTerastallized: (a.attackerTerastallized ?? false) && attackerTeraAvailable,
@@ -1720,6 +1754,7 @@ if (opponentNotesSection) {
 				direction: row.direction,
 				attacks,
 			};
+			if (row.selfFormName) field.selfFormName = row.selfFormName;
 			const seed = parseSeed(row.seedRaw);
 			if (seed !== undefined) field.seed = seed;
 			// カード並び順(rowSortOrder、上方参照)。保存済み順序の復元と新規追加時の
@@ -2328,7 +2363,7 @@ if (opponentNotesSection) {
 	// 正しい状態を反映できる。
 
 	// 既定以外の条件を短いラベルの配列にする(技列ごとのONチップ表示用)。
-	// 天候・フィールド・壁・急所・ランク補正・状態異常・テラスタル発動のうち、
+	// 天候・フィールド・壁・急所・ランク補正・状態異常・テラスタル発動・自分のもちものなしのうち、
 	// 既定でない値がすべて漏れなくここに出ること。この関数は1つのDamageColumnStateだけを
 	// 見る実装で、カード全体/技ごとを区別する必要はない。
 	// テラスタイプの個別指定(attackerTeraType/defenderTeraType)が未設定のときのフォールバックは、
@@ -2342,10 +2377,13 @@ if (opponentNotesSection) {
 		showTera: boolean,
 		attackerFallbackTeraType: string,
 		defenderFallbackTeraType: string,
+		selfIsAttacker: boolean,
 	): ConditionGroup[] {
 		const attacker: string[] = [];
 		const defender: string[] = [];
 		const field: string[] = [];
+		// selfItemDisabledは「自分」を指す(攻守どちらでも)ため、selfIsAttackerで振り分ける。
+		if (a.selfItemDisabled) (selfIsAttacker ? attacker : defender).push("もちものなし");
 		if (a.critical) attacker.push("急所");
 		if (a.attackerAilment) attacker.push(a.attackerAilment);
 		if (showTera && a.attackerTerastallized) {
@@ -2387,7 +2425,7 @@ if (opponentNotesSection) {
 		const selfIsAttacker = row.direction !== "defense";
 		const attackerFallbackTeraType = selfIsAttacker ? selfTeraTypeValue : row.teraType;
 		const defenderFallbackTeraType = selfIsAttacker ? row.teraType : selfTeraTypeValue;
-		const groups = collectConditionGroups(attack, true, attackerFallbackTeraType, defenderFallbackTeraType);
+		const groups = collectConditionGroups(attack, true, attackerFallbackTeraType, defenderFallbackTeraType, selfIsAttacker);
 		container.hidden = groups.length === 0;
 		groups.forEach((group) => {
 			if (group.label) {
@@ -2584,6 +2622,53 @@ if (opponentNotesSection) {
 		detailDefenseOption.textContent = "守";
 		detailDirectionToggle.append(detailAttackOption, detailDefenseOption);
 		detailIdentityRow.appendChild(detailDirectionToggle);
+
+		// この相手との計算だけで使う「自分」の対戦中フォルム。候補はマスターの
+		// forme/dexNoから作り、メガシンカだけは現在のもちものが対応ストーンのときに限る。
+		const selfFormSelect = document.createElement("select");
+		selfFormSelect.className = "damage-build-detail-self-form-select";
+		selfFormSelect.setAttribute("aria-label", "自分のフォルム");
+		let selfFormRequestToken = 0;
+		async function refreshSelfFormOptions(): Promise<void> {
+			const token = ++selfFormRequestToken;
+			const [master, megaStoneBySpecies] = await selfFormDataPromise;
+			if (token !== selfFormRequestToken) return;
+			const selfSpeciesName = el<HTMLInputElement>("species-name").value.trim();
+			const selfItemName = el<HTMLInputElement>("item").value.trim();
+			const options = getBattleFormOptions(selfSpeciesName, selfItemName, master, megaStoneBySpecies);
+			const alternatives = options.filter((entry) => entry.name !== selfSpeciesName);
+			const selectedIsValid = alternatives.some((entry) => entry.name === row.selfFormName);
+			const hadInvalidSelection = row.selfFormName !== "" && !selectedIsValid;
+			if (hadInvalidSelection) row.selfFormName = "";
+			selfFormSelect.replaceChildren();
+			const unchangedOption = document.createElement("option");
+			unchangedOption.value = "";
+			unchangedOption.textContent = "変更なし";
+			selfFormSelect.appendChild(unchangedOption);
+			for (const entry of alternatives) {
+				const option = document.createElement("option");
+				option.value = entry.name;
+				option.textContent = entry.name;
+				selfFormSelect.appendChild(option);
+			}
+			selfFormSelect.value = row.selfFormName;
+			selfFormSelect.disabled = alternatives.length === 0;
+			selfFormSelect.title = alternatives.length === 0
+				? "対戦中に変更できるフォルムはありません"
+				: "この相手との計算で使う自分のフォルム";
+			if (hadInvalidSelection) {
+				scheduleRowCalc(row);
+				scheduleRowSave(row);
+			}
+		}
+		selfFormSelect.addEventListener("change", () => {
+			row.selfFormName = selfFormSelect.value;
+			scheduleRowCalc(row);
+			scheduleRowSave(row);
+		});
+		rowSelfFormRefreshers.set(row, () => { void refreshSelfFormOptions(); });
+		detailIdentityRow.appendChild(selfFormSelect);
+		void refreshSelfFormOptions();
 
 		// 既存の input/change の副作用(プリセット、特性、保存、再計算など)は全てここへ
 		// 集約されているため、表示はボタンへ変えても値の受け渡し用inputは維持する。
@@ -3295,13 +3380,17 @@ if (opponentNotesSection) {
 	});
 	// 自分が防御側のとき、たべのこしの有無は加算表示にも直接効く。持ち物選択は
 	// input/changeを発火させるが、ここでは入力時だけを拾って既存のデバウンスへ集約する。
-	el<HTMLInputElement>("item").addEventListener("input", scheduleAllRowsCalc);
+	el<HTMLInputElement>("item").addEventListener("input", () => {
+		for (const row of rows) rowSelfFormRefreshers.get(row)?.();
+		scheduleAllRowsCalc();
+	});
 	// 育成パネルの種族確定で #ability の候補・値がJSから再構築される経路。
 	// 初期復元では監視を開始せず、ユーザーの species change 後の最初の再構築だけを見るため、
 	// 保存済みカードを開いただけで自動入力が走ることはない。
 	const selfSpeciesInput = document.getElementById("species-name") as HTMLInputElement | null;
 	const selfAbilitySelect = document.getElementById("ability") as HTMLSelectElement | null;
 	selfSpeciesInput?.addEventListener("change", () => {
+		for (const row of rows) rowSelfFormRefreshers.get(row)?.();
 		if (!selfAbilitySelect) return;
 		const observer = new MutationObserver(() => {
 			observer.disconnect();

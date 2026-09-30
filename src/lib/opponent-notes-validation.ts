@@ -37,6 +37,8 @@ export interface OpponentBuildInput {
 export interface OpponentAttackInput {
   moveName: string;
   hitCount?: number;
+  // 技ごとに、攻守どちらにいる場合でも所持ポケモン側のもちものだけを無効化する。
+  selfItemDisabled?: boolean;
   critical?: boolean;
   stealthRock?: boolean;
   defenderDisguiseBroken?: boolean;
@@ -118,6 +120,8 @@ export interface OpponentFieldInput {
   // つまり「attacker は常に所持ポケモン」ではない点に注意すること(将来この意味を誤解しないため、
   // ここに明記する)。省略時は既存データ互換のため 'attack' 相当として扱う。
   direction?: 'attack' | 'defense';
+  // この行だけで使う所持ポケモンの対戦中フォルム。未指定は育成画面の種族そのまま。
+  selfFormName?: string;
   // ##### カードの並び順(ダメージ計算カード) #####
   // opponent_notes テーブルには並び順を保持するカラムが存在しない(created_at DESCで
   // 一覧取得している)ため、この field(jsonb)に分数キー方式(fractional indexing)で
@@ -235,6 +239,7 @@ const OPPONENT_FIELD_KEYS = new Set([
   'defenderTeraType',
   'attacks',
   'direction',
+  'selfFormName',
   'order',
 ]);
 
@@ -278,6 +283,7 @@ function isAttacksArray(value: unknown): value is OpponentAttackInput[] {
       if (typeof v.hitCount !== 'number' || !Number.isInteger(v.hitCount)) return false;
       if (v.hitCount < MIN_HIT_COUNT || v.hitCount > MAX_HIT_COUNT) return false;
     }
+    if (v.selfItemDisabled !== undefined && typeof v.selfItemDisabled !== 'boolean') return false;
     if (v.critical !== undefined && typeof v.critical !== 'boolean') return false;
     if (v.stealthRock !== undefined && typeof v.stealthRock !== 'boolean') return false;
     if (v.defenderDisguiseBroken !== undefined && typeof v.defenderDisguiseBroken !== 'boolean') return false;
@@ -402,6 +408,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     defenderTeraType,
     attacks,
     direction,
+    selfFormName,
     order,
   } = value;
 
@@ -454,6 +461,9 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
   if (direction !== undefined && !VALID_DIRECTIONS.has(direction as string)) {
     return { ok: false, error: 'field.direction must be "attack" or "defense"' };
   }
+  if (selfFormName !== undefined && typeof selfFormName !== 'string') {
+    return { ok: false, error: 'field.selfFormName must be a string' };
+  }
   // order は分数キー方式のため小数を許容する(Number.isIntegerではなくNumber.isFiniteで検証)。
   if (order !== undefined && (typeof order !== 'number' || !Number.isFinite(order))) {
     return { ok: false, error: 'field.order must be a finite number' };
@@ -480,6 +490,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     result.attacks = (attacks as OpponentAttackInput[]).map((attack) => {
       const normalized: OpponentAttackInput = { moveName: attack.moveName.trim() };
       if (attack.hitCount !== undefined) normalized.hitCount = attack.hitCount;
+      if (attack.selfItemDisabled !== undefined) normalized.selfItemDisabled = attack.selfItemDisabled;
       if (attack.critical !== undefined) normalized.critical = attack.critical;
       if (attack.stealthRock !== undefined) normalized.stealthRock = attack.stealthRock;
       if (attack.defenderDisguiseBroken !== undefined) normalized.defenderDisguiseBroken = attack.defenderDisguiseBroken;
@@ -505,6 +516,7 @@ function validateOpponentField(value: unknown): { ok: true; value: OpponentField
     });
   }
   if (direction !== undefined) result.direction = direction as 'attack' | 'defense';
+  if (selfFormName !== undefined) result.selfFormName = selfFormName.trim();
   if (order !== undefined) result.order = order;
   return { ok: true, value: result };
 }
