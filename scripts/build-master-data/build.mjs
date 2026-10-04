@@ -93,6 +93,50 @@ function buildAutocomplete() {
   run(jpokePython, [extractScript, jpokeSrcDir, autocompleteOutDir, detailOutDir]);
 }
 
+// jpoke の learnset には実戦で使われている技の欠落がある。OP.GG で採用が確認できた技を
+// config/opgg-learnset-supplement.json(scripts/opgg/update-learnset-supplement.mjs が蓄積)から
+// detail/pokemon.json へ合流させ、以降の派生ファイル(learnset シャード・learnsets.json 等)すべてに反映する。
+// jpoke 側が後から収録した技は「収録済み」としてログに出すので、補完ファイルの掃除や jpoke への還元の目安にする。
+function applyOpggLearnsetSupplement() {
+  console.log('\n=== OP.GG 採用技で learnset を補完 ===');
+  const supplementPath = path.join(repoRoot, 'config', 'opgg-learnset-supplement.json');
+  if (!existsSync(supplementPath)) {
+    console.log('補完ファイルが無いためスキップしました');
+    return;
+  }
+  const detailPath = path.join(detailOutDir, 'pokemon.json');
+  const entries = JSON.parse(readFileSync(detailPath, 'utf-8'));
+  const moveNames = new Set(JSON.parse(readFileSync(path.join(detailOutDir, 'moves.json'), 'utf-8')).map(({ name }) => name));
+  const supplement = JSON.parse(readFileSync(supplementPath, 'utf-8')).pokemon ?? {};
+  const byName = new Map(entries.map((entry) => [entry.name, entry]));
+  let added = 0;
+  const alreadyLearnable = [];
+  for (const [name, moves] of Object.entries(supplement)) {
+    const entry = byName.get(name);
+    if (!entry) {
+      console.warn(`警告: learnset 補完の種族名がマスターデータにありません: ${name}`);
+      continue;
+    }
+    const learnset = new Set(entry.learnset ?? []);
+    for (const move of moves) {
+      if (!moveNames.has(move)) {
+        console.warn(`警告: learnset 補完の技名がマスターデータにありません: ${name} / ${move}`);
+      } else if (learnset.has(move)) {
+        alreadyLearnable.push(`${name} / ${move}`);
+      } else {
+        learnset.add(move);
+        added += 1;
+      }
+    }
+    entry.learnset = [...learnset];
+  }
+  writeFileSync(detailPath, JSON.stringify(entries), 'utf-8');
+  console.log(`learnset に ${added} 件の技を補完しました`);
+  if (alreadyLearnable.length) {
+    console.log(`jpoke 側で収録済みの補完技(補完ファイルから削除可): ${alreadyLearnable.join('、')}`);
+  }
+}
+
 // detail/pokemon.json は learnset(覚え技)が全体の約79%を占めて1.6MBあるが、
 // 種族値・タイプ・特性しか要らない画面(プレビュー・すばやさ表・特性select等)の方が多い。
 // learnset を落とした派生 detail/pokemon-core.json を出し、そちらを既定の取得先にする。
@@ -278,6 +322,7 @@ function main() {
   console.log(`jpoke python: ${jpokePython}`);
 
   buildAutocomplete();
+  applyOpggLearnsetSupplement();
   buildPokemonCoreDetail();
   buildTypeChartDetail();
   buildPokemonLearnsets();

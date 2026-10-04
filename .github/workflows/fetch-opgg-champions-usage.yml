@@ -1,10 +1,22 @@
 name: Fetch OP.GG champions usage
 
+# OP.GG の使用率を Cloudflare KV へ公開し、続けて jpoke の learnset に無い採用技を
+# config/opgg-learnset-supplement.json へ追記する。補完に差分があれば main へ直接commit&pushし、
+# Cloudflare の自動デプロイで learnset に反映される(push 方式は jpoke-sync.yml に合わせる)。
+# 補完側のステップが失敗しても、使用率の KV 公開は先に終わっているので影響しない。
+
 on:
   schedule:
     # 19:00 UTC = JST 4:00。wrangler.jsonc の Cloudflare Cron Trigger (18:00 UTC) と時間帯を分ける。
     - cron: '0 19 * * *'
   workflow_dispatch:
+
+concurrency:
+  group: fetch-opgg-champions-usage
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   fetch:
@@ -17,7 +29,33 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Fetch OP.GG champions usage
-        run: npm run fetch:opgg-champions-usage
+        run: npm run fetch:opgg-champions-usage -- --moves-out .tmp-opgg-moves.json
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python build frontend
+        # vendor/jpoke (scripts/build-master-data) の wheel ビルドに `python -m build` を使う。
+        run: pip install build
+      - name: Build master data
+        run: npm run build:master-data
+      - name: Update learnset supplement
+        run: node scripts/opgg/update-learnset-supplement.mjs .tmp-opgg-moves.json
+
+      - name: Commit and push to main
+        run: |
+          if git diff --quiet config/opgg-learnset-supplement.json; then
+            echo "learnset 補完に差分なし"
+            exit 0
+          fi
+          git diff config/opgg-learnset-supplement.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add config/opgg-learnset-supplement.json
+          git commit -m "chore(master-data): OP.GG 採用技で learnset 補完を更新" \
+            -m "fetch-opgg-champions-usage ワークフローが自動追記。誤った技が入っていれば config/opgg-learnset-supplement.json から削除する。"
+          git pull --rebase origin main
+          git push origin HEAD:main

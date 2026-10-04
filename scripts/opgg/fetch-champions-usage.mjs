@@ -15,16 +15,18 @@ const LABEL = { moves: 'わざ', items: '持ち物', abilities: '特性', nature
 const EVS = [['hp', 'HP'], ['attack', 'こうげき'], ['defense', 'ぼうぎょ'], ['specialAttack', 'とくこう'], ['specialDefense', 'とくぼう'], ['speed', 'すばやさ']];
 
 function options(argv) {
-  const result = { limit: Infinity, delayMs: 350, season: null, local: false };
+  const result = { limit: Infinity, delayMs: 350, season: null, local: false, movesOut: null };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--help' || flag === '-h') {
-      console.log('Usage: npm run fetch:opgg-champions-usage -- [--local] [--season id] [--limit n] [--delay-ms n]');
+      console.log('Usage: npm run fetch:opgg-champions-usage -- [--local] [--season id] [--limit n] [--delay-ms n] [--moves-out path]');
+      console.log('--moves-out writes { pokemon: { name: [move...] } } for scripts/opgg/update-learnset-supplement.mjs.');
       console.log('--local uses Miniflare local KV (OPGG_USAGE) and does not require Cloudflare credentials.');
       console.log('Without --local, requires CLOUDFLARE_API_TOKEN (Workers KV Storage:Edit) and CLOUDFLARE_ACCOUNT_ID.');
       process.exit(0);
     }
     if (flag === '--local') { result.local = true; continue; }
+    if (flag === '--moves-out') { result.movesOut = argv[++i]; if (!result.movesOut) throw new Error('--moves-out requires a path'); continue; }
     const key = { '--season': 'season', '--limit': 'limit', '--delay-ms': 'delayMs' }[flag];
     const value = argv[++i];
     if (!key || !value) throw new Error('Invalid option: ' + flag);
@@ -180,5 +182,7 @@ async function main() {
   await storage.putJson('current', { schemaVersion: 1, manifestVersion: pending.version, publishedAt });
   await storage.delete(pendingKey);
   console.log('Published ' + found.length + ' Pokemon records as ' + pending.version + '.');
+  // learnset 補完(scripts/opgg/update-learnset-supplement.mjs)用に採用技だけを書き出す。KV 公開とは独立させ、補完側の失敗で使用率公開を止めない。
+  if (config.movesOut) { await writeFile(config.movesOut, JSON.stringify({ pokemon: Object.fromEntries(listPokemon.map(({ name, single }) => [name, (single.moves ?? []).map((move) => move.name)])) }), 'utf8'); console.log('Wrote OP.GG moves to ' + config.movesOut + '.'); }
 }
 main().catch((error) => { console.error('Collection failed: ' + error.message); process.exitCode = 1; });

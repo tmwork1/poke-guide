@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "description": "jpoke の learnset に無いが OP.GG で採用されている技。scripts/opgg/update-learnset-supplement.mjs が和集合で追記し(毎日の fetch-opgg-champions-usage ワークフローで自動実行)、npm run build:master-data が learnset へ合流させる。手で追記してもよい。",
+  "pokemon": {}
+}
