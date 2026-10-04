@@ -2665,7 +2665,7 @@ if (opponentNotesSection) {
 			}
 			selfFormSelect.value = row.selfFormName;
 			selfFormSelect.classList.toggle("is-empty", row.selfFormName === "");
-			// 対戦中に変更できるフォルムが無い種族では欄ごと出さない。
+			// 対戦中に変更できるフォルムが無い種族では欄を隠す(場所はCSSで確保したまま)。
 			selfFormSelect.hidden = alternatives.length === 0;
 			selfFormSelect.title = "この相手との計算で使う自分のフォルム";
 			if (hadInvalidSelection) {

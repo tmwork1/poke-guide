@@ -717,8 +717,11 @@ body.box-edit-page {
 	#damage-detail-panel-body .damage-build-detail-self-form-select.is-empty {
 		color: var(--color-text-muted);
 	}
+	/* 変更できるフォルムが無い種族でも、親の2列グリッドのセルは確保したまま隠し、
+		後続の相手ポケモン・特性・もちもの等の配置が種族によって変わらないようにする。 */
 	#damage-detail-panel-body .damage-build-detail-self-form-select[hidden] {
-		display: none;
+		display: block;
+		visibility: hidden;
 	}
 	#damage-detail-panel-body .damage-build-detail-direction-toggle {
 		/* C: 旧来の固定幅(4.4em)は「攻撃」「防御」2文字ラベル2つ分には狭すぎ、
