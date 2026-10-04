@@ -50,7 +50,7 @@
  *   --local-storage <key=value> UIを操作せず、撮影用contextの初期設定を入れる
  *   --eval <js>         --click 等の操作後、撮る前にページ内で式を評価する(複数指定可、指定順。
  *                       Promiseを返せばawaitする)。ファイル選択のようにクリックでは到達できない
- *                       UI状態(例: OCR結果ダイアログをダミー結果で開く window.openGameScreenOcrDemo())
+ *                       UI状態
  *                       を撮るためのオプトイン。--click と同じく安全と確認済みの処理だけに使うこと。
  *   --wait-ms <ms>      操作後の非同期描画を待ってから撮る
  *   --wait <selector>   撮る前に待つ要素

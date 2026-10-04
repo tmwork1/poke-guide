@@ -53,7 +53,7 @@
  *                       `sel@x,y=dx,dy` で要素内の開始点を指定(負値は右/下端からの相対)
  *   --swipe <sel=dx,dy> 指(タッチ)でフリック。横スクロールが指で動くかの検証
  *   --fill <sel=value>  入力欄を埋める
- *   --file <sel=path>   file input にローカルファイルを渡す(change が飛ぶ。ゲーム画面OCRの検証用)
+ *   --file <sel=path>   file input にローカルファイルを渡す(change が飛ぶ)
  *   --press <sel=Key>   キー送出(例 `input.search=Enter`)。`sel=` を省くとページ全体へ
  *   --hover <sel>       ホバー
  *   --hold <sel=ms>     マウスで長押し(押下→ms待つ→離す)。長押しUIの検証用
@@ -62,7 +62,7 @@
  *   --wait <sel>        その要素が出るまで待つ
  *   --wait-ms <n>       n ミリ秒待つ
  *   --goto <path>       同じ context のまま別画面へ遷移する(sessionStorage/Cookie を持ち越して
- *                       次画面の挙動を見る用。ゲーム画面OCRの /box → /box/new の受け渡し検証など)
+ *                       次画面の挙動を見る用)
  *   --run <js>          操作の途中でJSを評価する(戻り値は捨てる)。`--eval` は全操作の後に
  *                       まとめて評価されるので、--goto の前に sessionStorage を仕込む等はこちら
  *   --mark <label>      --cls の計測をここで区切る(以降の揺れを別フェーズとして集計)。

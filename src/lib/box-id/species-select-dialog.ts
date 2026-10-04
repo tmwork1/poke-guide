@@ -45,7 +45,3 @@ triggerButton.addEventListener("click", () => requestSettingsModal({ kind: "spec
 document.addEventListener("box-settings:open", (event) => {
 	if ((event as CustomEvent<{ kind?: string }>).detail?.kind === "species") void dialog.open();
 });
-document.addEventListener("game-screen-ocr:select-species", (event) => {
-	const name = (event as CustomEvent<{ name?: string }>).detail?.name;
-	if (name) selectSpecies(name);
-});

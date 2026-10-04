@@ -7,8 +7,6 @@
 		"node": ">=22.15.0"
 	},
 	"scripts": {
-		"postinstall": "npm run copy:tesseract-assets",
-		"copy:tesseract-assets": "node scripts/copy-tesseract-assets.mjs",
 		"dev": "astro dev --host",
 		"shot": "node scripts/shot.mjs",
 		"probe": "node scripts/probe.mjs",
@@ -53,8 +51,7 @@
 		"@supabase/supabase-js": "^2.0.0",
 		"astro": "^7.0.6",
 		"html-to-image": "^1.11.13",
-		"pg": "^8.10.0",
-		"tesseract.js": "^7.0.0"
+		"pg": "^8.10.0"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.61.1",
