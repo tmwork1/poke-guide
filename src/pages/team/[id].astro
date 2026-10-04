@@ -1736,6 +1736,7 @@ if (!isGuestNewMode) {
 							selectedCandidatePokemon = null;
 							renderFormationMobile();
 							assignToSlot(p, targetSlot);
+							clearFormationSearchIfAssigned(p);
 						} else if (selectedCandidatePokemon?.id === p.id) {
 							selectedCandidatePokemon = null;
 							renderFormationMobile();
@@ -1743,12 +1744,14 @@ if (!isGuestNewMode) {
 							// 空き枠がある間は、既存どおり1タップで次の空き枠へ即配置する
 							// (選択待ちにすると、空きから組み立てる通常操作が2タップになってしまう)。
 							assignToSlot(p);
+							clearFormationSearchIfAssigned(p);
 						} else {
 							// 空き枠が無い(6枠すべて埋まっている)ときだけ、候補を選択状態にして
 							// 後続のチーム枠タップで入れ替え先を選べるようにする(要件: ボックス
 							// カード→チームの順のタップでも入れ替えを行う)。
 							selectedCandidatePokemon = p;
 							selectedFormationSlot = null;
+							formationMobileSearchInput.value = "";
 							renderFormationMobile();
 						}
 					});
@@ -1772,6 +1775,14 @@ if (!isGuestNewMode) {
 				}
 				formationMobileBoxGrid.appendChild(formationMobileAddButton);
 				updateAutoBuildButtonState();
+			}
+
+			// 検索で絞り込んだ候補から編成したら、次の候補を探せるよう絞り込みを解除する。
+			// 重複チェック等で配置されなかった場合は、選び直せるよう絞り込みを残す。
+			function clearFormationSearchIfAssigned(p: OwnedPokemonRecord): void {
+				if (!formationMobileSearchInput.value || !isCurrentMember(p.id)) return;
+				formationMobileSearchInput.value = "";
+				renderFormationCandidateList();
 			}
 
 			function renderFormationMobile(): void {
